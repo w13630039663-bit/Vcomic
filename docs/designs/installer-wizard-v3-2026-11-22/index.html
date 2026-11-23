@@ -1,0 +1,2231 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VComic 桌面端安装器 · 原生云母玻璃方案稿</title>
+  <style>
+    :root {
+      --accent: #0A63F6;
+      --accent-hover: #0854D6;
+      --accent-soft: rgba(10, 99, 246, 0.10);
+      --accent-glow: rgba(10, 99, 246, 0.22);
+
+      --canvas-bg: #EEF2F7;
+      --window-bg: rgba(249, 251, 254, 0.78);
+      --window-border: rgba(255, 255, 255, 0.85);
+      --window-outer-ring: rgba(15, 23, 42, 0.08);
+      --window-shadow: 0 24px 64px -16px rgba(15, 23, 42, 0.16), 0 4px 16px rgba(15, 23, 42, 0.06);
+
+      --surface: rgba(255, 255, 255, 0.72);
+      --surface-elevated: rgba(255, 255, 255, 0.90);
+      --surface-subtle: rgba(15, 23, 42, 0.035);
+      --surface-hover: rgba(15, 23, 42, 0.06);
+      --border-subtle: rgba(15, 23, 42, 0.08);
+      --border-strong: rgba(15, 23, 42, 0.14);
+
+      --text-primary: #0F172A;
+      --text-secondary: #475569;
+      --text-tertiary: #64748B;
+
+      --badge-bg: rgba(10, 99, 246, 0.09);
+      --badge-text: #0A63F6;
+      --upgrade-bg: rgba(245, 158, 11, 0.12);
+      --upgrade-text: #B45309;
+      --upgrade-border: rgba(245, 158, 11, 0.24);
+      --danger: #EF4444;
+      --danger-hover: #DC2626;
+      --danger-soft: rgba(239, 68, 68, 0.12);
+      --danger-border: rgba(239, 68, 68, 0.26);
+      --success: #10B981;
+      --success-soft: rgba(16, 185, 129, 0.12);
+      --scrim: rgba(15, 23, 42, 0.28);
+
+      --orb-1: rgba(10, 99, 246, 0.16);
+      --orb-2: rgba(56, 189, 248, 0.14);
+      --orb-3: rgba(99, 102, 241, 0.10);
+
+      --icon-surface: #FFFFFF;
+      --icon-stroke: #0F172A;
+      --icon-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(15, 23, 42, 0.06);
+
+      --toolbar-bg: rgba(255, 255, 255, 0.84);
+      --toolbar-border: rgba(15, 23, 42, 0.09);
+
+      /* 同心圆圆角：Outer 20 = Inner 12 + Padding 8 */
+      --radius-window: 20px;
+      --radius-card: 12px;
+      --radius-control: 8px;
+      --radius-pill: 999px;
+
+      /* 动效常量 */
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+      --ease-press: cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    html[data-theme="dark"] {
+      --accent: #0A84FF;
+      --accent-hover: #2E96FF;
+      --accent-soft: rgba(10, 132, 255, 0.16);
+      --accent-glow: rgba(10, 132, 255, 0.30);
+
+      --canvas-bg: #090C12;
+      --window-bg: rgba(22, 27, 36, 0.78);
+      --window-border: rgba(255, 255, 255, 0.11);
+      --window-outer-ring: rgba(0, 0, 0, 0.55);
+      --window-shadow: 0 28px 72px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.04);
+
+      --surface: rgba(34, 41, 54, 0.68);
+      --surface-elevated: rgba(42, 50, 66, 0.85);
+      --surface-subtle: rgba(255, 255, 255, 0.045);
+      --surface-hover: rgba(255, 255, 255, 0.08);
+      --border-subtle: rgba(255, 255, 255, 0.09);
+      --border-strong: rgba(255, 255, 255, 0.16);
+
+      --text-primary: #F1F5F9;
+      --text-secondary: #94A3B8;
+      --text-tertiary: #64748B;
+
+      --badge-bg: rgba(10, 132, 255, 0.16);
+      --badge-text: #60A5FA;
+      --upgrade-bg: rgba(245, 158, 11, 0.14);
+      --upgrade-text: #FBBF24;
+      --upgrade-border: rgba(245, 158, 11, 0.25);
+      --danger: #F87171;
+      --danger-hover: #EF4444;
+      --danger-soft: rgba(248, 113, 113, 0.15);
+      --danger-border: rgba(248, 113, 113, 0.28);
+      --success: #34D399;
+      --success-soft: rgba(52, 211, 153, 0.14);
+      --scrim: rgba(0, 0, 0, 0.52);
+
+      --orb-1: rgba(10, 132, 255, 0.20);
+      --orb-2: rgba(56, 189, 248, 0.12);
+      --orb-3: rgba(99, 102, 241, 0.14);
+
+      --icon-surface: #FFFFFF;
+      --icon-stroke: #0F172A;
+      --icon-shadow: 0 14px 36px -6px rgba(0, 0, 0, 0.50), 0 0 0 1px rgba(255, 255, 255, 0.16);
+
+      --toolbar-bg: rgba(24, 30, 40, 0.86);
+      --toolbar-border: rgba(255, 255, 255, 0.10);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 72px 20px 32px;
+      background: var(--canvas-bg);
+      color: var(--text-primary);
+      font-family: "Microsoft YaHei UI", "Segoe UI Variable", "Segoe UI", "PingFang SC", system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      transition: background-color 240ms ease, color 240ms ease;
+    }
+
+    /* 顶部悬浮预览调试条 */
+    .preview-toolbar {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 14px;
+      background: var(--toolbar-bg);
+      border: 1px solid var(--toolbar-border);
+      backdrop-filter: blur(20px);
+      box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
+      flex-wrap: wrap;
+      max-width: calc(100vw - 24px);
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .toolbar-sep {
+      width: 1px;
+      height: 18px;
+      background: var(--border-subtle);
+      margin: 0 4px;
+    }
+
+    .toolbar-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      padding: 0 6px 0 4px;
+      letter-spacing: 0.02em;
+    }
+
+    .tb-btn {
+      height: 28px;
+      padding: 0 10px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: background-color 140ms ease, color 140ms ease, transform 120ms var(--ease-press);
+    }
+
+    .tb-btn:hover {
+      background: var(--surface-subtle);
+      color: var(--text-primary);
+    }
+
+    .tb-btn.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .tb-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* 主安装器窗口（640x440 居中紧凑窗） */
+    .installer-window {
+      position: relative;
+      width: 640px;
+      max-width: 100%;
+      min-height: 440px;
+      border-radius: var(--radius-window);
+      background: var(--window-bg);
+      backdrop-filter: blur(36px) saturate(150%);
+      -webkit-backdrop-filter: blur(36px) saturate(150%);
+      border: 1px solid var(--window-border);
+      box-shadow: var(--window-shadow), 0 0 0 1px var(--window-outer-ring);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: background-color 240ms ease, border-color 240ms ease, box-shadow 240ms ease;
+    }
+
+    /* 环境光层：缓慢漂移 6s / 呼吸 10s */
+    .ambient-layer {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .ambient-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(56px);
+      will-change: transform, opacity;
+    }
+
+    .ambient-orb.orb-drift {
+      width: 340px;
+      height: 340px;
+      top: -110px;
+      left: -60px;
+      background: radial-gradient(circle, var(--orb-1) 0%, transparent 70%);
+      animation: ambient-drift 6s ease-in-out infinite alternate;
+    }
+
+    .ambient-orb.orb-breathe {
+      width: 360px;
+      height: 360px;
+      bottom: -130px;
+      right: -70px;
+      background: radial-gradient(circle, var(--orb-2) 0%, var(--orb-3) 45%, transparent 72%);
+      animation: ambient-breathe 10s ease-in-out infinite alternate;
+    }
+
+    @keyframes ambient-drift {
+      0% { transform: translate3d(0px, 0px, 0) scale(1); }
+      100% { transform: translate3d(72px, 34px, 0) scale(1.06); }
+    }
+
+    @keyframes ambient-breathe {
+      0% { transform: scale(0.92); opacity: 0.72; }
+      100% { transform: scale(1.12); opacity: 1; }
+    }
+
+    /* 窗口顶部极简标题栏 */
+    .win-titlebar {
+      position: relative;
+      z-index: 5;
+      height: 40px;
+      padding: 0 14px 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .win-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: opacity 260ms var(--ease-out), transform 260ms var(--ease-out);
+    }
+
+    .installer-window[data-stage="ready"] .win-meta,
+    .installer-window[data-stage="installing"] .win-meta,
+    .installer-window[data-stage="done"] .win-meta,
+    .installer-window[data-stage="migration"] .win-meta,
+    .installer-window[data-stage="conflict"] .win-meta,
+    .installer-window[data-stage="error"] .win-meta,
+    .installer-window[data-stage="uninstall"] .win-meta {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .win-meta-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .win-meta-text {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+    }
+
+    .win-controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .win-ctrl-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-control);
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 140ms ease, color 140ms ease, transform 120ms var(--ease-press);
+    }
+
+    .win-ctrl-btn:hover {
+      background: var(--surface-hover);
+      color: var(--text-primary);
+    }
+
+    .win-ctrl-btn.close:hover {
+      background: rgba(239, 68, 68, 0.14);
+      color: #EF4444;
+    }
+
+    .win-ctrl-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* 主内容画布 */
+    .stage-container {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0 28px 24px;
+      min-height: 400px;
+    }
+
+    /* ============================================================
+       品牌头（兼顾 Splash 居中绽放 -> 300ms 收拢至主界面顶部）
+       ============================================================ */
+    .brand-hero {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      /* Splash 居中态：占据中间位置 */
+      padding-top: 76px;
+      padding-bottom: 16px;
+      transition: padding 300ms var(--ease-out), transform 300ms var(--ease-out), opacity 220ms ease;
+    }
+
+    /* 收拢进主界面态（300ms） */
+    .installer-window.settled .brand-hero {
+      padding-top: 4px;
+      padding-bottom: 14px;
+    }
+
+    /* 安装中、完成与扩展全屏态隐藏顶部大品牌头，让位给居中舞台 */
+    .installer-window[data-stage="installing"] .brand-hero,
+    .installer-window[data-stage="done"] .brand-hero,
+    .installer-window[data-stage="migration"] .brand-hero,
+    .installer-window[data-stage="conflict"] .brand-hero,
+    .installer-window[data-stage="error"] .brand-hero,
+    .installer-window[data-stage="uninstall"] .brand-hero {
+      display: none;
+    }
+
+    .brand-lockup {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      transition: flex-direction 300ms var(--ease-out), gap 300ms var(--ease-out), transform 300ms var(--ease-out);
+    }
+
+    .installer-window.settled .brand-lockup {
+      flex-direction: row;
+      gap: 14px;
+    }
+
+    .icon-badge {
+      width: 76px;
+      height: 76px;
+      border-radius: 20px;
+      background: var(--icon-surface);
+      box-shadow: var(--icon-shadow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: width 300ms var(--ease-out), height 300ms var(--ease-out), border-radius 300ms var(--ease-out);
+    }
+
+    .installer-window.settled .icon-badge {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+    }
+
+    .vcomic-svg {
+      width: 52px;
+      height: 52px;
+      transition: width 300ms var(--ease-out), height 300ms var(--ease-out);
+    }
+
+    .installer-window.settled .vcomic-svg {
+      width: 36px;
+      height: 36px;
+    }
+
+    /* 31 片生长动画 */
+    .vcomic-piece {
+      opacity: 0;
+      transform-box: fill-box;
+      transform-origin: center;
+      transform: scale(0.4);
+    }
+
+    .installer-window.growing .vcomic-piece {
+      animation: piece-grow 240ms var(--ease-out) forwards;
+      animation-delay: var(--d, 0ms);
+    }
+
+    .installer-window.grown .vcomic-piece {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .vcomic-final-mark {
+      opacity: 0;
+      transition: opacity 160ms ease;
+    }
+
+    .installer-window.grown .vcomic-final-mark {
+      opacity: 1;
+    }
+
+    @keyframes piece-grow {
+      0% {
+        opacity: 0;
+        transform: scale(0.35);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    /* 字标出现：300ms 放大淡入 */
+    .brand-copy {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: align-items 300ms var(--ease-out), text-align 300ms var(--ease-out);
+    }
+
+    .installer-window.settled .brand-copy {
+      align-items: flex-start;
+      text-align: left;
+    }
+
+    .wordmark-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      transform: scale(0.92);
+      transform-origin: center;
+    }
+
+    .installer-window.wordmark-in .wordmark-row,
+    .installer-window.settled .wordmark-row {
+      animation: wordmark-pop 300ms var(--ease-out) forwards;
+    }
+
+    .installer-window.settled .wordmark-row {
+      animation: none;
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    @keyframes wordmark-pop {
+      0% {
+        opacity: 0;
+        transform: scale(0.92);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .brand-title {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      line-height: 1.2;
+      transition: font-size 300ms var(--ease-out);
+    }
+
+    .installer-window.settled .brand-title {
+      font-size: 20px;
+    }
+
+    .version-pill {
+      height: 20px;
+      padding: 0 7px;
+      border-radius: var(--radius-pill);
+      background: var(--badge-bg);
+      color: var(--badge-text);
+      font-size: 11px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .brand-subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 280ms var(--ease-out), transform 280ms var(--ease-out);
+    }
+
+    .installer-window.wordmark-in .brand-subtitle {
+      transition-delay: 120ms;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .installer-window.settled .brand-subtitle {
+      transition-delay: 0ms;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ============================================================
+       阶段面板通用控制
+       ============================================================ */
+    .stage-panel {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .installer-window[data-stage="ready"].settled .stage-ready {
+      display: flex;
+      animation: panel-fade-in 300ms var(--ease-out) forwards;
+    }
+
+    .installer-window[data-stage="installing"] .stage-installing {
+      display: flex;
+      animation: panel-fade-in 260ms var(--ease-out) forwards;
+    }
+
+    .installer-window[data-stage="done"] .stage-done {
+      display: flex;
+      animation: panel-fade-in 260ms var(--ease-out) forwards;
+    }
+
+    .installer-window[data-stage="migration"] .stage-migration,
+    .installer-window[data-stage="conflict"] .stage-conflict,
+    .installer-window[data-stage="error"] .stage-error,
+    .installer-window[data-stage="uninstall"] .stage-uninstall {
+      display: flex;
+      animation: panel-fade-in 260ms var(--ease-out) forwards;
+    }
+
+    @keyframes panel-fade-in {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ============================================================
+       准备安装幕（Ready）
+       ============================================================ */
+    .upgrade-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      border-radius: var(--radius-card);
+      background: var(--upgrade-bg);
+      border: 1px solid var(--upgrade-border);
+      color: var(--upgrade-text);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .installer-window[data-install-mode="upgrade"] .upgrade-banner {
+      display: flex;
+    }
+
+    .upgrade-banner-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ready-summary-card {
+      padding: 16px;
+      border-radius: var(--radius-card);
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .summary-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .summary-item-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .summary-item-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .path-preview-tag {
+      max-width: 280px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding: 5px 10px;
+      border-radius: var(--radius-control);
+      background: var(--surface-subtle);
+      border: 1px solid var(--border-subtle);
+      font-family: "Cascadia Mono", "Consolas", monospace;
+      font-size: 11.5px;
+      color: var(--text-secondary);
+    }
+
+    /* 300ms 目录面板展开容器 */
+    .options-drawer-wrap {
+      display: grid;
+      grid-template-rows: 0fr;
+      opacity: 0;
+      margin-top: 0;
+      transition: grid-template-rows 300ms var(--ease-out), opacity 240ms var(--ease-out), margin-top 300ms var(--ease-out);
+    }
+
+    .options-drawer-wrap.open {
+      grid-template-rows: 1fr;
+      opacity: 1;
+      margin-top: 12px;
+    }
+
+    .options-drawer-inner {
+      overflow: hidden;
+    }
+
+    .options-drawer-card {
+      padding: 14px 16px;
+      border-radius: var(--radius-card);
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .field-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .space-hint {
+      font-weight: 400;
+      color: var(--text-tertiary);
+    }
+
+    .path-input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .path-input {
+      flex: 1;
+      height: 34px;
+      padding: 0 11px;
+      border-radius: var(--radius-control);
+      border: 1px solid var(--border-strong);
+      background: var(--surface-elevated);
+      color: var(--text-primary);
+      font-family: "Cascadia Mono", "Consolas", monospace;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 140ms ease, box-shadow 140ms ease;
+    }
+
+    .path-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .check-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .check-item input {
+      accent-color: var(--accent);
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+
+    .data-note {
+      font-size: 11.5px;
+      color: var(--text-tertiary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding-top: 4px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .ready-actions {
+      margin-top: auto;
+      padding-top: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    /* 按钮体系（按压 120ms, 0.97） */
+    .btn {
+      height: 38px;
+      padding: 0 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      border: 1px solid transparent;
+      transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease, transform 120ms var(--ease-press);
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #FFFFFF;
+      box-shadow: 0 4px 14px var(--accent-glow);
+      min-width: 148px;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      border-color: var(--border-subtle);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: var(--surface-hover);
+      border-color: var(--border-strong);
+    }
+
+    .btn-sm {
+      height: 34px;
+      padding: 0 14px;
+      border-radius: var(--radius-control);
+      font-size: 12.5px;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      padding: 0 12px;
+    }
+
+    .btn-ghost:hover {
+      background: var(--surface-subtle);
+      color: var(--text-primary);
+    }
+
+    .chevron-icon {
+      transition: transform 300ms var(--ease-out);
+    }
+
+    .btn-ghost[aria-expanded="true"] .chevron-icon {
+      transform: rotate(180deg);
+    }
+
+    /* ============================================================
+       安装进行中幕（Installing）
+       - 2s 纵向 ±33 浮动插画
+       - 6s 三幕轮播（1s 入 / 4s 持 / 1s 出）
+       - 12s 单调曲线进度推进
+       ============================================================ */
+    .installing-stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding-top: 6px;
+    }
+
+    .carousel-viewport {
+      position: relative;
+      height: 274px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      /* 预留充足上下净空，容纳 ±33px 浮动不被裁切 */
+      overflow: visible;
+    }
+
+    /* 外层独立浮动层：2s 纵向 ±33 */
+    .float-rig {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      will-change: transform;
+      animation: float-y33 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes float-y33 {
+      0% { transform: translateY(-33px); }
+      100% { transform: translateY(33px); }
+    }
+
+    /* 三幕轮播容器：与浮动层解耦 */
+    .slide-track {
+      position: relative;
+      width: 100%;
+      height: 196px;
+    }
+
+    .slide-card {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* 6s 单幕动画：1s 入 (0%->16.67%) / 4s 持 (16.67%->83.33%) / 1s 出 (83.33%->100%) */
+    .slide-card.is-active {
+      pointer-events: auto;
+      animation: slide-6s 6000ms linear forwards;
+    }
+
+    @keyframes slide-6s {
+      0% {
+        opacity: 0;
+        transform: translateY(10px) scale(0.97);
+      }
+      16.67% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+      83.33% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.98);
+      }
+    }
+
+    .slide-illus {
+      width: 204px;
+      height: 120px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .slide-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .slide-desc {
+      margin-top: 4px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* 三幕指示点 */
+    .slide-dots {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .slide-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 99px;
+      background: var(--border-strong);
+      transition: width 260ms var(--ease-out), background-color 260ms ease;
+    }
+
+    .slide-dot.active {
+      width: 18px;
+      background: var(--accent);
+    }
+
+    /* 底部 12s 单调进度区 */
+    .progress-block {
+      padding: 12px 14px;
+      border-radius: var(--radius-card);
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .progress-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12.5px;
+    }
+
+    .progress-status {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .progress-pct {
+      color: var(--accent);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .progress-track {
+      height: 6px;
+      border-radius: 99px;
+      background: var(--surface-subtle);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--accent) 0%, #38BDF8 100%);
+      will-change: width;
+    }
+
+    /* ============================================================
+       安装完成幕（Done）
+       ============================================================ */
+    .stage-done {
+      justify-content: space-between;
+      padding-top: 24px;
+    }
+
+    .done-hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 10px;
+    }
+
+    .done-badge {
+      width: 64px;
+      height: 64px;
+      border-radius: 18px;
+      background: var(--success-soft);
+      border: 1px solid rgba(16, 185, 129, 0.28);
+      color: var(--success);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 12px 28px -8px rgba(16, 185, 129, 0.25);
+    }
+
+    .done-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-top: 4px;
+    }
+
+    .done-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .done-summary {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: var(--radius-card);
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 12.5px;
+    }
+
+    .done-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .done-row-label {
+      color: var(--text-secondary);
+    }
+
+    .done-row-val {
+      color: var(--text-primary);
+      font-weight: 500;
+      font-family: "Cascadia Mono", "Consolas", monospace;
+      font-size: 11.5px;
+    }
+
+    .done-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 16px;
+    }
+
+    /* ============================================================
+       扩展态通用布局（旧版迁移 / 进程冲突 / 安装失败 / 卸载修复）
+       ============================================================ */
+    .ext-stage {
+      justify-content: space-between;
+      padding-top: 18px;
+    }
+
+    .ext-hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 10px;
+    }
+
+    .state-badge {
+      width: 60px;
+      height: 60px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .state-badge.warn {
+      background: var(--upgrade-bg);
+      border: 1px solid var(--upgrade-border);
+      color: var(--upgrade-text);
+    }
+
+    .state-badge.danger {
+      background: var(--danger-soft);
+      border: 1px solid var(--danger-border);
+      color: var(--danger);
+    }
+
+    .state-badge.accent {
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-glow);
+      color: var(--accent);
+    }
+
+    .ext-title {
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-top: 2px;
+    }
+
+    .ext-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      max-width: 440px;
+      line-height: 1.5;
+    }
+
+    .ext-card {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: var(--radius-card);
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 12.5px;
+    }
+
+    .ext-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      padding-top: 16px;
+    }
+
+    .ext-actions.split {
+      justify-content: space-between;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: #FFFFFF;
+    }
+
+    .btn-danger:hover {
+      background: var(--danger-hover);
+    }
+
+    /* 失败原因切换胶囊 */
+    .reason-pills {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .reason-pill {
+      height: 26px;
+      padding: 0 10px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border-subtle);
+      background: var(--surface);
+      color: var(--text-secondary);
+      font-size: 11.5px;
+      cursor: pointer;
+      transition: all 140ms ease, transform 120ms var(--ease-press);
+    }
+
+    .reason-pill.active {
+      background: var(--danger-soft);
+      border-color: var(--danger-border);
+      color: var(--danger);
+      font-weight: 600;
+    }
+
+    .reason-pill:active {
+      transform: scale(0.97);
+    }
+
+    /* 卸载 / 修复双选项卡片 */
+    .maint-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .maint-option {
+      padding: 14px;
+      border-radius: var(--radius-card);
+      background: var(--surface);
+      border: 1.5px solid var(--border-subtle);
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: border-color 150ms ease, background-color 150ms ease, transform 120ms var(--ease-press);
+    }
+
+    .maint-option:hover {
+      background: var(--surface-hover);
+    }
+
+    .maint-option.selected {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .maint-option.selected-danger {
+      border-color: var(--danger);
+      background: var(--danger-soft);
+    }
+
+    .maint-option:active {
+      transform: scale(0.97);
+    }
+
+    .maint-opt-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .maint-opt-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+    }
+
+    /* 中途取消确认内嵌毛玻璃弹层 */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      background: var(--scrim);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 220ms var(--ease-out);
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      width: 380px;
+      max-width: 100%;
+      padding: 20px;
+      border-radius: 16px;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border-strong);
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.28);
+      transform: scale(0.95);
+      transition: transform 240ms var(--ease-out);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .modal-overlay.open .modal-card {
+      transform: scale(1);
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .modal-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .modal-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    /* 底部规格角标 */
+    .spec-caption {
+      margin-top: 14px;
+      font-size: 11.5px;
+      color: var(--text-tertiary);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 顶部悬浮预览调试条 -->
+  <div class="preview-toolbar" role="toolbar" aria-label="方案稿预览控制">
+    <div class="toolbar-group">
+      <span class="toolbar-label">主流程</span>
+      <button class="tb-btn active" data-nav="splash">启动</button>
+      <button class="tb-btn" data-nav="ready">选项</button>
+      <button class="tb-btn" data-nav="installing">安装中</button>
+      <button class="tb-btn" data-nav="done">完成</button>
+    </div>
+    <div class="toolbar-sep"></div>
+    <div class="toolbar-group">
+      <span class="toolbar-label">扩展态</span>
+      <button class="tb-btn" data-nav="migration">旧版迁移</button>
+      <button class="tb-btn" data-nav="conflict">进程冲突</button>
+      <button class="tb-btn" id="btn-cancel-modal">取消弹窗</button>
+      <button class="tb-btn" data-nav="error">安装失败</button>
+      <button class="tb-btn" data-nav="uninstall">修复/卸载</button>
+    </div>
+    <div class="toolbar-sep"></div>
+    <div class="toolbar-group">
+      <button class="tb-btn" id="btn-replay">重播</button>
+      <button class="tb-btn" id="btn-theme">切换深色</button>
+      <button class="tb-btn" id="btn-mode">首次安装态</button>
+    </div>
+  </div>
+
+  <!-- 安装器主体窗口（640x440 居中聚焦紧凑窗） -->
+  <main class="installer-window" id="installerWindow" data-stage="splash" data-install-mode="fresh">
+    <!-- 6s 漂移 / 10s 呼吸环境光层 -->
+    <div class="ambient-layer" aria-hidden="true">
+      <div class="ambient-orb orb-drift"></div>
+      <div class="ambient-orb orb-breathe"></div>
+    </div>
+
+    <!-- 极简窗口标题栏 -->
+    <header class="win-titlebar">
+      <div class="win-meta">
+        <span class="win-meta-dot"></span>
+        <span class="win-meta-text">VComic 安装程序 · 2.1.1</span>
+      </div>
+      <div class="win-controls">
+        <button class="win-ctrl-btn" title="最小化" aria-label="最小化">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2.5 6H9.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button class="win-ctrl-btn close" title="关闭" aria-label="关闭">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="stage-container">
+      <!-- 品牌头：31 片生长 + 300ms 字标放大淡入 + 300ms 收拢进主界面 -->
+      <section class="brand-hero">
+        <div class="brand-lockup">
+          <div class="icon-badge">
+            <!-- 项目定稿「圆笔 V + 摊开书」31 片矢量解构图形（由 JS 精确校验并注入 31 片） -->
+            <svg class="vcomic-svg" id="vcomicLogoSvg" viewBox="0 0 100 100" fill="none" aria-label="VComic 图标"></svg>
+          </div>
+          <div class="brand-copy">
+            <div class="wordmark-row">
+              <h1 class="brand-title">VComic</h1>
+              <span class="version-pill">v2.1.1</span>
+            </div>
+            <p class="brand-subtitle">开源跨源桌面漫画阅读器</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 第二幕：准备安装（Ready） -->
+      <section class="stage-panel stage-ready" aria-label="安装选项">
+        <div class="upgrade-banner">
+          <div class="upgrade-banner-left">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M8 5V8.5M8 11H8.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span>检测到已安装旧版本，本次将覆盖升级并保留全部数据与设置</span>
+          </div>
+          <span>安全升级</span>
+        </div>
+
+        <div class="ready-summary-card">
+          <div class="summary-row">
+            <div>
+              <div class="summary-item-title">目标安装目录</div>
+              <div class="summary-item-desc">免管理员权限安装至当前用户目录</div>
+            </div>
+            <div class="path-preview-tag" id="pathPreviewTag">%LOCALAPPDATA%\venera-desktop</div>
+          </div>
+          <div class="summary-row">
+            <div>
+              <div class="summary-item-title">数据隔离说明</div>
+              <div class="summary-item-desc">收藏与阅读记录独立存放，升级或卸载不受影响</div>
+            </div>
+            <span class="version-pill">独立存储</span>
+          </div>
+        </div>
+
+        <!-- 300ms 目录面板展开 -->
+        <div class="options-drawer-wrap" id="optionsDrawer">
+          <div class="options-drawer-inner">
+            <div class="options-drawer-card">
+              <div>
+                <div class="field-label">
+                  <span>安装路径</span>
+                  <span class="space-hint">所需 184 MB · 可用 128.4 GB</span>
+                </div>
+                <div class="path-input-row">
+                  <input class="path-input" id="installPathInput" type="text" value="C:\Users\Administrator\AppData\Local\venera-desktop" />
+                  <button class="btn btn-secondary btn-sm" id="btnBrowsePath" type="button">浏览…</button>
+                </div>
+              </div>
+              <div class="check-row">
+                <label class="check-item">
+                  <input type="checkbox" checked />
+                  <span>创建桌面快捷方式</span>
+                </label>
+                <label class="check-item">
+                  <input type="checkbox" checked />
+                  <span>添加到开始菜单</span>
+                </label>
+              </div>
+              <div class="data-note">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 1.5L14 4V8.2C14 11.4 11.4 13.9 8 14.5C4.6 13.9 2 11.4 2 8.2V4L8 1.5Z" stroke="currentColor" stroke-width="1.3"/>
+                </svg>
+                <span>用户数据目录固定位于 %LOCALAPPDATA%\venera</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ready-actions">
+          <button class="btn btn-ghost" id="btnToggleOptions" type="button" aria-expanded="false">
+            <span>自定义目录</span>
+            <svg class="chevron-icon" width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button class="btn btn-primary" id="btnStartInstall" type="button">
+            <span id="startInstallText">立即安装</span>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M3.5 8H12.5M9 4.5L12.5 8L9 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- 第三幕：安装进行中（Installing） -->
+      <section class="stage-panel stage-installing" aria-label="正在安装">
+        <div class="installing-stage">
+          <div class="carousel-viewport">
+            <!-- 2s 纵向 ±33 浮动容器 -->
+            <div class="float-rig">
+              <div class="slide-track" id="slideTrack">
+                <!-- 幕 1：多源聚合 -->
+                <article class="slide-card is-active" data-slide="0">
+                  <div class="slide-illus">
+                    <svg width="196" height="114" viewBox="0 0 196 114" fill="none">
+                      <rect x="26" y="22" width="60" height="72" rx="11" fill="var(--surface-elevated)" stroke="var(--border-strong)" stroke-width="1.2"/>
+                      <rect x="35" y="32" width="42" height="24" rx="6" fill="var(--accent-soft)"/>
+                      <rect x="35" y="64" width="32" height="6" rx="3" fill="var(--border-strong)"/>
+                      <rect x="35" y="75" width="22" height="5" rx="2.5" fill="var(--border-subtle)"/>
+
+                      <rect x="110" y="22" width="60" height="72" rx="11" fill="var(--surface-elevated)" stroke="var(--border-strong)" stroke-width="1.2"/>
+                      <rect x="119" y="32" width="42" height="24" rx="6" fill="rgba(56, 189, 248, 0.16)"/>
+                      <rect x="119" y="64" width="34" height="6" rx="3" fill="var(--border-strong)"/>
+                      <rect x="119" y="75" width="24" height="5" rx="2.5" fill="var(--border-subtle)"/>
+
+                      <rect x="64" y="10" width="68" height="92" rx="13" fill="var(--window-bg)" stroke="var(--accent)" stroke-width="1.5"/>
+                      <rect x="74" y="22" width="48" height="36" rx="8" fill="var(--accent-soft)"/>
+                      <path d="M88 40L95 47L109 33" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+                      <rect x="74" y="68" width="48" height="7" rx="3.5" fill="var(--text-primary)" fill-opacity="0.72"/>
+                      <rect x="74" y="81" width="34" height="6" rx="3" fill="var(--text-tertiary)" fill-opacity="0.45"/>
+                    </svg>
+                  </div>
+                  <h2 class="slide-title">多源聚合阅读</h2>
+                  <p class="slide-desc">统一管理图库与漫画源，一处直达</p>
+                </article>
+
+                <!-- 幕 2：沉浸阅读 -->
+                <article class="slide-card" data-slide="1">
+                  <div class="slide-illus">
+                    <svg width="196" height="114" viewBox="0 0 196 114" fill="none">
+                      <rect x="28" y="12" width="140" height="90" rx="14" fill="var(--surface-elevated)" stroke="var(--border-strong)" stroke-width="1.2"/>
+                      <rect x="38" y="22" width="56" height="70" rx="8" fill="var(--surface-subtle)" stroke="var(--border-subtle)"/>
+                      <rect x="102" y="22" width="56" height="70" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-opacity="0.35"/>
+                      <path d="M98 22V92" stroke="var(--border-strong)" stroke-width="1.2" stroke-dasharray="3 3"/>
+                      <rect x="46" y="32" width="40" height="24" rx="5" fill="var(--border-strong)" fill-opacity="0.35"/>
+                      <rect x="46" y="63" width="32" height="5" rx="2.5" fill="var(--border-strong)" fill-opacity="0.5"/>
+                      <rect x="46" y="73" width="24" height="5" rx="2.5" fill="var(--border-subtle)"/>
+                      <rect x="110" y="32" width="40" height="32" rx="6" fill="var(--accent)" fill-opacity="0.24"/>
+                      <rect x="110" y="72" width="34" height="6" rx="3" fill="var(--accent)" fill-opacity="0.55"/>
+                    </svg>
+                  </div>
+                  <h2 class="slide-title">双页沉浸视图</h2>
+                  <p class="slide-desc">高清缩放与快捷键翻页流畅跟手</p>
+                </article>
+
+                <!-- 幕 3：标签筛选检索 -->
+                <article class="slide-card" data-slide="2">
+                  <div class="slide-illus">
+                    <svg width="196" height="114" viewBox="0 0 196 114" fill="none">
+                      <rect x="34" y="16" width="128" height="82" rx="14" fill="var(--surface-elevated)" stroke="var(--border-strong)" stroke-width="1.2"/>
+                      <rect x="46" y="28" width="104" height="22" rx="7" fill="var(--surface-subtle)" stroke="var(--border-subtle)"/>
+                      <circle cx="58" cy="39" r="4.5" stroke="var(--accent)" stroke-width="1.6"/>
+                      <path d="M61.5 42.5L64.5 45.5" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round"/>
+                      <rect x="70" y="36" width="44" height="6" rx="3" fill="var(--border-strong)"/>
+                      <rect x="46" y="58" width="38" height="16" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-opacity="0.4"/>
+                      <rect x="90" y="58" width="42" height="16" rx="8" fill="var(--surface-subtle)" stroke="var(--border-subtle)"/>
+                      <rect x="46" y="80" width="54" height="6" rx="3" fill="var(--border-strong)" fill-opacity="0.45"/>
+                    </svg>
+                  </div>
+                  <h2 class="slide-title">标签筛选检索</h2>
+                  <p class="slide-desc">多维标签组合过滤，快速定位想看的作品</p>
+                </article>
+
+                <!-- 幕 4：本地离线下载 -->
+                <article class="slide-card" data-slide="3">
+                  <div class="slide-illus">
+                    <svg width="196" height="114" viewBox="0 0 196 114" fill="none">
+                      <rect x="42" y="16" width="112" height="82" rx="14" fill="var(--surface-elevated)" stroke="var(--border-strong)" stroke-width="1.2"/>
+                      <rect x="54" y="28" width="88" height="44" rx="9" fill="var(--accent-soft)"/>
+                      <path d="M98 37V57M98 57L90 49M98 57L106 49" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M84 63H112" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+                      <rect x="54" y="80" width="56" height="6" rx="3" fill="var(--border-strong)"/>
+                      <rect x="116" y="80" width="26" height="6" rx="3" fill="var(--accent)" fill-opacity="0.5"/>
+                    </svg>
+                  </div>
+                  <h2 class="slide-title">本地离线缓存</h2>
+                  <p class="slide-desc">支持章节批量下载，断网也可流畅翻阅</p>
+                </article>
+
+                <!-- 幕 5：数据独立 -->
+                <article class="slide-card" data-slide="4">
+                  <div class="slide-illus">
+                    <svg width="196" height="114" viewBox="0 0 196 114" fill="none">
+                      <rect x="46" y="18" width="104" height="78" rx="14" fill="var(--surface-elevated)" stroke="var(--border-strong)" stroke-width="1.2"/>
+                      <path d="M98 31L124 41V59C124 72.5 112.8 82.8 98 86C83.2 82.8 72 72.5 72 59V41L98 31Z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.8" stroke-linejoin="round"/>
+                      <path d="M89 58L95 64L108 51" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="58" cy="30" r="3" fill="var(--border-strong)"/>
+                      <circle cx="138" cy="30" r="3" fill="var(--border-strong)"/>
+                    </svg>
+                  </div>
+                  <h2 class="slide-title">本地数据独立</h2>
+                  <p class="slide-desc">收藏与历史独立保存，升级无忧</p>
+                </article>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="slide-dots" id="slideDots" aria-label="切换介绍页">
+              <span class="slide-dot active" data-dot="0" title="多源聚合阅读"></span>
+              <span class="slide-dot" data-dot="1" title="双页沉浸视图"></span>
+              <span class="slide-dot" data-dot="2" title="标签筛选检索"></span>
+              <span class="slide-dot" data-dot="3" title="本地离线缓存"></span>
+              <span class="slide-dot" data-dot="4" title="本地数据独立"></span>
+            </div>
+
+            <div class="progress-block">
+              <div class="progress-meta">
+                <span class="progress-status" id="progressStatus">正在准备安装环境…</span>
+                <span class="progress-pct" id="progressPct">0%</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" id="progressFill"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 第四幕：安装完成（Done） -->
+      <section class="stage-panel stage-done" aria-label="安装完成">
+        <div class="done-hero">
+          <div class="done-badge">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12.5L9.5 17L19 7.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h2 class="done-title">安装已完成</h2>
+          <p class="done-desc">VComic 2.1.1 已就绪，可立即开启阅读体验</p>
+        </div>
+
+        <div class="done-summary">
+          <div class="done-row">
+            <span class="done-row-label">安装目录</span>
+            <span class="done-row-val" id="donePathVal">%LOCALAPPDATA%\venera-desktop</span>
+          </div>
+          <div class="done-row">
+            <span class="done-row-label">用户数据</span>
+            <span class="done-row-val">%LOCALAPPDATA%\venera（已独立保留）</span>
+          </div>
+        </div>
+
+        <div class="done-actions">
+          <label class="check-item">
+            <input type="checkbox" checked />
+            <span>立即启动 VComic</span>
+          </label>
+          <button class="btn btn-primary" id="btnFinish" type="button">开始使用</button>
+        </div>
+      </section>
+
+      <!-- 扩展态 1：旧版 MSI 迁移确认 -->
+      <section class="stage-panel ext-stage stage-migration" aria-label="旧版 MSI 迁移">
+        <div class="ext-hero">
+          <div class="state-badge warn">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <path d="M12 4L21 19H3L12 4Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>
+              <path d="M12 10V13.5M12 16.5H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h2 class="ext-title">检测到旧版安装</h2>
+          <p class="ext-desc">当前系统已安装旧版 Venera 桌面端（MSI 版），需先卸载旧版再继续安装 VComic 2.1.1</p>
+        </div>
+
+        <div class="ext-card">
+          <div class="done-row">
+            <span class="done-row-label">旧版来源</span>
+            <span class="done-row-val">venera-desktop (Windows Installer)</span>
+          </div>
+          <div class="done-row">
+            <span class="done-row-label">数据迁移</span>
+            <span class="done-row-val">%LOCALAPPDATA%\venera（自动保留，不受影响）</span>
+          </div>
+        </div>
+
+        <div class="ext-actions">
+          <button class="btn btn-secondary" data-nav-action="ready" type="button">取消</button>
+          <button class="btn btn-primary" data-nav-action="installing" type="button">卸载旧版并继续</button>
+        </div>
+      </section>
+
+      <!-- 扩展态 2：进程占用冲突提示 -->
+      <section class="stage-panel ext-stage stage-conflict" aria-label="进程占用提示">
+        <div class="ext-hero">
+          <div class="state-badge accent">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+              <rect x="4" y="5" width="16" height="12" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M8 20H16M12 17V20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h2 class="ext-title">应用正在运行</h2>
+          <p class="ext-desc">检测到 VComic（venera-desktop.exe）仍在运行，请先关闭后再更新文件</p>
+        </div>
+
+        <div class="ext-card">
+          <div class="done-row">
+            <span class="done-row-label">占用进程</span>
+            <span class="done-row-val">venera-desktop.exe · PID 14820</span>
+          </div>
+          <div class="done-row">
+            <span class="done-row-label">处理方式</span>
+            <span class="done-row-val">安全退出主窗口后继续覆写文件</span>
+          </div>
+        </div>
+
+        <div class="ext-actions">
+          <button class="btn btn-secondary" data-nav-action="ready" type="button">暂不安装</button>
+          <button class="btn btn-primary" data-nav-action="installing" type="button">关闭应用并继续</button>
+        </div>
+      </section>
+
+      <!-- 扩展态 3：安装失败 / 异常回退 -->
+      <section class="stage-panel ext-stage stage-error" aria-label="安装失败">
+        <div class="ext-hero">
+          <div class="state-badge danger">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.9"/>
+              <path d="M9 9L15 15M15 9L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h2 class="ext-title" id="errTitle">磁盘空间不足</h2>
+          <p class="ext-desc" id="errDesc">目标磁盘剩余空间不足 184 MB，无法完成组件解压，请清理空间或更换目录</p>
+          <div class="reason-pills" role="tablist" aria-label="模拟失败原因">
+            <button class="reason-pill active" data-err="space" type="button">磁盘不足</button>
+            <button class="reason-pill" data-err="perm" type="button">权限受限</button>
+            <button class="reason-pill" data-err="lock" type="button">文件被占用</button>
+          </div>
+        </div>
+
+        <div class="ext-card">
+          <div class="done-row">
+            <span class="done-row-label">错误代码</span>
+            <span class="done-row-val" id="errCode">ERR_DISK_FULL (0x80070070)</span>
+          </div>
+          <div class="done-row">
+            <span class="done-row-label">数据安全</span>
+            <span class="done-row-val">已自动回滚临时写入，原有数据未改动</span>
+          </div>
+        </div>
+
+        <div class="ext-actions split">
+          <button class="btn btn-ghost" data-nav-action="ready" type="button">更换安装目录</button>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-secondary" data-nav-action="ready" type="button">返回</button>
+            <button class="btn btn-primary" data-nav-action="installing" type="button">重试安装</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 扩展态 4：卸载 / 修复模式 -->
+      <section class="stage-panel ext-stage stage-uninstall" aria-label="修复或卸载">
+        <div class="ext-hero">
+          <div class="state-badge accent">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3V5M12 19V21M4.9 4.9L6.3 6.3M17.7 17.7L19.1 19.1M3 12H5M19 12H21M4.9 19.1L6.3 17.7M17.7 6.3L19.1 4.9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+          </div>
+          <h2 class="ext-title">管理已安装的 VComic</h2>
+          <p class="ext-desc">当前已安装 VComic 2.1.1，请选择需要执行的维护操作</p>
+        </div>
+
+        <div class="maint-grid">
+          <button class="maint-option selected" id="optRepair" type="button">
+            <span class="maint-opt-title">修复程序文件</span>
+            <span class="maint-opt-desc">重新校验并补全运行组件，保留全部设置与收藏</span>
+          </button>
+          <button class="maint-option" id="optRemove" type="button">
+            <span class="maint-opt-title">卸载 VComic</span>
+            <span class="maint-opt-desc">移除程序与快捷方式，保留 %LOCALAPPDATA%\venera 数据</span>
+          </button>
+        </div>
+
+        <div class="ext-actions split">
+          <button class="btn btn-ghost" data-nav-action="ready" type="button">返回安装页</button>
+          <button class="btn btn-primary" id="btnMaintRun" type="button">开始修复</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- 中途取消确认内嵌毛玻璃弹层 -->
+    <div class="modal-overlay" id="cancelModal" role="dialog" aria-modal="true" aria-labelledby="cancelModalTitle">
+      <div class="modal-card">
+        <h3 class="modal-title" id="cancelModalTitle">确认取消安装？</h3>
+        <p class="modal-desc">正在写入桌面核心组件，立即取消将自动清理已生成的临时文件，不会影响现有用户数据。</p>
+        <div class="modal-actions">
+          <button class="btn btn-secondary btn-sm" id="btnKeepInstall" type="button">继续安装</button>
+          <button class="btn btn-danger btn-sm" id="btnConfirmCancel" type="button">取消安装</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <p class="spec-caption">阶段 A 交互式 HTML 方案稿 · 640×440 云母玻璃窗 · 31 片生长 800ms · 浮动 ±33 / 2s · 轮播 6s · 单调进度 12s</p>
+
+  <script>
+    (function () {
+      const winEl = document.getElementById('installerWindow');
+      const svgEl = document.getElementById('vcomicLogoSvg');
+      const navBtns = Array.from(document.querySelectorAll('[data-nav]'));
+      const btnReplay = document.getElementById('btn-replay');
+      const btnTheme = document.getElementById('btn-theme');
+      const btnMode = document.getElementById('btn-mode');
+
+      const btnToggleOptions = document.getElementById('btnToggleOptions');
+      const optionsDrawer = document.getElementById('optionsDrawer');
+      const installPathInput = document.getElementById('installPathInput');
+      const pathPreviewTag = document.getElementById('pathPreviewTag');
+      const donePathVal = document.getElementById('donePathVal');
+      const btnBrowsePath = document.getElementById('btnBrowsePath');
+      const btnStartInstall = document.getElementById('btnStartInstall');
+      const startInstallText = document.getElementById('startInstallText');
+      const btnFinish = document.getElementById('btnFinish');
+
+      const slideCards = Array.from(document.querySelectorAll('.slide-card'));
+      const slideDots = Array.from(document.querySelectorAll('.slide-dot'));
+      const progressFill = document.getElementById('progressFill');
+      const progressPct = document.getElementById('progressPct');
+      const progressStatus = document.getElementById('progressStatus');
+      const winCloseBtn = document.querySelector('.win-ctrl-btn.close');
+      const cancelModal = document.getElementById('cancelModal');
+      const btnCancelModal = document.getElementById('btn-cancel-modal');
+      const btnKeepInstall = document.getElementById('btnKeepInstall');
+      const btnConfirmCancel = document.getElementById('btnConfirmCancel');
+
+      const errTitle = document.getElementById('errTitle');
+      const errDesc = document.getElementById('errDesc');
+      const errCode = document.getElementById('errCode');
+      const reasonPills = Array.from(document.querySelectorAll('.reason-pill'));
+
+      const optRepair = document.getElementById('optRepair');
+      const optRemove = document.getElementById('optRemove');
+      const btnMaintRun = document.getElementById('btnMaintRun');
+      let maintAction = 'repair';
+
+      let splashTimers = [];
+      let progressRafId = null;
+      let slideTimerId = null;
+      let currentSlide = 0;
+
+      /**
+       * 生成项目定稿「圆笔黑 V + 摊开书」的 31 段连续矢量骨架：
+       * - V 字双臂：13 段连续粗圆笔（从底部交汇点向左上 / 右上逐段生长）
+       * - 左摊开书页：9 段连续弧形笔触（从书脊向左翼展开）
+       * - 右摊开书页：9 段连续弧形笔触（从书脊向右翼展开）
+       * 合计精确 31 片；错峰延迟 0..560ms + 单片 240ms = 总计严格 800ms。
+       */
+      function build31LogoPieces() {
+        const ns = 'http://www.w3.org/2000/svg';
+        const pieces = [];
+
+        function addSegment(x1, y1, x2, y2, width, order) {
+          const line = document.createElementNS(ns, 'line');
+          line.setAttribute('x1', x1.toFixed(2));
+          line.setAttribute('y1', y1.toFixed(2));
+          line.setAttribute('x2', x2.toFixed(2));
+          line.setAttribute('y2', y2.toFixed(2));
+          line.setAttribute('stroke', '#0B0D11');
+          line.setAttribute('stroke-width', width.toFixed(1));
+          line.setAttribute('stroke-linecap', 'round');
+          pieces.push({ el: line, order });
+        }
+
+        function sampleCubic(p0, p1, p2, p3, t) {
+          const u = 1 - t;
+          const x = u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0];
+          const y = u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1];
+          return [x, y];
+        }
+
+        // 1. 中央 V 字交汇底座 (1 片) + 左臂 (6 片) + 右臂 (6 片) = 13 片
+        addSegment(50, 56, 50, 56.5, 11.2, 0);
+        for (let i = 0; i < 6; i++) {
+          const t0 = i / 6;
+          const t1 = (i + 1) / 6;
+          const lx0 = 50 + (32.5 - 50) * t0;
+          const ly0 = 56 + (28.5 - 56) * t0;
+          const lx1 = 50 + (32.5 - 50) * t1;
+          const ly1 = 56 + (28.5 - 56) * t1;
+          addSegment(lx0, ly0, lx1, ly1, 10.6, 1 + i * 2);
+
+          const rx0 = 50 + (67.5 - 50) * t0;
+          const ry0 = 56 + (28.5 - 56) * t0;
+          const rx1 = 50 + (67.5 - 50) * t1;
+          const ry1 = 56 + (28.5 - 56) * t1;
+          addSegment(rx0, ry0, rx1, ry1, 10.6, 2 + i * 2);
+        }
+
+        // 2. 左摊开书页弧线 9 段（从书脊中心左侧向最左翼）
+        const leftP0 = [46.5, 68.5];
+        const leftP1 = [40.0, 65.0];
+        const leftP2 = [29.5, 62.0];
+        const leftP3 = [23.0, 64.5];
+        for (let i = 0; i < 9; i++) {
+          const a = sampleCubic(leftP0, leftP1, leftP2, leftP3, i / 9);
+          const b = sampleCubic(leftP0, leftP1, leftP2, leftP3, (i + 1) / 9);
+          addSegment(a[0], a[1], b[0], b[1], 10.2, 13 + i);
+        }
+
+        // 3. 右摊开书页弧线 9 段（从书脊中心右侧向最右翼）
+        const rightP0 = [53.5, 68.5];
+        const rightP1 = [60.0, 65.0];
+        const rightP2 = [70.5, 62.0];
+        const rightP3 = [77.0, 64.5];
+        for (let i = 0; i < 9; i++) {
+          const a = sampleCubic(rightP0, rightP1, rightP2, rightP3, i / 9);
+          const b = sampleCubic(rightP0, rightP1, rightP2, rightP3, (i + 1) / 9);
+          addSegment(a[0], a[1], b[0], b[1], 10.2, 22 + i);
+        }
+
+        // 校验总数严格为 31 片
+        if (pieces.length !== 31) {
+          throw new Error('Expected 31 SVG pieces, got ' + pieces.length);
+        }
+
+        svgEl.innerHTML = '';
+        pieces.forEach(({ el, order }) => {
+          el.classList.add('vcomic-piece');
+          const delayMs = Math.round((order / 30) * 560);
+          el.style.setProperty('--d', `${delayMs}ms`);
+          svgEl.appendChild(el);
+        });
+
+        // 精准原版矢量轮廓（800ms 生长完成后无缝接管，确保零锯齿与中心书脊白缝完整还原）
+        const finalGroup = document.createElementNS(ns, 'g');
+        finalGroup.classList.add('vcomic-final-mark');
+        finalGroup.innerHTML = `
+          <path d="M32.5 28.5 L50 57.5 L67.5 28.5" stroke="#0B0D11" stroke-width="10.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M48.2 72.5 C41.5 68.5 31.5 66.5 23.0 64.5 C21.0 64.0 21.5 60.0 26.0 59.5 C34.5 58.5 42.5 61.0 48.2 65.5 Z" fill="#0B0D11"/>
+          <path d="M51.8 72.5 C58.5 68.5 68.5 66.5 77.0 64.5 C79.0 64.0 78.5 60.0 74.0 59.5 C65.5 58.5 57.5 61.0 51.8 65.5 Z" fill="#0B0D11"/>
+          <path d="M23.0 64.5 C29.5 62.0 40.0 65.0 46.5 68.5" stroke="#0B0D11" stroke-width="9.6" stroke-linecap="round" fill="none"/>
+          <path d="M77.0 64.5 C70.5 62.0 60.0 65.0 53.5 68.5" stroke="#0B0D11" stroke-width="9.6" stroke-linecap="round" fill="none"/>
+          <rect x="48.5" y="64.0" width="3.0" height="12.0" rx="1.5" fill="#FFFFFF"/>
+        `;
+        svgEl.appendChild(finalGroup);
+      }
+
+      function clearAllTimers() {
+        splashTimers.forEach(t => clearTimeout(t));
+        splashTimers = [];
+        if (progressRafId !== null) {
+          cancelAnimationFrame(progressRafId);
+          progressRafId = null;
+        }
+        if (slideTimerId !== null) {
+          clearInterval(slideTimerId);
+          slideTimerId = null;
+        }
+      }
+
+      function updateNavHighlight(stage) {
+        navBtns.forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.nav === stage);
+        });
+      }
+
+      function goToStage(stage, options = { replaySplash: false }) {
+        clearAllTimers();
+        winEl.dataset.stage = stage;
+        updateNavHighlight(stage);
+
+        if (stage === 'splash') {
+          winEl.classList.remove('growing', 'grown', 'wordmark-in', 'settled');
+          // 强制重排以重启 31 片逐段生长动画
+          void winEl.offsetWidth;
+          winEl.classList.add('growing');
+
+          // 800ms：31 片生长完成 -> 触发字标 300ms 放大淡入
+          splashTimers.push(setTimeout(() => {
+            winEl.classList.remove('growing');
+            winEl.classList.add('grown', 'wordmark-in');
+          }, 800));
+
+          // 1250ms：开始 300ms 收拢进主界面（1550ms 完成）
+          splashTimers.push(setTimeout(() => {
+            winEl.dataset.stage = 'ready';
+            winEl.classList.add('settled');
+            updateNavHighlight('ready');
+          }, 1250));
+          return;
+        }
+
+        // 非 Splash 幕直接处于已生长与收拢完毕状态
+        winEl.classList.remove('growing');
+        winEl.classList.add('grown', 'wordmark-in', 'settled');
+
+        if (stage === 'installing') {
+          startInstallingFlow();
+        }
+      }
+
+      function activateSlide(index) {
+        currentSlide = index % slideCards.length;
+        slideCards.forEach((card, i) => {
+          card.classList.remove('is-active');
+          if (i === currentSlide) {
+            void card.offsetWidth;
+            card.classList.add('is-active');
+          }
+        });
+        slideDots.forEach((dot, i) => {
+          dot.classList.toggle('active', i === currentSlide);
+        });
+      }
+
+      /**
+       * 12s 严格单调递增平滑曲线：
+       * f(t) = 0.72 * smoothstep(t) + 0.28 * t
+       * 导数恒 > 0.28，绝不倒退或停滞。
+       */
+      function monotonicEase(t) {
+        const clamped = Math.max(0, Math.min(1, t));
+        const smooth = clamped * clamped * (3 - 2 * clamped);
+        return 0.72 * smooth + 0.28 * clamped;
+      }
+
+      function startInstallingFlow() {
+        activateSlide(0);
+        slideTimerId = setInterval(() => {
+          activateSlide(currentSlide + 1);
+        }, 6000);
+
+        const totalMs = 12000;
+        const startAt = performance.now();
+        const stages = [
+          [0, '正在校验运行环境…'],
+          [18, '正在解压桌面核心组件…'],
+          [48, '正在部署内置图像引擎…'],
+          [76, '正在写入快捷方式与启动项…'],
+          [94, '正在完成收尾校验…']
+        ];
+
+        function tick(now) {
+          if (winEl.dataset.stage !== 'installing') return;
+          const elapsed = now - startAt;
+          const t = Math.min(1, elapsed / totalMs);
+          const progress = monotonicEase(t);
+          const pct = Math.min(100, Math.round(progress * 100));
+
+          progressFill.style.width = `${(progress * 100).toFixed(2)}%`;
+          progressPct.textContent = `${pct}%`;
+
+          let statusText = stages[0][1];
+          for (let i = 0; i < stages.length; i++) {
+            if (pct >= stages[i][0]) statusText = stages[i][1];
+          }
+          progressStatus.textContent = statusText;
+
+          if (t < 1) {
+            progressRafId = requestAnimationFrame(tick);
+          } else {
+            progressStatus.textContent = '安装完成，正在跳转…';
+            splashTimers.push(setTimeout(() => {
+              goToStage('done');
+            }, 320));
+          }
+        }
+
+        progressFill.style.width = '0%';
+        progressPct.textContent = '0%';
+        progressRafId = requestAnimationFrame(tick);
+      }
+
+      // 事件绑定
+      navBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          goToStage(btn.dataset.nav, { replaySplash: btn.dataset.nav === 'splash' });
+        });
+      });
+
+      btnReplay.addEventListener('click', () => {
+        goToStage('splash', { replaySplash: true });
+      });
+
+      btnTheme.addEventListener('click', () => {
+        const html = document.documentElement;
+        const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        btnTheme.textContent = next === 'dark' ? '切换浅色' : '切换深色';
+      });
+
+      btnMode.addEventListener('click', () => {
+        const nextMode = winEl.dataset.installMode === 'fresh' ? 'upgrade' : 'fresh';
+        winEl.dataset.installMode = nextMode;
+        const isUpgrade = nextMode === 'upgrade';
+        btnMode.textContent = isUpgrade ? '覆盖升级态' : '首次安装态';
+        startInstallText.textContent = isUpgrade ? '立即升级' : '立即安装';
+      });
+
+      btnToggleOptions.addEventListener('click', () => {
+        const isOpen = optionsDrawer.classList.toggle('open');
+        btnToggleOptions.setAttribute('aria-expanded', String(isOpen));
+      });
+
+      installPathInput.addEventListener('input', () => {
+        const val = installPathInput.value.trim() || '%LOCALAPPDATA%\\venera-desktop';
+        pathPreviewTag.textContent = val;
+        donePathVal.textContent = val;
+      });
+
+      btnBrowsePath.addEventListener('click', () => {
+        const preset = 'D:\\Programs\\VComic';
+        installPathInput.value = preset;
+        pathPreviewTag.textContent = preset;
+        donePathVal.textContent = preset;
+      });
+
+      btnStartInstall.addEventListener('click', () => {
+        goToStage('installing');
+      });
+
+      btnFinish.addEventListener('click', () => {
+        goToStage('splash');
+      });
+
+      // 点击指示点可手动切幕并重置 6s 计时
+      slideDots.forEach((dot, idx) => {
+        dot.style.cursor = 'pointer';
+        dot.addEventListener('click', () => {
+          activateSlide(idx);
+          if (slideTimerId !== null) clearInterval(slideTimerId);
+          slideTimerId = setInterval(() => activateSlide(currentSlide + 1), 6000);
+        });
+      });
+
+      // 扩展态内部按钮跳转
+      document.querySelectorAll('[data-nav-action]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          goToStage(btn.dataset.navAction);
+        });
+      });
+
+      // 中途取消确认弹窗
+      function openCancelModal() {
+        cancelModal.classList.add('open');
+      }
+
+      function closeCancelModal() {
+        cancelModal.classList.remove('open');
+      }
+
+      btnCancelModal.addEventListener('click', () => {
+        if (winEl.dataset.stage !== 'installing') {
+          goToStage('installing');
+        }
+        openCancelModal();
+      });
+
+      winCloseBtn.addEventListener('click', () => {
+        if (winEl.dataset.stage === 'installing') {
+          openCancelModal();
+        } else {
+          goToStage('ready');
+        }
+      });
+
+      btnKeepInstall.addEventListener('click', closeCancelModal);
+      btnConfirmCancel.addEventListener('click', () => {
+        closeCancelModal();
+        goToStage('ready');
+      });
+
+      // 失败原因切换
+      const errMap = {
+        space: {
+          title: '磁盘空间不足',
+          desc: '目标磁盘剩余空间不足 184 MB，无法完成组件解压，请清理空间或更换目录',
+          code: 'ERR_DISK_FULL (0x80070070)'
+        },
+        perm: {
+          title: '目标目录无写入权限',
+          desc: '当前用户对所选系统目录缺少写入权限，建议改用默认用户目录安装',
+          code: 'ERR_ACCESS_DENIED (0x80070005)'
+        },
+        lock: {
+          title: '部分文件正被占用',
+          desc: '旧版本核心文件被后台进程锁定，请先关闭相关窗口后点击重试',
+          code: 'ERR_SHARING_VIOLATION (0x80070020)'
+        }
+      };
+
+      reasonPills.forEach(pill => {
+        pill.addEventListener('click', () => {
+          reasonPills.forEach(p => p.classList.remove('active'));
+          pill.classList.add('active');
+          const info = errMap[pill.dataset.err];
+          errTitle.textContent = info.title;
+          errDesc.textContent = info.desc;
+          errCode.textContent = info.code;
+        });
+      });
+
+      // 卸载 / 修复双选项切换
+      optRepair.addEventListener('click', () => {
+        maintAction = 'repair';
+        optRepair.classList.add('selected');
+        optRemove.classList.remove('selected-danger');
+        btnMaintRun.className = 'btn btn-primary';
+        btnMaintRun.textContent = '开始修复';
+      });
+
+      optRemove.addEventListener('click', () => {
+        maintAction = 'remove';
+        optRepair.classList.remove('selected');
+        optRemove.classList.add('selected-danger');
+        btnMaintRun.className = 'btn btn-danger';
+        btnMaintRun.textContent = '确认卸载';
+      });
+
+      btnMaintRun.addEventListener('click', () => {
+        if (maintAction === 'repair') {
+          goToStage('installing');
+        } else {
+          goToStage('done');
+        }
+      });
+
+      // 初始化
+      build31LogoPieces();
+      goToStage('splash');
+    })();
+  </script>
+</body>
+</html>

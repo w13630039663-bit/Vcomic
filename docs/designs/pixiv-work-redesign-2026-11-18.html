@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>pixiv 作品详情页 · 改版方案</title>
+<style>
+  :root{
+    --bg:#0b0c10;
+    --doc:#0e0f14;
+    --card:#14151b;
+    --glass:rgba(20,21,27,.82);
+    --line:rgba(255,255,255,.08);
+    --line-2:rgba(255,255,255,.14);
+    --text:#f1f2f6;
+    --text-2:#b2b5c2;
+    --text-3:#8b8e99;
+    --primary:#b9c7ff;
+    --on-primary:#101528;
+    --primary-soft:rgba(185,199,255,.16);
+    --pixiv:#0096fa;
+    --radius-card:20px;
+    --radius-inner:12px;
+    --font:"MiSans","HarmonyOS Sans SC","PingFang SC","Microsoft YaHei UI","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased}
+  body{padding:56px 48px 96px}
+  .doc{width:1440px;margin:0 auto}
+
+  /* ── 文档头 ── */
+  .doc-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px}
+  .doc-head h1{font-size:30px;font-weight:650;letter-spacing:.01em}
+  .doc-head h1 span{color:var(--text-3);font-weight:500;margin-left:10px;font-size:15px;letter-spacing:.02em}
+  .doc-head .meta{font-size:12.5px;color:var(--text-3);line-height:20px;text-align:right}
+  .lead{font-size:14.5px;line-height:24px;color:var(--text-2);max-width:900px;margin-bottom:26px}
+  .lead b{color:var(--text);font-weight:600}
+
+  /* ── 工具条 ── */
+  .toolbar{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .seg{display:flex;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:11px;padding:3px}
+  .seg button{
+    border:0;background:transparent;color:var(--text-3);font:inherit;font-size:12.5px;
+    padding:7px 16px;border-radius:8px;cursor:pointer;transition:color 150ms ease-out,background-color 150ms ease-out;
+  }
+  .seg button:hover{color:var(--text)}
+  .seg button.on{background:rgba(255,255,255,.10);color:var(--text)}
+  .ghost{
+    border:1px solid var(--line);background:transparent;color:var(--text-2);font:inherit;font-size:12.5px;
+    padding:8px 14px;border-radius:9px;cursor:pointer;transition:color 150ms ease-out,background-color 150ms ease-out;
+  }
+  .ghost:hover{color:var(--text);background:rgba(255,255,255,.05)}
+  .ghost[aria-pressed="true"]{color:var(--on-primary);background:var(--primary);border-color:transparent}
+  .toolbar .note{font-size:12px;color:var(--text-3);margin-left:4px}
+
+  /* ── 应用画框 ── */
+  .frame{
+    position:relative;width:1440px;height:900px;border-radius:16px;overflow:hidden;
+    background:#0c0d12;border:1px solid rgba(255,255,255,.09);
+    box-shadow:0 40px 90px rgba(0,0,0,.55), 0 0 0 1px rgba(0,0,0,.4);
+    isolation:isolate;
+  }
+  .frame::after{ /* 窗口细边，避免贴死文档底色 */
+    content:"";position:absolute;inset:0;border-radius:16px;pointer-events:none;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
+  }
+
+  /* ── 标题栏 ── */
+  .titlebar{
+    position:relative;z-index:6;height:44px;display:flex;align-items:center;
+    padding:0 14px;gap:10px;color:var(--text-2);font-size:12.5px;
+  }
+  .tb-back{
+    width:28px;height:28px;border-radius:9px;display:grid;place-items:center;
+    color:var(--text-2);transition:background-color 150ms ease-out,color 150ms ease-out;
+  }
+  .tb-back:hover{background:rgba(255,255,255,.08);color:var(--text)}
+  .tb-name{color:var(--text-2);letter-spacing:.01em}
+  .tb-name b{color:var(--text);font-weight:550}
+  .tb-spacer{flex:1}
+  .tb-win{display:flex;gap:2px}
+  .tb-win i{width:34px;height:26px;border-radius:7px;display:block;position:relative}
+  .tb-win i::before{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--text-3)}
+  .tb-win i.min::before{width:10px;height:1px}
+  .tb-win i.max::before{width:9px;height:9px;border:1px solid var(--text-3);background:none}
+  .tb-win i.close::before{width:10px;height:1px;transform:translate(-50%,-50%) rotate(45deg)}
+  .tb-win i.close::after{content:"";position:absolute;top:50%;left:50%;width:10px;height:1px;background:var(--text-3);transform:translate(-50%,-50%) rotate(-45deg)}
+  .tb-win i.close:hover{background:#e5484d}
+  .tb-win i.close:hover::before,.tb-win i.close:hover::after{background:#fff}
+
+  /* ── 背板 ── */
+  .backdrop{
+    position:absolute;inset:-60px;z-index:0;filter:blur(64px) saturate(1.25) brightness(.7);
+    transform:scale(1.06);
+    background:
+      radial-gradient(46% 52% at 34% 46%, #c22a33 0%, rgba(194,42,51,.55) 38%, rgba(194,42,51,0) 72%),
+      radial-gradient(38% 44% at 42% 24%, #8fb6d8 0%, rgba(143,182,216,0) 70%),
+      radial-gradient(50% 60% at 68% 70%, #2d3f63 0%, rgba(45,63,99,0) 74%),
+      #101218;
+  }
+  .scrim{
+    position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:
+      linear-gradient(90deg, rgba(9,10,14,.18) 0%, rgba(9,10,14,.28) 46%, rgba(9,10,14,.78) 100%),
+      radial-gradient(120% 90% at 50% 50%, rgba(0,0,0,0) 42%, rgba(0,0,0,.45) 100%);
+  }
+
+  .app{position:relative;z-index:2;display:flex;height:856px;padding:0 16px 16px}
+
+  /* ══════════ 左：画布 ══════════ */
+  .canvas{
+    position:relative;flex:1;min-width:0;display:flex;align-items:center;justify-content:center;
+    padding:8px 40px 112px;
+  }
+  .stage{position:relative;height:100%;display:flex;align-items:center;justify-content:center}
+  .art{
+    position:relative;height:100%;aspect-ratio:3/4;border-radius:14px;overflow:hidden;
+    box-shadow:0 30px 70px rgba(0,0,0,.5), 0 2px 10px rgba(0,0,0,.35);
+    outline:1px solid rgba(255,255,255,.10);outline-offset:-1px;
+    background:
+      radial-gradient(58% 44% at 50% 72%, #cf374a 0%, #a02336 42%, rgba(160,35,54,0) 76%),
+      radial-gradient(32% 26% at 46% 46%, rgba(255,220,210,.85) 0%, rgba(255,220,210,0) 72%),
+      radial-gradient(22% 30% at 64% 30%, rgba(255,255,255,.7), rgba(255,255,255,0) 74%),
+      linear-gradient(180deg,#4b7ba6 0%,#7ea6c4 30%,#c3d5e2 52%,#8d5f6b 74%,#33222d 100%);
+  }
+  .art::after{ /* 高光与暖雾 */
+    content:"";position:absolute;inset:0;
+    background:
+      radial-gradient(38% 26% at 54% 30%, rgba(255,255,255,.45), rgba(255,255,255,0) 72%),
+      radial-gradient(46% 40% at 30% 52%, rgba(255,150,140,.30), rgba(255,150,140,0) 70%),
+      linear-gradient(180deg, rgba(255,255,255,.08), rgba(0,0,0,.30));
+    mix-blend-mode:soft-light;
+  }
+  .art .grain{
+    position:absolute;inset:0;opacity:.16;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/><feColorMatrix type='saturate' values='0'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='.55'/></svg>");
+  }
+  .page-pill{
+    position:absolute;top:14px;right:14px;height:28px;padding:0 11px;border-radius:999px;
+    display:flex;align-items:center;gap:3px;
+    background:rgba(14,15,20,.55);border:1px solid rgba(255,255,255,.14);
+    backdrop-filter:blur(14px);font-size:12px;font-variant-numeric:tabular-nums;color:#fff;
+    box-shadow:0 4px 14px rgba(0,0,0,.28);
+  }
+  .page-pill b{font-weight:600}
+  .page-pill s{color:rgba(255,255,255,.55);text-decoration:none;margin:0 1px}
+
+  .nav{
+    position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:999px;
+    display:grid;place-items:center;color:#fff;
+    background:rgba(16,17,22,.52);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(14px);
+    box-shadow:0 8px 24px rgba(0,0,0,.35);
+    opacity:0;transition:opacity 150ms ease-out,background-color 150ms ease-out,scale 150ms ease-out;
+  }
+  .nav.prev{left:-56px}
+  .nav.next{right:-56px}
+  .stage:hover .nav{opacity:1}
+  .nav:hover{background:rgba(28,30,38,.8)}
+  .nav:active{scale:.96}
+
+  .hint{
+    position:absolute;left:50%;top:14px;transform:translateX(-50%);
+    height:30px;display:flex;align-items:center;gap:7px;padding:0 13px;border-radius:999px;
+    background:rgba(14,15,20,.55);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(14px);
+    font-size:12px;color:rgba(255,255,255,.82);white-space:nowrap;
+  }
+
+  .thumbs{
+    position:absolute;left:50%;bottom:20px;transform:translateX(-50%);
+    display:flex;gap:8px;padding:8px;border-radius:20px;
+    background:rgba(14,15,20,.52);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(18px);
+    box-shadow:0 12px 30px rgba(0,0,0,.32);
+  }
+  .thumb{
+    position:relative;width:40px;height:54px;border-radius:12px;overflow:hidden;
+    opacity:.5;transition:opacity 150ms ease-out,scale 150ms ease-out,box-shadow 150ms ease-out;
+    background:linear-gradient(160deg,#8fa9c6,#c23b46 60%,#3d3f4c);
+  }
+  .thumb:nth-child(2){background:linear-gradient(160deg,#9bb7d4,#a8577c 56%,#333846)}
+  .thumb:nth-child(3){background:linear-gradient(160deg,#c9d7e6,#8e5b8f 58%,#3a3c48)}
+  .thumb:nth-child(4){background:linear-gradient(160deg,#d9c6c0,#b8474f 54%,#383b46)}
+  .thumb:nth-child(5){background:linear-gradient(160deg,#a9c3d9,#7a4f76 58%,#343743)}
+  .thumb:nth-child(6){background:linear-gradient(160deg,#c4d4e3,#a33c4a 56%,#3c3e49)}
+  .thumb:hover{opacity:.85;scale:1.03}
+  .thumb.on{opacity:1;box-shadow:0 0 0 2px var(--primary),0 6px 16px rgba(0,0,0,.35)}
+  .thumb span{
+    position:absolute;left:4px;bottom:3px;font-size:9px;letter-spacing:.02em;
+    color:rgba(255,255,255,.9);text-shadow:0 1px 3px rgba(0,0,0,.6);
+  }
+
+  /* ══════════ 右：信息栏 ══════════ */
+  .pane{position:relative;width:440px;flex:none;display:flex;flex-direction:column;gap:12px;padding:16px 0}
+  .pane-handle{
+    position:absolute;left:-27px;top:50%;transform:translateY(-50%);
+    width:26px;height:44px;border-radius:9px;display:grid;place-items:center;
+    background:rgba(20,21,27,.82);border:1px solid var(--line);color:var(--text-3);
+    backdrop-filter:blur(14px);
+  }
+  .card{
+    position:relative;
+    background:var(--glass);border:1px solid var(--line);border-radius:var(--radius-card);
+    backdrop-filter:blur(22px) saturate(1.05);
+    box-shadow:0 18px 40px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .hero{padding:18px 18px 14px;flex:none}
+  .hero h2{
+    font-size:22px;line-height:31px;font-weight:600;letter-spacing:.01em;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  .meta{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--text-3)}
+  .meta .dot{width:3px;height:3px;border-radius:999px;background:currentColor;opacity:.7}
+  .meta .multi{color:var(--primary);font-weight:550}
+
+  .artist{position:relative;display:flex;align-items:center;gap:11px;margin-top:16px}
+  .avatar{
+    width:44px;height:44px;border-radius:999px;flex:none;position:relative;overflow:hidden;
+    background:linear-gradient(150deg,#c33a44,#5a2440);
+    box-shadow:0 0 0 1px rgba(255,255,255,.10);
+  }
+  .avatar::after{content:"";position:absolute;inset:0;background:radial-gradient(60% 50% at 50% 32%,rgba(255,255,255,.5),transparent 70%)}
+  .artist .who{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .artist .name-row{display:flex;align-items:center;gap:7px;min-width:0}
+  .artist .name{font-size:14px;font-weight:600;letter-spacing:.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .role-chip{
+    flex:none;height:19px;display:inline-flex;align-items:center;padding:0 7px;border-radius:999px;
+    font-size:10.5px;color:var(--primary);background:var(--primary-soft);
+  }
+  .artist .sub{font-size:11.5px;color:var(--text-3);letter-spacing:.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .btn-follow{
+    flex:none;height:32px;padding:0 12px;border-radius:10px;display:inline-flex;align-items:center;gap:5px;
+    font-size:12.5px;font-weight:550;color:var(--text);background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.12);transition:background-color 150ms ease-out,scale 150ms ease-out;
+  }
+  .btn-follow:hover{background:rgba(255,255,255,.12)}
+  .btn-follow:active{scale:.96}
+  .chev{color:var(--text-3);flex:none}
+
+  .stats{position:relative;display:flex;align-items:stretch;margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+  .stat{flex:1;display:flex;align-items:center;gap:7px;padding:2px 0;min-width:0}
+  .stat + .stat{border-left:1px solid var(--line);padding-left:14px}
+  .stat .v{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:.01em;white-space:nowrap}
+  .stat .k{font-size:10.5px;color:var(--text-3);margin-top:1px}
+  .stat .col{display:flex;flex-direction:column;min-width:0}
+
+  /* 内容卡 */
+  .content{flex:1;min-height:0;display:flex;flex-direction:column}
+  .content-scroll{
+    flex:1;overflow:hidden;padding:2px 18px 0;
+    -webkit-mask-image:linear-gradient(180deg,#000 0,#000 calc(100% - 42px),transparent 100%);
+  }
+  .section{padding:14px 0 16px}
+  .section + .section{border-top:1px solid var(--line)}
+  .sec-head{position:relative;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .sec-head h3{font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--text)}
+  .sec-head .sp{flex:1}
+  .sec-head .aux{font-size:11px;color:var(--text-3);font-variant-numeric:tabular-nums}
+  .sec-head .link{font-size:11px;color:var(--text-2);display:inline-flex;align-items:center;gap:3px}
+
+  .chips{position:relative;display:flex;flex-wrap:wrap;gap:6px}
+  .chip{
+    height:28px;display:inline-flex;align-items:center;padding:0 10px;border-radius:999px;
+    font-size:12px;color:var(--text-2);background:rgba(255,255,255,.055);
+    border:1px solid transparent;transition:background-color 150ms ease-out,color 150ms ease-out,border-color 150ms ease-out;
+  }
+  .chip:hover{background:rgba(255,255,255,.10);color:var(--text);border-color:rgba(185,199,255,.28)}
+  .chip.more{color:var(--primary);background:transparent;border-color:rgba(185,199,255,.24)}
+
+  .comment-empty{font-size:12px;color:var(--text-3);line-height:19px;margin-top:-2px}
+  .comment{
+    display:flex;gap:10px;padding:9px 0;
+  }
+  .comment .c-av{width:26px;height:26px;border-radius:999px;flex:none;background:linear-gradient(150deg,#54657f,#2b3242)}
+  .comment .c-body{min-width:0}
+  .comment .c-top{display:flex;gap:7px;align-items:baseline;font-size:11.5px}
+  .comment .c-name{color:var(--text-2);font-weight:550}
+  .comment .c-time{color:var(--text-3);font-size:10.5px}
+
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .tile{
+    position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;
+    background:linear-gradient(150deg,#93aecb,#c23b46 60%,#343743);
+    outline:1px solid rgba(255,255,255,.10);outline-offset:-1px;
+    transition:scale 150ms ease-out,outline-color 150ms ease-out,filter 150ms ease-out;
+  }
+  .tile:nth-child(3n+2){background:linear-gradient(150deg,#b9cfe4,#8b5a8f 62%,#333846)}
+  .tile:nth-child(3n){background:linear-gradient(150deg,#d7c7c2,#b1444d 58%,#383b46)}
+  .tile:nth-child(4n){background:linear-gradient(150deg,#a9c3d9,#7b4f78 58%,#343743)}
+  .tile:hover{scale:1.03;outline-color:rgba(185,199,255,.5);filter:brightness(1.06)}
+  .tile .p{
+    position:absolute;right:5px;bottom:5px;height:16px;padding:0 5px;border-radius:5px;
+    display:flex;align-items:center;font-size:9.5px;font-variant-numeric:tabular-nums;
+    color:rgba(255,255,255,.92);background:rgba(0,0,0,.5);backdrop-filter:blur(6px);
+  }
+
+  /* 动作条 */
+  .actions{
+    flex:none;height:56px;padding:8px;display:flex;gap:8px;align-items:center;
+    background:var(--glass);border:1px solid var(--line);border-radius:18px;
+    backdrop-filter:blur(22px);
+    box-shadow:0 18px 40px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .btn-primary{
+    flex:1;height:40px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:7px;
+    background:var(--primary);color:var(--on-primary);font-size:13px;font-weight:600;letter-spacing:.01em;
+    transition:filter 150ms ease-out,scale 150ms ease-out;
+  }
+  .btn-primary:hover{filter:brightness(1.05)}
+  .btn-primary:active{scale:.96}
+  .btn-primary .cnt{font-variant-numeric:tabular-nums;color:rgba(16,21,40,.62);font-weight:550}
+  .btn-secondary{
+    height:40px;padding:0 14px;border-radius:12px;display:inline-flex;align-items:center;gap:7px;
+    font-size:12.5px;color:var(--text);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.10);
+    transition:background-color 150ms ease-out,scale 150ms ease-out;
+  }
+  .btn-secondary:hover{background:rgba(255,255,255,.12)}
+  .btn-secondary:active{scale:.96}
+  .btn-icon{
+    width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:var(--text-2);
+    background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.10);
+    transition:background-color 150ms ease-out,color 150ms ease-out,scale 150ms ease-out;
+  }
+  .btn-icon:hover{background:rgba(255,255,255,.12);color:var(--text)}
+  .btn-icon:active{scale:.96}
+  .divider-v{width:1px;height:22px;background:var(--line);flex:none}
+
+  /* 标注 */
+  .anno{
+    position:absolute;z-index:8;width:20px;height:20px;border-radius:999px;display:grid;place-items:center;
+    background:var(--primary);color:var(--on-primary);font-size:11px;font-weight:700;
+    box-shadow:0 2px 10px rgba(0,0,0,.45),0 0 0 3px rgba(11,12,16,.55);
+    opacity:0;transform:scale(.9);transition:opacity 150ms ease-out,transform 150ms ease-out;pointer-events:none;
+  }
+  .frame.show-anno .anno{opacity:1;transform:scale(1)}
+
+  .before-cap{position:absolute;left:24px;top:16px;font-size:11.5px;color:rgba(255,255,255,.45);letter-spacing:.04em}
+  /* 现状示意层 */
+  .before{
+    position:absolute;inset:0;z-index:9;display:none;padding:44px 16px 16px;background:rgba(8,9,13,.9);
+  }
+  .frame[data-view="before"] .after-layer{display:none}
+  .frame[data-view="before"] .before{display:block}
+  .w{position:relative;border:1px dashed rgba(255,255,255,.22);border-radius:8px;color:rgba(255,255,255,.66);font-size:11.5px;display:flex;align-items:center;justify-content:center;text-align:center;line-height:16px}
+  .b-row{display:flex;gap:14px;height:100%}
+  .b-canvas{flex:1;position:relative;display:flex;align-items:center;justify-content:center;padding:16px 40px 104px}
+  .b-img{height:100%;aspect-ratio:3/4;border-radius:8px;border:1px dashed rgba(255,255,255,.22);display:grid;place-items:center;font-size:12px;color:rgba(255,255,255,.55)}
+  .b-pill{position:absolute;left:calc(50% - 240px);bottom:118px;padding:4px 9px;border-radius:999px;border:1px dashed rgba(255,255,255,.25);font-size:11px;color:rgba(255,255,255,.55)}
+  .b-thumbs{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);display:flex;gap:6px;padding:6px;border:1px dashed rgba(255,255,255,.22);border-radius:10px}
+  .b-thumbs i{width:38px;height:50px;border-radius:6px;background:rgba(255,255,255,.10);display:block;position:relative}
+  .b-thumbs i::after{content:"p";position:absolute;left:4px;bottom:3px;font-size:9px;font-style:normal;color:rgba(255,255,255,.4)}
+  .b-pane{width:440px;display:flex;flex-direction:column;gap:10px}
+  .b-card{border:1px dashed rgba(255,255,255,.22);border-radius:12px;padding:12px;font-size:11.5px;color:rgba(255,255,255,.62);line-height:16px}
+  .b-card b{display:block;font-weight:600;color:rgba(255,255,255,.75);font-size:12px;margin-bottom:6px;letter-spacing:.02em}
+  .b-grow{flex:1;display:flex;flex-direction:column;gap:10px}
+  .b-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+  .b-grid i{height:64px;border:1px dashed rgba(255,255,255,.14);border-radius:6px;display:block}
+  .b-actions{height:44px;display:flex;gap:6px}
+  .b-actions .w{flex:2}
+  .b-actions .w.s{flex:1}
+
+  /* ── 文档正文 ── */
+  .section-doc{margin-top:64px}
+  .section-doc h2{font-size:19px;font-weight:650;letter-spacing:.01em;margin-bottom:6px}
+  .section-doc .sub{font-size:13px;color:var(--text-3);margin-bottom:20px}
+  .changes{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .change{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 18px 16px;
+    display:flex;gap:13px;align-items:flex-start;
+  }
+  .change .num{
+    flex:none;width:22px;height:22px;border-radius:999px;display:grid;place-items:center;
+    background:var(--primary);color:var(--on-primary);font-size:11px;font-weight:700;margin-top:1px;
+  }
+  .change h4{font-size:14px;font-weight:600;margin-bottom:6px;letter-spacing:.01em}
+  .change p{font-size:12.5px;line-height:20px;color:var(--text-2)}
+  .change p b{color:var(--text);font-weight:550}
+  .change p code{font-family:"Cascadia Mono","Consolas",monospace;font-size:11.5px;color:var(--primary);background:rgba(185,199,255,.10);border-radius:4px;padding:1px 4px}
+
+  .two-col{display:grid;grid-template-columns:1.15fr .85fr;gap:14px;margin-top:14px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+  .panel h4{font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text)}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th,td{text-align:left;padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+  th{color:var(--text-3);font-weight:500;font-size:11px;letter-spacing:.03em}
+  td{color:var(--text-2);line-height:18px}
+  td b{color:var(--text);font-weight:550}
+  tr:last-child td{border-bottom:0}
+  .swatch{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+  .sw{width:12px;height:12px;border-radius:4px;border:1px solid rgba(255,255,255,.15);display:inline-block}
+  .keep{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}
+  .keep span{font-size:11.5px;color:var(--text-2);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:999px;padding:5px 10px}
+  .foot{margin-top:40px;font-size:11.5px;color:var(--text-3);line-height:20px;border-top:1px solid var(--line);padding-top:16px}
+  .svgi{width:16px;height:16px;stroke:currentColor;stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .svgi.sm{width:13px;height:13px;stroke-width:1.8}
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <header class="doc-head">
+    <h1>pixiv 作品详情页<span>改版方案 · v1</span></h1>
+    <div class="meta">2026-11-18<br>桌面 1440 × 900 · 深色</div>
+  </header>
+
+  <p class="lead">
+    现状已具备完整的看图与信息结构，但<b>信息栏被切成了四张同款玻璃卡</b>，动作被压到底部，标题、日期与计数互相重复，右侧相关作品网格在窄栏里高度不齐。
+    本方案<b>不增加新功能</b>，只重排层级：左栏把页码、翻页、缩略图收成一套悬浮控件；右栏压成「作品头 / 内容 / 动作」三层，用分隔线代替卡片套卡片。
+  </p>
+
+  <div class="toolbar">
+    <div class="seg" role="tablist">
+      <button class="on" data-view="after">方案</button>
+      <button data-view="before">现状示意</button>
+    </div>
+    <button class="ghost" id="annoBtn" aria-pressed="true">标注</button>
+    <span class="note">浅色描边为示意稿；图片、头像均为占位图形</span>
+  </div>
+
+  <!-- ═══════════ 画框 ═══════════ -->
+  <div class="frame show-anno" data-view="after" id="frame">
+    <div class="backdrop"></div>
+    <div class="scrim"></div>
+
+    <div class="after-layer">
+      <div class="titlebar">
+        <div class="tb-back">
+          <svg class="svgi" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </div>
+        <div class="tb-name">画师 · <b>Crob.フェロー</b></div>
+        <div class="tb-spacer"></div>
+        <div class="tb-win"><i class="min"></i><i class="max"></i><i class="close"></i></div>
+      </div>
+
+      <div class="app">
+        <!-- 左：画布 -->
+        <div class="canvas">
+          <div class="stage">
+            <div class="art"><div class="grain"></div>
+              <div class="page-pill"><b>1</b><s>/</s>6</div>
+              <div class="anno" style="top:50px;right:16px">1</div>
+            </div>
+
+            <div class="hint">
+              <svg class="svgi sm" viewBox="0 0 24 24"><path d="M4 9V6a2 2 0 0 1 2-2h3M20 9V6a2 2 0 0 0-2-2h-3M4 15v3a2 2 0 0 0 2 2h3M20 15v3a2 2 0 0 1-2 2h-3"/></svg>
+              点击查看大图
+            </div>
+
+            <div class="nav prev">
+              <svg class="svgi" viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M15 5l-7 7 7 7"/></svg>
+            </div>
+            <div class="nav next">
+              <svg class="svgi" viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M9 5l7 7-7 7"/></svg>
+            </div>
+            <div class="anno" style="top:calc(50% - 34px);left:-58px">2</div>
+          </div>
+
+          <div class="thumbs">
+            <div class="anno" style="top:-12px;left:-12px">3</div>
+            <div class="thumb on"><span>1</span></div>
+            <div class="thumb"><span>2</span></div>
+            <div class="thumb"><span>3</span></div>
+            <div class="thumb"><span>4</span></div>
+            <div class="thumb"><span>5</span></div>
+            <div class="thumb"><span>6</span></div>
+          </div>
+        </div>
+
+        <!-- 右：信息栏 -->
+        <aside class="pane">
+          <div class="pane-handle">
+            <svg class="svgi sm" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+          </div>
+          <div class="anno" style="left:-50px;top:calc(50% - 26px)">12</div>
+
+          <div class="card hero">
+            <h2>NTEからナナリ</h2>
+            <div class="anno" style="top:22px;right:18px">4</div>
+            <div class="meta">
+              <span class="multi">多图 · 6P</span>
+              <span class="dot"></span>
+              <span>插画</span>
+            </div>
+
+            <div class="artist">
+              <div class="avatar"></div>
+              <div class="who">
+                <div class="name-row">
+                  <span class="name">Crob.フェロー</span>
+                  <span class="role-chip">画师</span>
+                </div>
+                <span class="sub">@crob_fero</span>
+              </div>
+              <div class="btn-follow">
+                <svg class="svgi sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                关注
+              </div>
+              <svg class="svgi chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+              <div class="anno" style="left:-34px;top:12px">5</div>
+            </div>
+
+            <div class="stats">
+              <div class="anno" style="left:-34px;top:8px">6</div>
+              <div class="stat">
+                <svg class="svgi sm" viewBox="0 0 24 24" style="color:var(--primary)"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg>
+                <div class="col"><span class="v">2,258</span><span class="k">浏览</span></div>
+              </div>
+              <div class="stat">
+                <svg class="svgi sm" viewBox="0 0 24 24" style="color:var(--primary);fill:currentColor;stroke-width:0"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.2L5 21V4a1 1 0 0 1 1-1z"/></svg>
+                <div class="col"><span class="v">195</span><span class="k">收藏</span></div>
+              </div>
+              <div class="stat">
+                <svg class="svgi sm" viewBox="0 0 24 24" style="color:var(--primary)"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+                <div class="col"><span class="v">2026-05-30</span><span class="k">发布</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card content">
+            <div class="anno" style="top:-12px;right:22px">8</div>
+            <div class="content-scroll">
+              <div class="section">
+                <div class="sec-head">
+                  <div class="anno" style="left:-17px;top:1px;width:16px;height:16px;font-size:10px">9</div>
+                  <h3>作品标签</h3><div class="sp"></div>
+                  <span class="aux">8 个</span>
+                </div>
+                <div class="chips">
+                  <div class="anno" style="left:-17px;top:1px;width:16px;height:16px;font-size:10px">10</div>
+                  <span class="chip">NevernessToEverness</span>
+                  <span class="chip">NTE</span>
+                  <span class="chip">ナナリ (NTE)</span>
+                  <span class="chip">Nanally</span>
+                  <span class="chip">humanoid</span>
+                  <span class="chip">cat ears</span>
+                  <span class="chip">尾巴</span>
+                  <span class="chip">兽耳</span>
+                  <span class="chip more">+3</span>
+                </div>
+              </div>
+
+              <div class="section">
+                <div class="sec-head">
+                  <h3>评论</h3><div class="sp"></div>
+                  <span class="aux">0 条</span>
+                  <svg class="svgi sm" viewBox="0 0 24 24" style="color:var(--text-3)"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div class="comment-empty">还没有评论。</div>
+              </div>
+
+              <div class="section">
+                <div class="sec-head">
+                  <div class="anno" style="left:-17px;top:1px;width:16px;height:16px;font-size:10px">11</div>
+                  <h3>相关作品</h3><div class="sp"></div>
+                  <span class="aux">30 张</span>
+                </div>
+                <div class="grid">
+                  <div class="tile"><span class="p">6P</span></div>
+                  <div class="tile"><span class="p">2P</span></div>
+                  <div class="tile"></div>
+                  <div class="tile"><span class="p">3P</span></div>
+                  <div class="tile"></div>
+                  <div class="tile"><span class="p">9P</span></div>
+                  <div class="tile"><span class="p">1P</span></div>
+                  <div class="tile"><span class="p">4P</span></div>
+                  <div class="tile"><span class="p">2P</span></div>
+                  <div class="tile"></div>
+                  <div class="tile"><span class="p">6P</span></div>
+                  <div class="tile"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <div class="anno" style="left:-11px;top:8px">7</div>
+            <div class="btn-primary">
+              <svg class="svgi sm" viewBox="0 0 24 24"><path d="M12 4v11m0 0l-4-4m4 4l4-4M4.5 19h15"/></svg>
+              下载全部 <span class="cnt">6P</span>
+            </div>
+            <div class="divider-v"></div>
+            <div class="btn-secondary">
+              <svg class="svgi sm" viewBox="0 0 24 24"><path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4.2L5 20V5a1 1 0 0 1 1-1z"/></svg>
+              收藏
+            </div>
+            <div class="btn-icon" title="复制图片">
+              <svg class="svgi" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M15 5.5A2.5 2.5 0 0 0 12.5 3H6a2 2 0 0 0-2 2v6.5A2.5 2.5 0 0 0 6.5 15"/></svg>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- 现状示意 -->
+    <div class="before">
+      <div class="before-cap">现状示意 · 仅表达结构，非像素还原</div>
+      <div class="b-row">
+        <div class="b-canvas">
+          <div class="b-img">中央大图<br>Fit 完整展示</div>
+          <div class="b-pill">1 / 6 页码徽章（贴图左下）</div>
+          <div class="b-thumbs"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="b-pane">
+          <div class="b-card"><b>卡① 作品头 · 固定</b>标题 · 多图 6P · 日期<br>画师行（头像 / 名 / 画师 chip / 关注 / chevron）<br>计数行：浏览 · 收藏 · 发布（日期重复一次）</div>
+          <div class="b-grow">
+            <div class="b-card"><b>卡② 作品标签</b>「| 作品标签 TAGS」+ 流式 chip</div>
+            <div class="b-card"><b>卡③ 评论（默认收起）</b>「| 评论 COMMENTS」+ 空态文案</div>
+            <div class="b-card" style="flex:1"><b>卡④ 相关作品</b>2 列瀑布，高度不齐，右缘被裁
+              <div class="b-grid"><i></i><i></i><i></i><i></i></div>
+            </div>
+          </div>
+          <div class="b-actions"><div class="w">下载全部（整宽）</div><div class="w s">收藏 / 复制（图标）</div></div>
+          <div style="font-size:11px;color:rgba(255,255,255,.35);line-height:17px">四张同款玻璃卡 + 12px 缝；动作压底，收藏挤成小图标。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ 改动清单 ═══════════ -->
+  <section class="section-doc">
+    <h2>改动清单</h2>
+    <div class="sub">按视觉权重排序；编号对应画框上的标注点。</div>
+    <div class="changes">
+
+      <div class="change">
+        <div class="num">1</div>
+        <div>
+          <h4>页码胶囊移到图片右上角</h4>
+          <p>现状页码贴在图片外左下，与缩略图条争同一块地。改为图片内右上角 28px 玻璃胶囊 <b>1 / 6</b>，数字用等宽数字，翻页时只重绘胶囊与图片。</p>
+        </div>
+      </div>
+
+      <div class="change">
+        <div class="num">2</div>
+        <div>
+          <h4>翻页箭头收成 42px 圆钮</h4>
+          <p>只在画布悬停时淡入（150ms），平时不占视觉。玻璃底 + 1px 亮边，避免在亮图上消失；按压 <code>scale .96</code>。</p>
+        </div>
+      </div>
+
+      <div class="change">
+        <div class="num">3</div>
+        <div>
+          <h4>缩略图条重做</h4>
+          <p>容器 20 圆角、8 内距，缩略图 12 圆角（<code>20 = 12 + 8</code> 同心）。当前页 2px 主色描边 + 全不透明，其余 50% 透明、悬停 85%；序号只在缩略图内左下角，不再整枚套标签。</p>
+        </div>
+      </div>
+
+      <div class="change">
+        <div class="num">4</div>
+        <div>
+          <h4>标题与元信息去重</h4>
+          <p>标题限两行、22/31。元信息只留 <b>多图 · 6P</b>（动图时并列「动图」），日期只在下方计数格出现一次，删掉重复的日期小字。</p>
+        </div>
+      </div>
+
+      <div class="change">
+        <div class="num">5</div>
+        <div>
+          <h4>画师行收成一条</h4>
+          <p>头像 44、名字 14/600、<code>@账号</code> 11.5 次行、画师 chip 19px、关注 32px 描边钮，末位 chevron 明示「可进画师面板」。整行点击进面板不变。</p>
+        </div>
+      </div>
+
+      <div class="change">
+        <div class="num">6</div>
+        <div>
+          <h4>计数行改三栏等分</h4>
+          <p>去掉浮动图标排布，改 <b>浏览 / 收藏 / 发布</b> 三格等分，格间 1px 竖线，值 14/600 等宽数字、标签 10.5 灰。日期格自然获得整行宽度，不再被挤成竖字。</p>
+        </div>
+      </div>
+
+      <div class="change">
+        <div class="num">7</div>
+        <div>
+          <h4>动作条重排</h4>
+          <p>保持常驻底部，但「下载全部」收成主钮（不整宽），<b>收藏带文字</b>升为次钮，复制留 40px 图标钮。三枚同高 40、圆角 12，条容器 18 圆角、内距 8（<code>18 = 12 + 6</code>，视觉取 8 内距）。</p>
+        </div>
+      </div>
+
+      <div class="change">
+        <div class="num">8</div>
+        <div>
+          <h4>四张卡压成两张</h4>
+          <p>标签 / 评论 / 相关作品并入同一张内容卡，用 1px 分隔线与 14/16 内距分段；底部 42px 渐隐提示可继续滚。容器噪声从 5 层降到 3 层（作品头、内容、动作）。</p>
+        </div>
+      </div>
+
+      <div class="change">
+        <div class="num">9</div>
+        <div>
+          <h4>分区标题去掉竖条与英文</h4>
+          <p>「| 作品标签 TAGS」四连属于重复噪声。改为 13/600 中文标题 + 右侧 11px 辅助（8 个 / 0 条 / 30 张）；展开箭头只在可折叠分区出现。</p>
+        </div>
+      </div>
+
+      <div class="change">
+        <div class="num">10</div>
+        <div>
+          <h4>标签 chip 统一规格</h4>
+          <p>高 28、内距 10、12px 字、999 圆角；底白 5.5%，悬停 10% + 主色 28% 边。译名优先，原文退为 11px 次要行（单行时并入 title）。溢出折叠为「+3」主色 chip。</p>
+        </div>
+      </div>
+
+      <div class="change">
+        <div class="num">11</div>
+        <div>
+          <h4>相关作品改 3 列方形</h4>
+          <p>440 栏内 3 列约 129px，<b>1:1 裁切</b>、8px 缝、10 圆角，多图角标统一右下「6P」；悬停 <code>scale 1.03</code> + 主色描边。行高一致，无限续页不再抖动。</p>
+        </div>
+      </div>
+
+      <div class="change">
+        <div class="num">12</div>
+        <div>
+          <h4>右栏收起把手外置</h4>
+          <p>把收起入口从栏内挪到右栏左缘中点的 26×44 玻璃把手，收起后画布自然吃满；沿用现有 spring 宽度动画，不新增状态。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="panel">
+        <h4>设计参数</h4>
+        <table>
+          <tr><th style="width:26%">类别</th><th>取值</th></tr>
+          <tr><td>颜色</td><td>
+            <span class="swatch"><i class="sw" style="background:#0c0d12"></i>底 #0C0D12</span> ·
+            <span class="swatch"><i class="sw" style="background:#14151b"></i>卡 #14151B / 82%</span> ·
+            <span class="swatch"><i class="sw" style="background:#b9c7ff"></i>主色 #B9C7FF</span> ·
+            <span class="swatch"><i class="sw" style="background:#f1f2f6"></i>主文 #F1F2F6</span> ·
+            <span class="swatch"><i class="sw" style="background:#b2b5c2"></i>次文 #B2B5C2</span> ·
+            <span class="swatch"><i class="sw" style="background:#8b8e99"></i>弱文 #8B8E99</span>
+          </td></tr>
+          <tr><td>圆角</td><td>卡 <b>20</b> · 图 <b>14</b> · 内件 <b>12</b> · chip <b>999</b>；缩略图容器 20 = 12 + 8</td></tr>
+          <tr><td>字阶</td><td>标题 22/31 · 卡题 15/22 · 正文 13/20 · 辅助 12/18 · 微小 11/16</td></tr>
+          <tr><td>间距</td><td>4 / 8 / 12 / 16 / 24 / 32；卡内距 18，卡间 12</td></tr>
+          <tr><td>动效</td><td>悬停 150ms ease-out · 按压 <b>.96</b> · 右栏 spring（沿用）· 无 keyframes 状态动画</td></tr>
+          <tr><td>密度</td><td>栏宽 340 / 400 / 440 / 480 四档不变；内距随档位 ±2</td></tr>
+        </table>
+      </div>
+
+      <div class="panel">
+        <h4>保留清单（不动数据与入口）</h4>
+        <div class="keep">
+          <span>返回</span><span>画师面板就地切换</span><span>关注 / 收藏写入</span>
+          <span>下载全部 · 已存态</span><span>复制当前页</span><span>标签搜索与右键复制</span>
+          <span>评论登录判据 / 关闭态</span><span>相关作品无限续页</span><span>多图画质四档</span>
+          <span>原图占位升级</span><span>ugoira 自动播放</span><span>点图进播放器</span>
+          <span>右栏视差</span><span>加载骨架 / 失败重试</span>
+        </div>
+        <p style="font-size:11.5px;color:var(--text-3);line-height:19px;margin-top:14px">
+          本稿只改布局、层级与视觉参数；不改取数、状态与壳路由。缺失数据（未登录、评论关闭、无相关作品）仍按原判据整块不摆。
+        </p>
+      </div>
+    </div>
+
+    <div class="foot">
+      验收：1440 × 900 与 1120 宽两档逐区对照；720 高时内容卡可滚、动作条不遮内容；对比度按深色主题 ≥ 4.5:1（正文）/ 3:1（大字与图形）；悬停与按压状态齐全。<br>
+      本文件为方案稿，未改任何 Kotlin 代码。
+    </div>
+  </section>
+</div>
+
+<script>
+  const frame = document.getElementById('frame');
+  const setView = v => {
+    document.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x.dataset.view === v));
+    frame.dataset.view = v;
+  };
+  document.querySelectorAll('.seg button').forEach(b => {
+    b.addEventListener('click', () => setView(b.dataset.view));
+  });
+  if (location.hash === '#before') setView('before');
+  const annoBtn = document.getElementById('annoBtn');
+  annoBtn.addEventListener('click', () => {
+    const on = frame.classList.toggle('show-anno');
+    annoBtn.setAttribute('aria-pressed', String(on));
+  });
+</script>
+</body>
+</html>

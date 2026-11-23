@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>漫画搜索 · 源选择重做与自定义多源聚合方案稿</title>
+<style>
+:root{
+  --canvas:#08090c;
+  --app-bg:#131519;
+  --surface:#1b1e24;
+  --surface-2:#20242b;
+  --surface-3:#282d36;
+  --popup:#1f232a;
+  --hover:rgba(255,255,255,.06);
+  --line:rgba(255,255,255,.07);
+  --line-2:rgba(255,255,255,.12);
+  --ink:rgba(255,255,255,.94);
+  --ink-2:rgba(255,255,255,.64);
+  --ink-3:rgba(255,255,255,.40);
+  --accent:#0A84FF;
+  --accent-soft:rgba(10,132,255,.15);
+  --accent-line:rgba(10,132,255,.42);
+  --safe:#78D6C0;
+  --safe-soft:rgba(120,214,192,.14);
+  --danger:#F28B82;
+  --danger-soft:rgba(242,139,130,.14);
+  --caution:#F2B87C;
+  --chip-bg:rgba(255,255,255,.055);
+  --chip-border:rgba(255,255,255,.09);
+  --card-shadow:none;
+  --card-hover-shadow:none;
+  --popup-shadow:0 18px 44px rgba(0,0,0,.58),0 2px 8px rgba(0,0,0,.42);
+  --app-shadow:0 36px 88px rgba(0,0,0,.62);
+  --skeleton:rgba(255,255,255,.055);
+  --skeleton-hi:rgba(255,255,255,.11);
+  --font:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ease:cubic-bezier(.2,0,0,1);
+}
+body[data-theme="light"]{
+  --canvas:#e6e8ee;
+  --app-bg:#f4f5f8;
+  --surface:#ffffff;
+  --surface-2:#f0f2f6;
+  --surface-3:#e6e9f0;
+  --popup:#ffffff;
+  --hover:rgba(0,0,0,.045);
+  --line:rgba(0,0,0,.07);
+  --line-2:rgba(0,0,0,.11);
+  --ink:rgba(0,0,0,.88);
+  --ink-2:rgba(0,0,0,.58);
+  --ink-3:rgba(0,0,0,.38);
+  --accent:#0A63F6;
+  --accent-soft:rgba(10,99,246,.10);
+  --accent-line:rgba(10,99,246,.38);
+  --safe:#18866c;
+  --safe-soft:rgba(24,134,108,.11);
+  --danger:#c93b32;
+  --danger-soft:rgba(201,59,50,.10);
+  --caution:#b86b18;
+  --chip-bg:rgba(0,0,0,.04);
+  --chip-border:rgba(0,0,0,.09);
+  --card-shadow:0 2px 8px rgba(20,24,32,.05);
+  --card-hover-shadow:0 8px 22px rgba(20,24,32,.11);
+  --popup-shadow:0 18px 44px rgba(20,24,32,.16),0 2px 8px rgba(20,24,32,.08);
+  --app-shadow:0 36px 88px rgba(20,24,32,.18);
+  --skeleton:rgba(0,0,0,.055);
+  --skeleton-hi:rgba(0,0,0,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--canvas);scroll-behavior:smooth}
+body{
+  background:var(--canvas);
+  color:var(--ink);
+  font-family:var(--font);
+  font-size:13px;
+  line-height:1.5;
+  padding:36px 32px 120px;
+  transition:background .18s var(--ease),color .18s var(--ease);
+}
+button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
+img{display:block}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:99px}
+
+.sheet{max-width:1280px;margin:0 auto}
+
+/* ── 稿件头与评审快捷栏 ── */
+.doc-head{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;
+  margin-bottom:24px;
+}
+.doc-head h1{font-size:21px;font-weight:700;letter-spacing:.1px}
+.doc-head .lede{color:var(--ink-2);font-size:13px;margin-top:6px;max-width:700px}
+.doc-head .meta{color:var(--ink-3);font-size:12px;margin-top:6px}
+.review-bar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  background:var(--surface);border:1px solid var(--line-2);border-radius:12px;padding:6px 8px;
+}
+.rev-btn{
+  height:30px;padding:0 11px;border-radius:8px;font-size:12px;color:var(--ink-2);
+  border:1px solid transparent;transition:all .14s var(--ease);
+}
+.rev-btn:hover{background:var(--hover);color:var(--ink)}
+.rev-btn.on{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-line);font-weight:600}
+.rev-sep{width:1px;height:18px;background:var(--line-2);margin:0 2px}
+
+/* ── 桌面窗口容器 ── */
+.win{
+  width:100%;
+  background:var(--app-bg);
+  border:1px solid var(--line-2);
+  border-radius:14px;
+  box-shadow:var(--app-shadow);
+  position:relative;
+  overflow:visible;
+}
+.win-titlebar{
+  height:44px;padding:0 16px;
+  display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid var(--line);
+}
+.win-dots{display:flex;gap:7px}
+.win-dots i{width:10px;height:10px;border-radius:50%;background:var(--line-2);display:block}
+.win-crumb{font-size:12px;color:var(--ink-3);margin-left:8px}
+.win-crumb b{color:var(--ink-2);font-weight:600}
+.win-body{
+  display:flex;min-height:760px;
+  border-radius:0 0 14px 14px;
+}
+
+/* 左侧迷你导航栏（仅作上下文参照） */
+.sidebar{
+  width:72px;flex:0 0 72px;
+  border-right:1px solid var(--line);
+  padding:14px 10px;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+}
+.nav-item{
+  width:46px;height:44px;border-radius:10px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  color:var(--ink-3);font-size:10px;
+}
+.nav-item.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.nav-item svg{width:18px;height:18px}
+
+/* 主工作区 */
+.main-pane{
+  flex:1;min-width:0;
+  padding:0 24px 24px;
+  display:flex;flex-direction:column;
+  position:relative;
+}
+
+/* ── 顶部工具栏 (60dp) ── */
+.toolbar{
+  height:60px;flex:0 0 60px;
+  display:flex;align-items:center;gap:10px;
+  position:relative;
+}
+.segmented{
+  display:flex;align-items:center;gap:2px;padding:3px;
+  background:var(--chip-bg);border:1px solid var(--chip-border);border-radius:10px;
+  flex:0 0 auto;
+}
+.segmented button{
+  height:28px;padding:0 14px;border-radius:7px;font-size:12px;color:var(--ink-2);
+  transition:background .14s var(--ease),color .14s var(--ease);
+}
+.segmented button:hover{color:var(--ink)}
+.segmented button.on{background:var(--surface-3);color:var(--ink);font-weight:600}
+body[data-theme="light"] .segmented button.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+.search-box{
+  flex:1;height:36px;
+  display:flex;align-items:center;gap:8px;padding:0 12px;
+  background:var(--chip-bg);border:1px solid var(--chip-border);border-radius:10px;
+  transition:border-color .14s var(--ease),background .14s var(--ease);
+}
+.search-box:focus-within{border-color:var(--accent-line);background:var(--surface)}
+.search-box svg{width:15px;height:15px;color:var(--ink-3);flex:0 0 auto}
+.search-box input{
+  flex:1;background:none;border:none;outline:none;color:var(--ink);
+  font-family:inherit;font-size:13px;min-width:0;
+}
+.search-box input::placeholder{color:var(--ink-3)}
+.search-clear{
+  width:20px;height:20px;border-radius:99px;
+  display:flex;align-items:center;justify-content:center;color:var(--ink-3);
+}
+.search-clear:hover{background:var(--hover);color:var(--ink)}
+
+/* ── 源选择触发按钮（顶栏右侧） ── */
+.src-trigger{
+  height:36px;flex:0 0 auto;
+  display:flex;align-items:center;gap:8px;padding:0 11px 0 9px;
+  background:var(--chip-bg);border:1px solid var(--chip-border);border-radius:10px;
+  transition:background .14s var(--ease),border-color .14s var(--ease);
+  max-width:220px;
+}
+.src-trigger:hover{background:var(--hover);border-color:var(--line-2)}
+.src-trigger.open{border-color:var(--accent-line);background:var(--accent-soft)}
+.src-ico{
+  width:20px;height:20px;border-radius:5px;overflow:hidden;flex:0 0 auto;
+  background:var(--surface-3);display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;color:var(--ink-2);border:1px solid var(--line);
+}
+.src-ico img{width:100%;height:100%;object-fit:cover}
+.src-stack{display:flex;align-items:center;flex:0 0 auto}
+.src-stack .src-ico{width:18px;height:18px;border-radius:5px;margin-left:-6px;box-shadow:0 0 0 1.5px var(--app-bg)}
+.src-stack .src-ico:first-child{margin-left:0}
+.src-trigger .nm{
+  font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.src-trigger .cnt{
+  font-size:11px;font-weight:600;color:var(--accent);
+  background:var(--accent-soft);padding:1px 6px;border-radius:99px;
+  font-variant-numeric:tabular-nums;flex:0 0 auto;
+}
+.src-trigger .caret{width:14px;height:14px;color:var(--ink-3);transition:transform .16s var(--ease);flex:0 0 auto}
+.src-trigger.open .caret{transform:rotate(180deg);color:var(--accent)}
+
+/* ── 源选择弹出面板（同心圆 r12 = r8 + 4 / pad 8） ── */
+.picker-pop{
+  position:absolute;top:54px;right:0;width:336px;
+  background:var(--popup);border:1px solid var(--line-2);border-radius:12px;
+  box-shadow:var(--popup-shadow);padding:10px;z-index:50;
+  opacity:0;transform:translateY(-6px) scale(.985);transform-origin:top right;
+  pointer-events:none;transition:opacity .15s var(--ease),transform .16s var(--ease);
+}
+.picker-pop.open{opacity:1;transform:none;pointer-events:auto}
+
+.pop-mode{
+  display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;
+  background:var(--chip-bg);border:1px solid var(--line);border-radius:9px;
+  margin-bottom:8px;
+}
+.pop-mode button{
+  height:28px;border-radius:6px;font-size:12px;color:var(--ink-2);font-weight:500;
+  transition:all .14s var(--ease);
+}
+.pop-mode button:hover{color:var(--ink)}
+.pop-mode button.on{background:var(--surface-3);color:var(--ink);font-weight:600}
+body[data-theme="light"] .pop-mode button.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+.pop-search{
+  height:32px;display:flex;align-items:center;gap:7px;padding:0 10px;
+  background:var(--chip-bg);border:1px solid var(--chip-border);border-radius:8px;
+  margin-bottom:8px;
+}
+.pop-search svg{width:14px;height:14px;color:var(--ink-3);flex:0 0 auto}
+.pop-search input{
+  flex:1;background:none;border:none;outline:none;color:var(--ink);font-size:12.5px;font-family:inherit;
+}
+.pop-search input::placeholder{color:var(--ink-3)}
+
+.pop-bulk{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:2px 4px 6px;font-size:11.5px;color:var(--ink-3);
+  border-bottom:1px solid var(--line);margin-bottom:6px;
+}
+.pop-bulk-acts{display:flex;gap:10px}
+.pop-bulk-acts button{font-size:11.5px;color:var(--accent);font-weight:500}
+.pop-bulk-acts button:hover{text-decoration:underline}
+.pop-bulk-acts button.muted{color:var(--ink-2)}
+
+.pop-list{max-height:310px;overflow:auto;display:flex;flex-direction:column;gap:2px}
+.pop-row{
+  width:100%;height:36px;padding:0 8px;border-radius:8px;
+  display:flex;align-items:center;gap:9px;text-align:left;
+  transition:background .12s var(--ease);
+}
+.pop-row:hover{background:var(--hover)}
+.pop-row.sel{background:var(--accent-soft)}
+.pop-row .nm{flex:1;font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pop-row .key{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.pop-row .chk{
+  width:16px;height:16px;border-radius:4px;border:1.5px solid var(--line-2);
+  display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+  transition:all .12s var(--ease);
+}
+.pop-row.checked .chk{background:var(--accent);border-color:var(--accent);color:#fff}
+.pop-row .single-mark{width:16px;height:16px;color:var(--accent);opacity:0;flex:0 0 auto}
+.pop-row.sel .single-mark{opacity:1}
+
+.pop-foot{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  margin-top:8px;padding-top:8px;border-top:1px solid var(--line);
+}
+.pop-hint{font-size:11px;color:var(--ink-3)}
+.pop-foot-btns{display:flex;gap:6px}
+.btn-ghost{
+  height:30px;padding:0 12px;border-radius:7px;font-size:12px;color:var(--ink-2);
+}
+.btn-ghost:hover{background:var(--hover);color:var(--ink)}
+.btn-primary{
+  height:30px;padding:0 14px;border-radius:7px;font-size:12px;font-weight:600;
+  background:var(--accent);color:#fff;transition:opacity .12s var(--ease);
+}
+.btn-primary:hover{opacity:.9}
+.btn-primary:disabled{opacity:.38;cursor:not-allowed}
+
+/* ── 页头行 ── */
+.page-head{
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  padding:4px 0 12px;
+}
+.page-head-left{display:flex;align-items:baseline;gap:12px}
+.page-head h2{font-size:20px;font-weight:700;line-height:1.25}
+.page-head .sub{font-size:12px;color:var(--ink-3)}
+
+/* ── 聚合态：顶部源状态锚点条（替代筛选面板） ── */
+.agg-bar{
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:10px 14px;margin-bottom:14px;
+  display:flex;align-items:center;gap:12px;
+  box-shadow:var(--card-shadow);
+}
+.agg-progress{
+  display:flex;align-items:center;gap:7px;flex:0 0 auto;
+  padding-right:12px;border-right:1px solid var(--line);
+  font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums;
+}
+.agg-progress b{color:var(--ink);font-weight:600}
+.pulse-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--accent);
+  animation:pulse 1.4s ease-in-out infinite;
+}
+.pulse-dot.done{background:var(--safe);animation:none}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.38;transform:scale(.82)}}
+
+.agg-anchors{
+  flex:1;min-width:0;display:flex;align-items:center;gap:6px;
+  overflow-x:auto;padding-bottom:1px;
+}
+.anchor-pill{
+  height:28px;padding:0 10px 0 8px;border-radius:8px;flex:0 0 auto;
+  display:flex;align-items:center;gap:6px;font-size:12px;
+  background:var(--chip-bg);border:1px solid var(--chip-border);color:var(--ink-2);
+  transition:all .14s var(--ease);
+}
+.anchor-pill:hover{background:var(--hover);border-color:var(--line-2);color:var(--ink)}
+.anchor-pill .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+.anchor-pill.ok .dot{background:var(--safe)}
+.anchor-pill.loading .dot{background:var(--accent);animation:pulse 1.2s infinite}
+.anchor-pill.empty .dot{background:var(--ink-3)}
+.anchor-pill.err .dot{background:var(--danger)}
+.anchor-pill .num{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.anchor-pill.ok .num{color:var(--ink-2);font-weight:600}
+.anchor-pill.err{border-color:rgba(242,139,130,.28);color:var(--danger)}
+.anchor-pill.err .num{color:var(--danger)}
+
+.toggle-only{
+  flex:0 0 auto;display:flex;align-items:center;gap:7px;
+  font-size:12px;color:var(--ink-2);padding-left:10px;border-left:1px solid var(--line);
+  user-select:none;
+}
+.switch{
+  width:30px;height:17px;border-radius:99px;background:var(--surface-3);
+  border:1px solid var(--line-2);position:relative;transition:background .15s var(--ease);
+}
+.switch i{
+  position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;
+  background:#fff;transition:transform .15s var(--ease);
+}
+.toggle-only.on .switch{background:var(--accent);border-color:var(--accent)}
+.toggle-only.on .switch i{transform:translateX(13px)}
+.toggle-only.on{color:var(--ink)}
+
+/* ── 单源态：清爽筛选面板（已剥离「来源」行） ── */
+.filter-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:11px 16px;margin-bottom:14px;box-shadow:var(--card-shadow);
+}
+.filter-head{
+  display:flex;align-items:center;justify-content:space-between;cursor:pointer;
+}
+.filter-head .ttl{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px}
+.filter-head .badge{
+  font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);
+  padding:1px 8px;border-radius:99px;
+}
+.filter-body{margin-top:12px;display:flex;flex-direction:column;gap:10px;padding-top:10px;border-top:1px solid var(--line)}
+.filter-body.collapsed{display:none}
+.f-row{display:flex;align-items:center;gap:12px}
+.f-lbl{width:46px;flex:0 0 46px;font-size:11.5px;color:var(--ink-3);font-weight:600}
+.f-chips{display:flex;gap:6px;flex-wrap:wrap}
+.f-chip{
+  height:27px;padding:0 11px;border-radius:7px;font-size:12px;color:var(--ink-2);
+  background:var(--chip-bg);border:1px solid var(--chip-border);transition:all .12s var(--ease);
+}
+.f-chip:hover{background:var(--hover);color:var(--ink)}
+.f-chip.on{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent);font-weight:600}
+.f-foot{display:flex;justify-content:flex-end;gap:8px;padding-top:4px}
+
+/* ── 主体双栏（左结果流 + 右速览栏） ── */
+.workspace{
+  flex:1;min-height:0;display:flex;gap:16px;align-items:stretch;
+}
+.results-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px}
+
+/* ── 聚合泳道 ── */
+.lane{
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:14px 16px;box-shadow:var(--card-shadow);
+  transition:border-color .22s var(--ease);
+}
+.lane.flash{border-color:var(--accent)}
+.lane.compact{padding:11px 16px}
+.lane-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin-bottom:12px;
+}
+.lane.compact .lane-head{margin-bottom:0}
+.lane-id{display:flex;align-items:center;gap:9px;min-width:0}
+.lane-id .nm{font-size:14px;font-weight:700}
+.lane-id .meta{font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.lane-id .meta.err{color:var(--danger)}
+.lane-id .meta.loading{color:var(--accent)}
+
+.lane-acts{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.rail-btn{
+  width:26px;height:26px;border-radius:7px;
+  background:var(--chip-bg);border:1px solid var(--chip-border);
+  display:flex;align-items:center;justify-content:center;color:var(--ink-2);
+}
+.rail-btn:hover{background:var(--hover);color:var(--ink)}
+.see-all{
+  height:26px;padding:0 10px;border-radius:7px;font-size:12px;font-weight:600;
+  color:var(--accent);background:var(--accent-soft);border:1px solid transparent;
+  display:flex;align-items:center;gap:4px;
+}
+.see-all:hover{border-color:var(--accent-line)}
+.retry-btn{
+  height:26px;padding:0 11px;border-radius:7px;font-size:12px;font-weight:600;
+  color:var(--danger);background:var(--danger-soft);border:1px solid rgba(242,139,130,.3);
+}
+.retry-btn:hover{filter:brightness(1.08)}
+
+/* 横滑卡片轨道 */
+.rail-wrap{position:relative}
+.rail{
+  display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;
+  scroll-snap-type:x proximity;
+}
+.comic-card{
+  width:138px;flex:0 0 138px;scroll-snap-align:start;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
+  overflow:hidden;cursor:pointer;
+  transition:transform .16s var(--ease),border-color .16s var(--ease),box-shadow .16s var(--ease);
+}
+.comic-card:hover{
+  transform:translateY(-2px);border-color:var(--line-2);box-shadow:var(--card-hover-shadow);
+}
+.comic-card.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.cover{
+  width:100%;aspect-ratio:0.72;position:relative;overflow:hidden;
+  display:flex;align-items:flex-end;padding:8px;
+}
+.cover-tag{
+  font-size:10px;font-weight:600;color:#fff;
+  background:rgba(10,12,16,.72);padding:2px 6px;border-radius:5px;
+  backdrop-filter:blur(4px);
+}
+.card-info{padding:8px 9px 9px}
+.card-title{
+  font-size:12px;font-weight:600;line-height:1.35;color:var(--ink);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  min-height:32px;
+}
+.card-author{
+  font-size:11px;color:var(--ink-3);margin-top:4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+/* 局部骨架 */
+.skel-card{
+  width:138px;flex:0 0 138px;border-radius:10px;overflow:hidden;
+  background:var(--surface-2);border:1px solid var(--line);padding:7px;
+  display:flex;flex-direction:column;gap:8px;
+}
+.shimmer{
+  border-radius:6px;
+  background:linear-gradient(90deg,var(--skeleton) 25%,var(--skeleton-hi) 50%,var(--skeleton) 75%);
+  background-size:200% 100%;animation:shimmer 1.6s infinite linear;
+}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ── 单源结果流（横卡） ── */
+.single-bar{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;
+}
+.single-bar-left{display:flex;align-items:center;gap:10px}
+.single-bar h3{font-size:14px;font-weight:700}
+.src-badge-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  height:24px;padding:0 9px 0 6px;border-radius:6px;
+  background:var(--chip-bg);border:1px solid var(--chip-border);font-size:11.5px;color:var(--ink-2);
+}
+.row-list{display:flex;flex-direction:column;gap:10px}
+.row-card{
+  display:flex;gap:14px;padding:12px;border-radius:12px;
+  background:var(--surface);border:1px solid var(--line);cursor:pointer;
+  box-shadow:var(--card-shadow);position:relative;
+  transition:border-color .15s var(--ease),transform .15s var(--ease);
+}
+.row-card:hover{border-color:var(--line-2);transform:translateY(-1px)}
+.row-card.sel{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.row-cover{width:82px;aspect-ratio:0.72;border-radius:6px;flex:0 0 82px;overflow:hidden}
+.row-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.row-title{font-size:14px;font-weight:600;line-height:1.35}
+.row-author{font-size:12px;color:var(--ink-3)}
+.row-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:auto}
+.mini-tag{
+  font-size:11px;color:var(--ink-2);background:var(--chip-bg);
+  padding:2px 7px;border-radius:4px;
+}
+
+/* ── 右侧速览栏（Peek Pane） ── */
+.peek-pane{
+  width:328px;flex:0 0 328px;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:16px;box-shadow:var(--card-shadow);
+  display:flex;flex-direction:column;gap:14px;
+  align-self:flex-start;position:sticky;top:16px;
+}
+.peek-pane.hidden{display:none}
+.peek-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.peek-src{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11.5px;font-weight:600;color:var(--accent);
+  background:var(--accent-soft);padding:3px 9px 3px 6px;border-radius:7px;
+}
+.peek-close{
+  width:26px;height:26px;border-radius:7px;color:var(--ink-3);
+  display:flex;align-items:center;justify-content:center;
+}
+.peek-close:hover{background:var(--hover);color:var(--ink)}
+.peek-hero{display:flex;gap:12px}
+.peek-cover{width:104px;aspect-ratio:0.72;border-radius:8px;flex:0 0 104px;overflow:hidden}
+.peek-head{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.peek-title{font-size:14.5px;font-weight:700;line-height:1.35}
+.peek-sub{font-size:12px;color:var(--ink-2)}
+.peek-date{font-size:11px;color:var(--ink-3)}
+.peek-desc{font-size:12px;color:var(--ink-2);line-height:1.55}
+.peek-tags{display:flex;gap:6px;flex-wrap:wrap}
+.peek-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px}
+.peek-btn{
+  height:34px;border-radius:8px;font-size:12.5px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;
+}
+.peek-btn.pri{background:var(--accent);color:#fff}
+.peek-btn.sec{background:var(--chip-bg);border:1px solid var(--chip-border);color:var(--ink)}
+.peek-btn.sec:hover{background:var(--hover)}
+.peek-note{
+  font-size:11px;color:var(--ink-3);padding-top:8px;border-top:1px solid var(--line);
+}
+
+/* ── 底部规格摘要（阶段 A 硬内容） ── */
+.spec-section{margin-top:44px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.spec-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;
+}
+.spec-card .k{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
+.spec-card h3{font-size:14.5px;font-weight:700;margin:5px 0 10px}
+.spec-card ul{padding-left:16px;display:flex;flex-direction:column;gap:7px;color:var(--ink-2);font-size:12.5px}
+.spec-card li b{color:var(--ink);font-weight:600}
+.spec-card code{
+  font-family:ui-monospace,Consolas,monospace;font-size:11px;
+  background:var(--chip-bg);padding:1px 5px;border-radius:4px;color:var(--ink);
+}
+.preserve-banner{
+  margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:14px 18px;font-size:12.5px;color:var(--ink-2);
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+}
+.preserve-banner b{color:var(--ink)}
+
+@media(max-width:1040px){
+  .spec-section{grid-template-columns:1fr}
+  .peek-pane{width:280px;flex-basis:280px}
+}
+</style>
+</head>
+<body data-theme="dark">
+<div class="sheet">
+
+  <!-- 顶部说明与评审控制 -->
+  <div class="doc-head">
+    <div>
+      <h1>漫画搜索 · 源选择重做与自定义多源聚合</h1>
+      <p class="lede">阶段 A 可交互 UI 方案稿：把「来源」从折叠筛选面板独立到顶栏右侧，支持「单源快切 / 多源自由勾选聚合」、按源分组横滑泳道、单源局部重试与跨源速览联动。</p>
+      <p class="meta">目录：desktop/docs/designs/comic-search-aggregate-2026-11-20 · 直接点击下方界面可真实体验全部交互</p>
+    </div>
+    <div class="review-bar">
+      <button class="rev-btn on" id="revAgg" onclick="switchPreset('agg')">多源聚合态</button>
+      <button class="rev-btn" id="revAll" onclick="switchPreset('all')">全网聚合态</button>
+      <button class="rev-btn" id="revSingle" onclick="switchPreset('single')">单源深搜态</button>
+      <button class="rev-btn" id="revPicker" onclick="togglePicker(true)">打开源选择器</button>
+      <span class="rev-sep"></span>
+      <button class="rev-btn" id="revTheme" onclick="toggleTheme()">切换浅色</button>
+    </div>
+  </div>
+
+  <!-- 桌面应用模拟窗 -->
+  <div class="win">
+    <div class="win-titlebar">
+      <div class="win-dots"><i></i><i></i><i></i></div>
+      <div class="win-crumb">Venera Desktop &nbsp;/&nbsp; <b>漫画搜索</b></div>
+    </div>
+
+    <div class="win-body">
+      <!-- 左侧迷你边栏（参照） -->
+      <aside class="sidebar" aria-hidden="true">
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5.5v-6h-5v6H4a1 1 0 0 1-1-1z"/></svg>
+          <span>首页</span>
+        </div>
+        <div class="nav-item on">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <span>搜索</span>
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-4.5-7-10.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 7 3.5C19 16.5 12 21 12 21z"/></svg>
+          <span>收藏</span>
+        </div>
+        <div class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 10h8M8 14h5"/></svg>
+          <span>源管理</span>
+        </div>
+      </aside>
+
+      <!-- 主内容区 -->
+      <main class="main-pane">
+        <!-- 工具栏 60dp -->
+        <div class="toolbar">
+          <div class="segmented" role="tablist">
+            <button class="on">搜索</button>
+            <button>探索</button>
+          </div>
+
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="text" value="纯爱" placeholder="搜索漫画名、作者或标签… 回车检索">
+            <button class="search-clear" title="清空" onclick="document.getElementById('searchInput').value=''">✕</button>
+          </div>
+
+          <!-- 新：顶栏右侧源选择触发器 -->
+          <button class="src-trigger" id="srcTrigger" onclick="togglePicker()">
+            <span id="triggerIconSlot"></span>
+            <span class="nm" id="triggerName">已选 5 源</span>
+            <span class="cnt" id="triggerBadge" style="display:none"></span>
+            <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+
+          <!-- 新：双档源选择弹出面板 -->
+          <div class="picker-pop" id="pickerPop">
+            <div class="pop-mode">
+              <button id="tabSingle" onclick="setPickerTab('single')">单源</button>
+              <button id="tabMulti" class="on" onclick="setPickerTab('multi')">多源聚合</button>
+            </div>
+
+            <div class="pop-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+              <input id="pickerFilter" type="text" placeholder="搜索已启用漫画源…" oninput="renderPickerList()">
+            </div>
+
+            <div class="pop-bulk" id="popBulk">
+              <span id="popSelCount">已选 5 / 11 源</span>
+              <div class="pop-bulk-acts">
+                <button onclick="selectAllDraft()">全选</button>
+                <button class="muted" onclick="clearDraft()">清空</button>
+              </div>
+            </div>
+
+            <div class="pop-list" id="popList"></div>
+
+            <div class="pop-foot" id="popFoot">
+              <span class="pop-hint" id="popHint">勾选 1 源将自动切入单源</span>
+              <div class="pop-foot-btns">
+                <button class="btn-ghost" onclick="togglePicker(false)">取消</button>
+                <button class="btn-primary" id="popApplyBtn" onclick="applyMultiDraft()">确认 (5)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 页头 -->
+        <div class="page-head">
+          <div class="page-head-left">
+            <h2>漫画搜索</h2>
+            <span class="sub" id="pageSub">已选 5 源 · 共 54 本</span>
+          </div>
+        </div>
+
+        <!-- 聚合态：顶部源状态总览锚点条（替代原筛选面板） -->
+        <div class="agg-bar" id="aggBar">
+          <div class="agg-progress" id="aggProgress">
+            <span class="pulse-dot"></span>
+            <span>已完成 <b>4/5</b> 源 · 共 <b>54</b> 本</span>
+          </div>
+          <div class="agg-anchors" id="aggAnchors"></div>
+          <button class="toggle-only" id="onlyHitsToggle" onclick="toggleOnlyHits()">
+            <span>仅看有结果</span>
+            <span class="switch"><i></i></span>
+          </button>
+        </div>
+
+        <!-- 单源态：清爽筛选面板（已完全移除「来源」行） -->
+        <div class="filter-card" id="singleFilterCard" style="display:none">
+          <div class="filter-head" onclick="toggleSingleFilter()">
+            <div class="ttl">
+              <span>筛选条件</span>
+              <span class="badge">当前源专属 · 1 项已启用</span>
+            </div>
+            <span style="color:var(--ink-3);font-size:13px" id="filterCaret">⌃</span>
+          </div>
+          <div class="filter-body" id="singleFilterBody">
+            <div class="f-row">
+              <span class="f-lbl">排序</span>
+              <div class="f-chips">
+                <button class="f-chip on" onclick="pickChip(this)">最新发布</button>
+                <button class="f-chip" onclick="pickChip(this)">最早发布</button>
+                <button class="f-chip" onclick="pickChip(this)">最多爱心</button>
+                <button class="f-chip" onclick="pickChip(this)">最多指名</button>
+              </div>
+            </div>
+            <div class="f-row">
+              <span class="f-lbl">分区</span>
+              <div class="f-chips">
+                <button class="f-chip on" onclick="pickChip(this)">全部</button>
+                <button class="f-chip" onclick="pickChip(this)">单行本</button>
+                <button class="f-chip" onclick="pickChip(this)">短篇</button>
+                <button class="f-chip" onclick="pickChip(this)">同人</button>
+              </div>
+            </div>
+            <div class="f-foot">
+              <button class="btn-ghost" onclick="toggleSingleFilter()">重置</button>
+              <button class="btn-primary" onclick="toggleSingleFilter()">应用筛选</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 双栏工作区：左结果流 + 右速览栏 -->
+        <div class="workspace">
+          <div class="results-col" id="resultsCol"></div>
+
+          <!-- 右侧速览栏（单源与聚合共用，自动携带该卡所属源） -->
+          <aside class="peek-pane" id="peekPane">
+            <div class="peek-top">
+              <span class="peek-src" id="peekSrcBadge"></span>
+              <button class="peek-close" title="关闭速览" onclick="closePeek()">✕</button>
+            </div>
+            <div class="peek-hero">
+              <div class="peek-cover" id="peekCover"></div>
+              <div class="peek-head">
+                <div class="peek-title" id="peekTitle"></div>
+                <div class="peek-sub" id="peekAuthor"></div>
+                <div class="peek-date" id="peekDate"></div>
+              </div>
+            </div>
+            <div class="peek-desc" id="peekDesc"></div>
+            <div class="peek-tags" id="peekTags"></div>
+            <div class="peek-acts">
+              <button class="peek-btn pri">开始阅读</button>
+              <button class="peek-btn sec">查看详情</button>
+            </div>
+            <div class="peek-note" id="peekNote"></div>
+          </aside>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- 阶段 A 必需规格卡片 -->
+  <div class="spec-section">
+    <div class="spec-card">
+      <div class="k">01 · 现状问题</div>
+      <h3>为什么必须重做</h3>
+      <ul>
+        <li><b>【确定 · DesktopSearchScreen.kt:1071,1135】</b>「来源」嵌在默认折叠的 <code>SearchFilterPanel</code> 内，常态不可见也不可切源。</li>
+        <li><b>【确定 · DesktopSearchScreen.kt:1136-1231】</b>切源是全局重搜，却与需要点「应用筛选」的单源 <code>optionList</code> 混在同一面板，心智冲突。</li>
+        <li><b>【估算 · 截图】</b>启用 11 个源后横排胶囊拥挤且无站点图标、无检索过滤，缺少安卓端原有的多源聚合能力。</li>
+        <li><b>【确定 · VeneraDesktopLargeScreen.kt:7119,7276】</b>速览与详情当前吃全局 <code>currentSearchKey</code>，跨源聚合必须改为按卡归属源传递。</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <div class="k">02 · 视觉与交互方案</div>
+      <h3>三层解耦架构</h3>
+      <ul>
+        <li><b>视觉层</b>：顶栏右置 36dp 源按钮（单源单图标，多源叠放前 3 图标 + 源数）；弹出框 336dp 遵循同心圆几何，浅色微影、深色 1dp 描边分层。</li>
+        <li><b>交互层</b>：弹出框内「单源 / 多源聚合」两档分离——单源单击即切；多源自由勾选、支持全选与清空，只勾 1 源确认自动降回单源模式。</li>
+        <li><b>聚合展示</b>：顶部源状态锚点条（可点击定位 +「仅看有结果」开关）替代单源筛选框；下方按源分组横滑泳道，有结果置顶、空/错沉底、支持单源重试与「查看全部 →」下钻单源。</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <div class="k">03 · 数据与引擎边界</div>
+      <h3>流式上屏与稳定兜底</h3>
+      <ul>
+        <li><b>状态持久化</b>：记住上次选源模式与勾选集合（首次默认全网聚合），重启后剔除已停用源、自动校验兜底。</li>
+        <li><b>引擎串行流式上屏</b>：复用桌面 <code>desktopEngineCall</code> 互斥锁逐源执行并设单源独立超时，每完一源立刻刷新该泳道，不干等全部完成。</li>
+        <li><b>独立容错</b>：单源失败/超时仅标红该泳道并提供局部重试，只重跑该源，绝不拖垮整页；跨源点击速览与详情均严格携带 <code>card.sourceKey</code>。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="preserve-banner">
+    <div><b>既有功能保留声明</b>：完整保留原有单源按源动态筛选（<code>search.optionList</code>）、搜索历史下拉与清空、单列/双列/网格视图切换、自动触底续页、封面打码守卫（<code>coverMaskStateOf</code>）、右键菜单与探索页自动切回链路，不删减任何原有入口。</div>
+  </div>
+
+</div>
+
+<script>
+const SOURCES = [
+  { key:'picacg', name:'Picacg', icon:'assets/icons/picacg.png', hasFilters:true },
+  { key:'jm', name:'禁漫天堂', icon:'assets/icons/jm.png', hasFilters:true },
+  { key:'copy_manga', name:'拷贝漫画', icon:'assets/icons/copy_manga.png', hasFilters:true },
+  { key:'ehentai', name:'EHentai', icon:'assets/icons/ehentai.png', hasFilters:true },
+  { key:'wnacg', name:'紳士漫畫', icon:'assets/icons/wnacg.png', hasFilters:false },
+  { key:'baozi', name:'包子漫画', icon:'assets/icons/baozi.png', hasFilters:false },
+  { key:'comick', name:'ComicK', icon:'assets/icons/comick.png', hasFilters:true },
+  { key:'manga_dex', name:'MangaDex', icon:'assets/icons/manga_dex.png', hasFilters:true },
+  { key:'nhentai', name:'nhentai', icon:'assets/icons/nhentai.png', hasFilters:true },
+  { key:'hcomic', name:'H-Comic', icon:'assets/icons/hcomic.png', hasFilters:false },
+  { key:'hitomi', name:'Hitomi', icon:'assets/icons/hitomi.png', hasFilters:false }
+];
+
+const COVER_PALETTES = [
+  ['#2b3a55','#4b6587'], ['#3d2c4e','#6e4f82'], ['#243e36','#427564'],
+  ['#4e322e','#84524a'], ['#25384c','#3c658c'], ['#423a29','#786944'],
+  ['#2e2f4a','#545687'], ['#4a2b3d','#854a6c']
+];
+
+function makeComics(srcKey, srcName, count, seedOffset) {
+  const titles = [
+    '星光下的夏夜约定 · 完整版', '放学后的美术室手记', '微风与图书馆的秘密',
+    '雨季重逢的第七天', '海边小站与褪色车票', '双人伞下的慢节奏日常',
+    '午后电车与未寄出的信', '冬日暖炉边的约定', '橘子汽水与夏日祭'
+  ];
+  const authors = ['白川悠', '水无月晴', '青木千寻', '星野凛', '森川南', '藤原光'];
+  const tagsPool = ['纯爱','全彩','汉化','单行本','校园','日常','治愈','短篇'];
+  const arr = [];
+  for (let i = 0; i < count; i++) {
+    const pal = COVER_PALETTES[(i + seedOffset) % COVER_PALETTES.length];
+    arr.push({
+      id: `${srcKey}_${i+1}`,
+      sourceKey: srcKey,
+      sourceName: srcName,
+      title: titles[(i + seedOffset) % titles.length] + (i >= titles.length ? ` #${i+1}` : ''),
+      author: authors[(i + seedOffset) % authors.length],
+      date: `2026-11-${String(20 - (i % 15)).padStart(2,'0')}`,
+      coverBg: `linear-gradient(155deg, ${pal[0]}, ${pal[1]})`,
+      badge: i % 3 === 0 ? '全彩' : (i % 3 === 1 ? '汉化' : '完结'),
+      tags: [tagsPool[i % 4], tagsPool[(i + 2) % 8], tagsPool[(i + 5) % 8]],
+      desc: `来自「${srcName}」的检索条目。点击速览时自动携带该卡所属源键（${srcKey}），避免多源聚合下错源加载详情。`
+    });
+  }
+  return arr;
+}
+
+// 模拟各源聚合状态
+const MOCK_AGG_DATA = {
+  picacg:     { status:'ok',      comics: makeComics('picacg','Picacg', 18, 0) },
+  jm:         { status:'ok',      comics: makeComics('jm','禁漫天堂', 22, 2) },
+  copy_manga: { status:'ok',      comics: makeComics('copy_manga','拷贝漫画', 14, 4) },
+  ehentai:    { status:'loading', comics: [] },
+  wnacg:      { status:'err',     comics: [], error:'请求超时（15s），可单独重试该源' },
+  baozi:      { status:'empty',   comics: [] },
+  comick:     { status:'ok',      comics: makeComics('comick','ComicK', 9, 1) },
+  manga_dex:  { status:'ok',      comics: makeComics('manga_dex','MangaDex', 12, 3) },
+  nhentai:    { status:'ok',      comics: makeComics('nhentai','nhentai', 15, 5) },
+  hcomic:     { status:'empty',   comics: [] },
+  hitomi:     { status:'ok',      comics: makeComics('hitomi','Hitomi', 11, 6) }
+};
+
+let state = {
+  mode: 'multi', // 'single' | 'multi'
+  singleKey: 'picacg',
+  multiKeys: ['picacg', 'jm', 'copy_manga', 'ehentai', 'wnacg', 'baozi'],
+  draftMultiKeys: ['picacg', 'jm', 'copy_manga', 'ehentai', 'wnacg', 'baozi'],
+  pickerOpen: false,
+  pickerTab: 'multi',
+  onlyHits: false,
+  selectedComic: null
+};
+
+state.selectedComic = MOCK_AGG_DATA.picacg.comics[0];
+
+function getSource(key){ return SOURCES.find(s => s.key === key) || SOURCES[0]; }
+
+function iconHtml(src, cls='src-ico'){
+  return `<span class="${cls}"><img src="${src.icon}" alt="${src.name}" onerror="this.remove();this.parentNode.textContent='${src.name[0]}'"></span>`;
+}
+
+function renderAll(){
+  renderTrigger();
+  renderPickerList();
+  renderPageHead();
+  renderMainArea();
+  renderPeek();
+  syncReviewBtns();
+}
+
+function syncReviewBtns(){
+  const isAll = state.mode === 'multi' && state.multiKeys.length === SOURCES.length;
+  document.getElementById('revAgg').classList.toggle('on', state.mode === 'multi' && !isAll);
+  document.getElementById('revAll').classList.toggle('on', isAll);
+  document.getElementById('revSingle').classList.toggle('on', state.mode === 'single');
+  document.getElementById('revPicker').classList.toggle('on', state.pickerOpen);
+}
+
+function renderTrigger(){
+  const iconSlot = document.getElementById('triggerIconSlot');
+  const nm = document.getElementById('triggerName');
+  const badge = document.getElementById('triggerBadge');
+  const trigger = document.getElementById('srcTrigger');
+  trigger.classList.toggle('open', state.pickerOpen);
+
+  if (state.mode === 'single') {
+    const s = getSource(state.singleKey);
+    iconSlot.innerHTML = iconHtml(s);
+    nm.textContent = s.name;
+    badge.style.display = 'none';
+  } else {
+    const picked = state.multiKeys.map(getSource);
+    const top3 = picked.slice(0, 3);
+    iconSlot.innerHTML = `<span class="src-stack">${top3.map(s => iconHtml(s)).join('')}</span>`;
+    const isAll = picked.length === SOURCES.length;
+    nm.textContent = isAll ? '全网聚合' : `已选 ${picked.length} 源`;
+    badge.textContent = `${picked.length}`;
+    badge.style.display = isAll ? 'inline-block' : 'none';
+  }
+}
+
+function renderPickerList(){
+  const pop = document.getElementById('pickerPop');
+  pop.classList.toggle('open', state.pickerOpen);
+  document.getElementById('tabSingle').classList.toggle('on', state.pickerTab === 'single');
+  document.getElementById('tabMulti').classList.toggle('on', state.pickerTab === 'multi');
+  document.getElementById('popBulk').style.display = state.pickerTab === 'multi' ? 'flex' : 'none';
+  document.getElementById('popFoot').style.display = state.pickerTab === 'multi' ? 'flex' : 'none';
+
+  const q = document.getElementById('pickerFilter').value.trim().toLowerCase();
+  const filtered = SOURCES.filter(s => !q || s.name.toLowerCase().includes(q) || s.key.toLowerCase().includes(q));
+  const listEl = document.getElementById('popList');
+
+  if (state.pickerTab === 'single') {
+    listEl.innerHTML = filtered.map(s => {
+      const sel = state.mode === 'single' && state.singleKey === s.key;
+      return `
+        <button class="pop-row ${sel ? 'sel' : ''}" onclick="pickSingleSource('${s.key}')">
+          ${iconHtml(s)}
+          <span class="nm">${s.name}</span>
+          <span class="key">${s.key}</span>
+          <svg class="single-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg>
+        </button>`;
+    }).join('') || `<div style="padding:20px;text-align:center;color:var(--ink-3);font-size:12px">无匹配漫画源</div>`;
+  } else {
+    const cnt = state.draftMultiKeys.length;
+    document.getElementById('popSelCount').textContent = `已选 ${cnt} / ${SOURCES.length} 源`;
+    const applyBtn = document.getElementById('popApplyBtn');
+    applyBtn.disabled = cnt === 0;
+    applyBtn.textContent = cnt === SOURCES.length ? `全网聚合 (${cnt})` : (cnt === 1 ? '进入单源' : `确认聚合 (${cnt})`);
+    document.getElementById('popHint').textContent = cnt === 1 ? '仅选 1 源将自动切入单源深搜' : '各源按默认排序流式展示';
+
+    listEl.innerHTML = filtered.map(s => {
+      const checked = state.draftMultiKeys.includes(s.key);
+      return `
+        <button class="pop-row ${checked ? 'checked' : ''}" onclick="toggleDraftSource('${s.key}')">
+          <span class="chk">${checked ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>' : ''}</span>
+          ${iconHtml(s)}
+          <span class="nm">${s.name}</span>
+          <span class="key">${s.key}</span>
+        </button>`;
+    }).join('') || `<div style="padding:20px;text-align:center;color:var(--ink-3);font-size:12px">无匹配漫画源</div>`;
+  }
+}
+
+function renderPageHead(){
+  const sub = document.getElementById('pageSub');
+  if (state.mode === 'single') {
+    const s = getSource(state.singleKey);
+    const data = MOCK_AGG_DATA[s.key];
+    const n = data && data.comics.length ? data.comics.length : 18;
+    sub.textContent = `${s.name} · ${n} 本` + (s.hasFilters ? ' · 含筛选' : '');
+  } else {
+    const items = state.multiKeys.map(k => MOCK_AGG_DATA[k] || {status:'empty',comics:[]});
+    const totalBooks = items.reduce((acc, x) => acc + x.comics.length, 0);
+    const isAll = state.multiKeys.length === SOURCES.length;
+    sub.textContent = `${isAll ? '全网聚合' : `已选 ${state.multiKeys.length} 源`} · ${totalBooks} 本`;
+  }
+}
+
+function sortedAggKeys(){
+  const rank = { ok: 0, loading: 1, err: 2, empty: 3 };
+  return [...state.multiKeys].sort((a, b) => {
+    const sa = (MOCK_AGG_DATA[a] || {status:'empty'}).status;
+    const sb = (MOCK_AGG_DATA[b] || {status:'empty'}).status;
+    return rank[sa] - rank[sb];
+  });
+}
+
+function renderMainArea(){
+  const aggBar = document.getElementById('aggBar');
+  const filterCard = document.getElementById('singleFilterCard');
+  const col = document.getElementById('resultsCol');
+
+  if (state.mode === 'multi') {
+    aggBar.style.display = 'flex';
+    filterCard.style.display = 'none';
+
+    const keys = sortedAggKeys();
+    const doneCount = keys.filter(k => (MOCK_AGG_DATA[k]?.status) !== 'loading').length;
+    const totalBooks = keys.reduce((sum, k) => sum + (MOCK_AGG_DATA[k]?.comics?.length || 0), 0);
+    const allDone = doneCount === keys.length;
+
+    document.getElementById('aggProgress').innerHTML = `
+      <span class="pulse-dot ${allDone ? 'done' : ''}"></span>
+      <span>${allDone ? '已完成' : '检索中'} <b>${doneCount}/${keys.length}</b> 源 · 共 <b>${totalBooks}</b> 本</span>
+    `;
+
+    document.getElementById('onlyHitsToggle').classList.toggle('on', state.onlyHits);
+
+    document.getElementById('aggAnchors').innerHTML = keys.map(k => {
+      const s = getSource(k);
+      const d = MOCK_AGG_DATA[k] || {status:'empty',comics:[]};
+      const numText = d.status === 'ok' ? `${d.comics.length}` : (d.status === 'loading' ? '…' : (d.status === 'err' ? '失败' : '0'));
+      return `
+        <button class="anchor-pill ${d.status}" onclick="jumpToLane('${k}')">
+          <span class="dot"></span>
+          <span>${s.name}</span>
+          <span class="num">${numText}</span>
+        </button>`;
+    }).join('');
+
+    const visibleKeys = state.onlyHits
+      ? keys.filter(k => (MOCK_AGG_DATA[k]?.status) === 'ok' || (MOCK_AGG_DATA[k]?.status) === 'loading')
+      : keys;
+
+    col.innerHTML = visibleKeys.map(k => renderLaneHtml(k)).join('') || `
+      <div class="lane" style="text-align:center;padding:42px;color:var(--ink-3)">暂无命中的漫画源，可关闭「仅看有结果」查看详情</div>
+    `;
+  } else {
+    aggBar.style.display = 'none';
+    const s = getSource(state.singleKey);
+    filterCard.style.display = s.hasFilters ? 'block' : 'none';
+    const comics = (MOCK_AGG_DATA[s.key]?.comics?.length ? MOCK_AGG_DATA[s.key].comics : makeComics(s.key, s.name, 8, 1));
+
+    col.innerHTML = `
+      <div class="single-bar">
+        <div class="single-bar-left">
+          <h3>结果 ${comics.length}</h3>
+          <span class="src-badge-pill">${iconHtml(s)}<span>${s.name}</span></span>
+        </div>
+        <div class="segmented">
+          <button class="on">单列</button>
+          <button>双列</button>
+          <button>网格</button>
+        </div>
+      </div>
+      <div class="row-list">
+        ${comics.slice(0, 6).map(c => {
+          const sel = state.selectedComic && state.selectedComic.id === c.id;
+          return `
+            <div class="row-card ${sel ? 'sel' : ''}" onclick="openPeek('${c.sourceKey}','${c.id}')">
+              <div class="row-cover" style="background:${c.coverBg}"></div>
+              <div class="row-meta">
+                <div class="row-title">${c.title}</div>
+                <div class="row-author">作者：${c.author} · 更新 ${c.date}</div>
+                <div class="row-tags">${c.tags.map(t => `<span class="mini-tag">${t}</span>`).join('')}</div>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+    `;
+  }
+}
+
+function renderLaneHtml(key){
+  const s = getSource(key);
+  const d = MOCK_AGG_DATA[key] || {status:'empty',comics:[]};
+
+  if (d.status === 'ok') {
+    return `
+      <section class="lane" id="lane-${key}">
+        <div class="lane-head">
+          <div class="lane-id">
+            ${iconHtml(s)}
+            <span class="nm">${s.name}</span>
+            <span class="meta">${d.comics.length} 本</span>
+          </div>
+          <div class="lane-acts">
+            <button class="rail-btn" title="向左翻页" onclick="scrollRail('${key}', -420)">‹</button>
+            <button class="rail-btn" title="向右翻页" onclick="scrollRail('${key}', 420)">›</button>
+            <button class="see-all" onclick="drillDownSource('${key}')">查看全部 →</button>
+          </div>
+        </div>
+        <div class="rail-wrap">
+          <div class="rail" id="rail-${key}">
+            ${d.comics.map(c => {
+              const sel = state.selectedComic && state.selectedComic.id === c.id;
+              return `
+                <article class="comic-card ${sel ? 'sel' : ''}" onclick="openPeek('${c.sourceKey}','${c.id}')">
+                  <div class="cover" style="background:${c.coverBg}">
+                    <span class="cover-tag">${c.badge}</span>
+                  </div>
+                  <div class="card-info">
+                    <div class="card-title">${c.title}</div>
+                    <div class="card-author">${c.author}</div>
+                  </div>
+                </article>`;
+            }).join('')}
+          </div>
+        </div>
+      </section>`;
+  }
+
+  if (d.status === 'loading') {
+    return `
+      <section class="lane" id="lane-${key}">
+        <div class="lane-head">
+          <div class="lane-id">
+            ${iconHtml(s)}
+            <span class="nm">${s.name}</span>
+            <span class="meta loading">正在检索…</span>
+          </div>
+          <div class="lane-acts">
+            <button class="btn-ghost" style="height:26px;font-size:11.5px" onclick="simulateFinish('${key}')">模拟加载完成</button>
+          </div>
+        </div>
+        <div class="rail">
+          ${Array.from({length:6}).map(() => `
+            <div class="skel-card">
+              <div class="shimmer" style="width:100%;aspect-ratio:.72"></div>
+              <div class="shimmer" style="height:12px;width:85%"></div>
+              <div class="shimmer" style="height:10px;width:52%"></div>
+            </div>`).join('')}
+        </div>
+      </section>`;
+  }
+
+  if (d.status === 'err') {
+    return `
+      <section class="lane compact" id="lane-${key}">
+        <div class="lane-head">
+          <div class="lane-id">
+            ${iconHtml(s)}
+            <span class="nm">${s.name}</span>
+            <span class="meta err">${d.error}</span>
+          </div>
+          <div class="lane-acts">
+            <button class="retry-btn" onclick="retrySource('${key}')">单源重试</button>
+          </div>
+        </div>
+      </section>`;
+  }
+
+  return `
+    <section class="lane compact" id="lane-${key}">
+      <div class="lane-head">
+        <div class="lane-id">
+          ${iconHtml(s)}
+          <span class="nm">${s.name}</span>
+          <span class="meta">该源未找到相关漫画</span>
+        </div>
+      </div>
+    </section>`;
+}
+
+function renderPeek(){
+  const pane = document.getElementById('peekPane');
+  const c = state.selectedComic;
+  if (!c) { pane.classList.add('hidden'); return; }
+  pane.classList.remove('hidden');
+  const s = getSource(c.sourceKey);
+  document.getElementById('peekSrcBadge').innerHTML = `${iconHtml(s)}<span>${s.name}</span>`;
+  document.getElementById('peekCover').style.background = c.coverBg;
+  document.getElementById('peekTitle').textContent = c.title;
+  document.getElementById('peekAuthor').textContent = `作者：${c.author}`;
+  document.getElementById('peekDate').textContent = `最近更新：${c.date}`;
+  document.getElementById('peekDesc').textContent = c.desc;
+  document.getElementById('peekTags').innerHTML = c.tags.map(t => `<span class="mini-tag">${t}</span>`).join('');
+  document.getElementById('peekNote').textContent = `速览归属源键：${c.sourceKey}（跨源聚合不串源）`;
+}
+
+// ── 交互控制 ──
+function togglePicker(force){
+  state.pickerOpen = typeof force === 'boolean' ? force : !state.pickerOpen;
+  if (state.pickerOpen) {
+    state.pickerTab = state.mode;
+    state.draftMultiKeys = state.mode === 'multi' ? [...state.multiKeys] : [state.singleKey];
+  }
+  renderAll();
+}
+function setPickerTab(tab){
+  state.pickerTab = tab;
+  if (tab === 'multi' && state.draftMultiKeys.length === 0) {
+    state.draftMultiKeys = [state.singleKey];
+  }
+  renderPickerList();
+}
+function pickSingleSource(key){
+  state.mode = 'single';
+  state.singleKey = key;
+  state.pickerOpen = false;
+  const first = MOCK_AGG_DATA[key]?.comics?.[0];
+  if (first) state.selectedComic = first;
+  renderAll();
+}
+function toggleDraftSource(key){
+  if (state.draftMultiKeys.includes(key)) {
+    state.draftMultiKeys = state.draftMultiKeys.filter(k => k !== key);
+  } else {
+    state.draftMultiKeys = [...state.draftMultiKeys, key];
+  }
+  renderPickerList();
+}
+function selectAllDraft(){
+  state.draftMultiKeys = SOURCES.map(s => s.key);
+  renderPickerList();
+}
+function clearDraft(){
+  state.draftMultiKeys = [];
+  renderPickerList();
+}
+function applyMultiDraft(){
+  if (state.draftMultiKeys.length === 0) return;
+  if (state.draftMultiKeys.length === 1) {
+    pickSingleSource(state.draftMultiKeys[0]);
+    return;
+  }
+  state.mode = 'multi';
+  state.multiKeys = [...state.draftMultiKeys];
+  state.pickerOpen = false;
+  renderAll();
+}
+function drillDownSource(key){
+  state.mode = 'single';
+  state.singleKey = key;
+  state.pickerOpen = false;
+  renderAll();
+}
+function toggleOnlyHits(){
+  state.onlyHits = !state.onlyHits;
+  renderMainArea();
+}
+function jumpToLane(key){
+  if (state.onlyHits && MOCK_AGG_DATA[key]?.status !== 'ok' && MOCK_AGG_DATA[key]?.status !== 'loading') {
+    state.onlyHits = false;
+    renderMainArea();
+  }
+  const el = document.getElementById('lane-' + key);
+  if (el) {
+    el.scrollIntoView({ behavior:'smooth', block:'center' });
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 900);
+  }
+}
+function scrollRail(key, dx){
+  const el = document.getElementById('rail-' + key);
+  if (el) el.scrollBy({ left: dx, behavior:'smooth' });
+}
+function openPeek(srcKey, id){
+  const list = MOCK_AGG_DATA[srcKey]?.comics || [];
+  const found = list.find(x => x.id === id);
+  if (found) {
+    state.selectedComic = found;
+    renderMainArea();
+    renderPeek();
+  }
+}
+function closePeek(){
+  state.selectedComic = null;
+  renderMainArea();
+  renderPeek();
+}
+function retrySource(key){
+  const s = getSource(key);
+  MOCK_AGG_DATA[key] = { status:'loading', comics:[] };
+  renderMainArea();
+  setTimeout(() => {
+    MOCK_AGG_DATA[key] = { status:'ok', comics: makeComics(key, s.name, 10, 7) };
+    renderAll();
+  }, 650);
+}
+function simulateFinish(key){
+  const s = getSource(key);
+  MOCK_AGG_DATA[key] = { status:'ok', comics: makeComics(key, s.name, 16, 3) };
+  renderAll();
+}
+function toggleSingleFilter(){
+  const body = document.getElementById('singleFilterBody');
+  const caret = document.getElementById('filterCaret');
+  const collapsed = body.classList.toggle('collapsed');
+  caret.textContent = collapsed ? '⌄' : '⌃';
+}
+function pickChip(btn){
+  btn.parentNode.querySelectorAll('.f-chip').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function switchPreset(preset){
+  state.pickerOpen = false;
+  if (preset === 'agg') {
+    state.mode = 'multi';
+    state.multiKeys = ['picacg', 'jm', 'copy_manga', 'ehentai', 'wnacg', 'baozi'];
+  } else if (preset === 'all') {
+    state.mode = 'multi';
+    state.multiKeys = SOURCES.map(s => s.key);
+  } else {
+    state.mode = 'single';
+    state.singleKey = 'picacg';
+  }
+  renderAll();
+}
+function toggleTheme(){
+  const isLight = document.body.getAttribute('data-theme') === 'light';
+  document.body.setAttribute('data-theme', isLight ? 'dark' : 'light');
+  document.getElementById('revTheme').textContent = isLight ? '切换浅色' : '切换深色';
+}
+
+document.addEventListener('click', (e) => {
+  if (!state.pickerOpen) return;
+  const pop = document.getElementById('pickerPop');
+  const btn = document.getElementById('srcTrigger');
+  const rev = document.getElementById('revPicker');
+  if (!pop.contains(e.target) && !btn.contains(e.target) && !rev.contains(e.target)) {
+    state.pickerOpen = false;
+    renderAll();
+  }
+});
+
+renderAll();
+</script>
+</body>
+</html>

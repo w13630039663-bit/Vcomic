@@ -1,0 +1,193 @@
+package com.venera.compose.components
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.venera.compose.components.venera.VeneraCard
+import com.venera.compose.components.venera.VeneraCover
+import com.venera.compose.components.venera.VeneraCoverMask
+import com.venera.compose.components.venera.VeneraTagChip
+import com.venera.compose.ui.tokens.VeneraTokens
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+/** Shared by all lists. Writes immediately; preference callbacks keep mounted screens in sync. */
+@Composable
+fun rememberComicListDisplayMode(): MutableState<String> {
+    // 通过平台服务读写列表显示模式，保持 components 层无平台依赖且键名语义不变。
+    val ux = LocalUxPlatformServices.current
+    val current = remember(ux) { mutableStateOf(ux.readComicDisplayMode()) }
+    DisposableEffect(ux) {
+        val cancel = ux.observeComicDisplayMode { current.value = ux.readComicDisplayMode() }
+        current.value = ux.readComicDisplayMode()
+        onDispose { cancel() }
+    }
+    return remember(ux, current) {
+        object : MutableState<String> {
+            override var value: String
+                get() = current.value
+                set(value) {
+                    val normalized = normalizeComicDisplayMode(value)
+                    current.value = normalized
+                    ux.writeComicDisplayMode(normalized)
+                }
+            override fun component1(): String = value
+            override fun component2(): (String) -> Unit = { value = it }
+        }
+    }
+}
+
+/** Observe real source metrics without querying a source from a card or changing favorite schemas. */
+@Composable
+fun rememberCachedComicMetrics(sourceKey: String, comicId: String): State<CachedComicMetricsSnapshot> {
+    // 同上一颗：`ComicMetricsCache(context)` 也是 Android 面，改走平台服务转发。
+    val ux = LocalUxPlatformServices.current
+    val state = remember(ux, sourceKey, comicId) { mutableStateOf(ux.cachedComicMetrics(sourceKey, comicId)) }
+    DisposableEffect(ux, sourceKey, comicId) {
+        val cancel = ux.observeComicMetrics { state.value = ux.cachedComicMetrics(sourceKey, comicId) }
+        state.value = ux.cachedComicMetrics(sourceKey, comicId)
+        onDispose { cancel() }
+    }
+    return state
+}
+
+/** A neutral responsive body: the caller retains click, long-click, selection and menu actions. */
+@Composable
+fun ComicCardLayout(
+    detailed: Boolean,
+    modifier: Modifier = Modifier,
+    cover: @Composable () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    if (detailed) {
+        Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(Modifier.width(122.dp)) { cover() }
+            Column(Modifier.weight(1f)) { content() }
+        }
+    } else {
+        Column(modifier) {
+            cover()
+            content()
+        }
+    }
+}
+
+/** Numeric text only: the source did not supply a maximum, so do not invent a five-star scale. */
+@Composable
+fun ComicMetrics(rating: Double? = null, likesCount: Int? = null, modifier: Modifier = Modifier) {
+    val text = comicMetricsText(rating, likesCount)
+    if (text.isNotEmpty()) {
+        Text(text = text, fontSize = 11.sp, color = MiuixTheme.colorScheme.primary, modifier = modifier)
+    }
+}
+
+/**
+ * 列表「单列行卡」的唯一形态：左封面 92dp（`listCoverWidth`）+ 右信息
+ * （标题 2 行 / 副标题 / metadata 行 / 标签 5 个最多 2 行）。
+ *
+ * ⚠️ **不铺简介**：从前这里还带 2 行 `description`，
+ * 单卡因此到 ~155dp、一屏只剩 3.5 张。列表页的首要任务是"找那一本"，
+ * 简介在列表里的价值最低却占两行 —— 要看简介去详情那一屏。
+ * 参数一并删掉而不是留一枚恒传的开关：留着就是"能传但没人想开"的假口子。
+ *
+ * 正文是从 `SearchScreen.SearchResultRowItem` **逐行搬来、未改任何尺寸与颜色**的，
+ * 搜索页现在也调这个组件。之所以抽出来：收藏页两条路径（本地 / 网络）各自画了一套，
+ * 同一页出现两三种卡片高度，改一处忘一处。收藏页要「和搜索页一致」，正解是共用一个
+ * 组件而不是把配方抄一遍。
+ *
+ * @param coverModifier 封面共享元素转场用（`Modifier.sharedElement(...)`）；打码命中的卡不要挂。
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ComicRowCard(
+    title: String,
+    coverUrl: String,
+    subtitle: String,
+    tags: List<String>,
+    mask: VeneraCoverMask,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    likesCount: Int? = null,
+    rating: Float? = null,
+    updateTime: String = "",
+    tagLabel: (String) -> String = { it },
+    coverModifier: Modifier = Modifier,
+) {
+    val tokens = VeneraTokens
+    VeneraCard(onClick = onClick, onLongClick = onLongClick) {
+        Row(horizontalArrangement = Arrangement.spacedBy(tokens.spacing.space6)) {
+            Box(Modifier.width(tokens.spacing.listCoverWidth)) {
+                VeneraCover(
+                    url = coverUrl,
+                    contentDescription = title,
+                    mask = mask,
+                    modifier = coverModifier,
+                )
+            }
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    fontSize = tokens.type.body,
+                    fontWeight = tokens.type.weightMedium,
+                    color = tokens.color.textPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (subtitle.isNotBlank()) {
+                    Text(
+                        text = subtitle,
+                        fontSize = tokens.type.caption,
+                        color = tokens.color.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                ComicRowMetadata(likesCount = likesCount, rating = rating, updateTime = updateTime)
+                // 标签放开到 5 个（网格小卡才是 2 个）：单列有整行宽度可用。
+                // 承载用 FlowRow 而非 Row —— 5 个在 360dp 窄屏必超一行，Row 会直接裁掉；
+                // overflow 留默认（Clip），省略号指示要额外交互态，这里不引入。
+                val listTags = searchVisibleTags(tags, emptyList(), tagLabel)
+                if (listTags.isNotEmpty()) {
+                    Spacer(Modifier.height(tokens.spacing.space2))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(tokens.spacing.space2),
+                        verticalArrangement = Arrangement.spacedBy(tokens.spacing.space2),
+                        maxLines = 2,
+                    ) {
+                        listTags.take(5).forEach { tag ->
+                            VeneraTagChip(text = tag, onClick = null)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 一行「N 赞 · ★ x · 更新时间」。
+ *
+ * 只渲染**确实存在**的字段；任一缺失即该段省略，全空则整行不挂载 ——
+ * 绝不输出 0 likes / — / N/A / 空占位符。
+ */
+@Composable
+fun ComicRowMetadata(likesCount: Int?, rating: Float?, updateTime: String) {
+    val tokens = VeneraTokens
+    val parts = buildList {
+        likesCount?.takeIf { it > 0 }?.let { add(it.toString() + " 赞") }
+        rating?.takeIf { it > 0f }?.let { add("★ " + it) }
+        updateTime.takeIf { it.isNotBlank() }?.let { add(it) }
+    }
+    if (parts.isEmpty()) return
+    Text(
+        text = parts.joinToString(" · "),
+        fontSize = tokens.type.overline,
+        color = tokens.color.textTertiary,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.padding(top = tokens.spacing.space1),
+    )
+}

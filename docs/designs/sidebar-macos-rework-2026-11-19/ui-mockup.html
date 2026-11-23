@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Venera 侧栏 · macOS 激进重做方案稿</title>
+<style>
+:root {
+  --w-expanded: 248px;
+  --w-collapsed: 60px;
+  --bg-canvas: #0b0c10;
+  --sidebar-bg: rgba(22, 23, 28, 0.74);
+  --sidebar-border: rgba(255, 255, 255, 0.11);
+  --sidebar-highlight: rgba(255, 255, 255, 0.08);
+  --ink: rgba(255, 255, 255, 0.94);
+  --ink-2: rgba(255, 255, 255, 0.62);
+  --ink-3: rgba(255, 255, 255, 0.36);
+  --hover-bg: rgba(255, 255, 255, 0.075);
+  --active-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
+  --accent: #8b7cf6;
+  --accent-soft: rgba(139, 124, 246, 0.18);
+  --accent-glow: rgba(139, 124, 246, 0.55);
+  --green: #34d399;
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg-canvas);
+  color: var(--ink);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+}
+
+button { font: inherit; color: inherit; border: 0; background: transparent; cursor: pointer; }
+
+/* 顶部预览控制条 */
+.preview-bar {
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: rgba(15, 16, 20, 0.9);
+}
+.preview-bar h1 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.preview-bar p { margin: 3px 0 0; font-size: 12px; color: var(--ink-2); }
+.preview-actions { display: flex; gap: 8px; }
+.pill-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  font-size: 12px;
+  transition: background 140ms ease, transform 150ms var(--spring), border-color 140ms ease;
+}
+.pill-btn:hover { background: rgba(255,255,255,0.10); }
+.pill-btn:active { transform: scale(0.95); }
+.pill-btn[aria-pressed="true"] { background: rgba(139,124,246,0.22); border-color: var(--accent); color: #fff; }
+
+/* 桌面窗口模拟舞台 */
+.stage {
+  flex: 1;
+  padding: 24px 28px;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.window-frame {
+  position: relative;
+  width: 100%;
+  max-width: 1120px;
+  height: 760px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.65);
+  display: flex;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(139, 124, 246, 0.24), transparent 38%),
+    radial-gradient(circle at 80% 75%, rgba(56, 189, 248, 0.18), transparent 42%),
+    linear-gradient(135deg, #14151f 0%, #0e0f14 60%, #15121b 100%);
+}
+
+/* 模拟右侧主内容区 */
+.main-content {
+  flex: 1;
+  padding: 24px 28px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 150px;
+  gap: 14px;
+  overflow: hidden;
+  opacity: 0.78;
+}
+.mock-card {
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: linear-gradient(155deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+}
+.mock-card:nth-child(3n+1) { background: linear-gradient(155deg, rgba(139,124,246,0.24), rgba(30,28,48,0.15)); }
+.mock-card:nth-child(4n+2) { background: linear-gradient(155deg, rgba(56,189,248,0.20), rgba(24,36,48,0.15)); }
+
+/* ================= 贴边 macOS 侧栏 ================= */
+.sidebar {
+  position: relative;
+  z-index: 10;
+  width: var(--w-expanded);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--sidebar-bg);
+  backdrop-filter: blur(36px) saturate(170%);
+  -webkit-backdrop-filter: blur(36px) saturate(170%);
+  border-right: 1px solid var(--sidebar-border);
+  box-shadow:
+    inset 0 1px 0 var(--sidebar-highlight),
+    inset -1px 0 0 rgba(255,255,255,0.04),
+    10px 0 36px rgba(0,0,0,0.32);
+  transition: width 280ms var(--ease-out);
+  user-select: none;
+}
+
+.window-frame.collapsed .sidebar {
+  width: var(--w-collapsed);
+}
+
+/* 1. 顶部品牌区 + ⌘K 快捷搜索胶囊 */
+.brand-header {
+  flex: 0 0 auto;
+  padding: 14px 12px 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.brand-logo {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 13px;
+  color: #fff;
+  background: linear-gradient(145deg, #a78bfa, #6d5bd0);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 3px 10px rgba(109,91,208,0.45);
+  transition: transform 180ms var(--spring);
+}
+.brand-logo:hover { transform: scale(1.06) rotate(-3deg); }
+.brand-title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* 2. 主导航区（干净 macOS 原生磨砂高亮 + 弹性微动） */
+.primary-nav {
+  flex: 0 0 auto;
+  padding: 2px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-row {
+  position: relative;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  color: var(--ink-2);
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    transform 150ms var(--spring);
+}
+.nav-row:hover {
+  background: var(--hover-bg);
+  color: var(--ink);
+}
+.nav-row:hover .nav-icon {
+  transform: scale(1.06);
+  opacity: 1;
+}
+.nav-row:active {
+  transform: scale(0.96);
+}
+.nav-row.active {
+  background: rgba(255, 255, 255, 0.11);
+  color: #fff;
+  font-weight: 500;
+}
+.nav-row.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+  animation: indicatorPop 220ms var(--spring);
+}
+@keyframes indicatorPop {
+  0% { transform: scaleY(0.3); opacity: 0; }
+  100% { transform: scaleY(1); opacity: 1; }
+}
+
+.nav-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  opacity: 0.82;
+  transition: transform 180ms var(--spring), opacity 140ms ease, color 140ms ease;
+}
+.nav-row.active .nav-icon {
+  opacity: 1;
+  color: #c4b5fd;
+}
+.nav-row.active .nav-icon .sf-fill {
+  fill: currentColor;
+  fill-opacity: 0.24;
+}
+.nav-label {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nav-meta {
+  font-size: 11px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  transition: color 140ms ease, transform 160ms var(--ease-out);
+}
+.nav-row:hover .nav-meta { color: var(--ink-2); transform: translateX(-1px); }
+.nav-meta.hot {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(244, 114, 182, 0.16);
+  border: 1px solid rgba(244, 114, 182, 0.22);
+  color: #f472b6;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.divider {
+  height: 1px;
+  margin: 4px 12px 6px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.09) 20%, rgba(255,255,255,0.09) 80%, transparent);
+}
+
+/* 3. 中间可滚动紧凑分组区（丝滑 Grid 折叠动画） */
+.scroll-groups {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 0 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.scroll-groups::-webkit-scrollbar { width: 4px; }
+.scroll-groups::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+
+.group-block {
+  margin-top: 6px;
+}
+.group-header {
+  width: 100%;
+  height: 24px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+  border-radius: 6px;
+  transition: color 140ms ease, background 140ms ease;
+}
+.group-header:hover {
+  color: var(--ink-2);
+  background: rgba(255,255,255,0.045);
+}
+.chevron {
+  width: 10px;
+  height: 10px;
+  transition: transform 220ms var(--spring);
+}
+.group-block.collapsed .chevron {
+  transform: rotate(-90deg);
+}
+
+.group-items-wrap {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 240ms var(--ease-out), opacity 200ms ease;
+  opacity: 1;
+}
+.group-block.collapsed .group-items-wrap {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+.group-items {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 2px;
+}
+.group-items .nav-row {
+  height: 28px;
+  font-size: 12.5px;
+}
+
+/* 4. 桌宠区（带尖角磨砂气泡 + 脚底环境光斑 + 呼吸浮动） */
+.pet-zone {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 6px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+.pet-zone::after {
+  content: "";
+  position: absolute;
+  bottom: 6px;
+  width: 96px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(139, 124, 246, 0.28), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.pet-bubble {
+  position: relative;
+  max-width: 100%;
+  padding: 6px 11px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.09);
+  border: 1px solid rgba(255,255,255,0.13);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 6px 16px rgba(0,0,0,0.24);
+  font-size: 11.5px;
+  color: var(--ink);
+  text-align: center;
+  line-height: 1.35;
+  transition: transform 200ms var(--spring), opacity 180ms ease;
+}
+.pet-bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 8px;
+  height: 8px;
+  transform: translateX(-50%) rotate(45deg);
+  background: rgba(38, 39, 46, 0.92);
+  border-right: 1px solid rgba(255,255,255,0.13);
+  border-bottom: 1px solid rgba(255,255,255,0.13);
+}
+.pet-bubble.pop {
+  animation: bubblePop 260ms var(--spring);
+}
+@keyframes bubblePop {
+  0% { transform: translateY(4px) scale(0.94); opacity: 0.4; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.pet-img {
+  position: relative;
+  z-index: 1;
+  width: 86px;
+  height: 86px;
+  object-fit: contain;
+  cursor: pointer;
+  filter: drop-shadow(0 8px 14px rgba(0,0,0,0.38));
+  animation: petFloat 4.2s ease-in-out infinite;
+  transition: transform 200ms var(--spring);
+}
+.pet-img:hover {
+  animation-play-state: paused;
+  transform: translateY(-3px) scale(1.05);
+}
+.pet-img:active { transform: scale(0.93); }
+@keyframes petFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* 5. 极简单行底栏（顶边进度光带 + 下载环形进度） */
+.footer-bar {
+  position: relative;
+  flex: 0 0 46px;
+  padding: 0 10px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.18);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.footer-progress-line {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 68%;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, var(--accent), #c4b5fd);
+  box-shadow: 0 0 8px var(--accent-glow);
+  transition: width 400ms ease;
+}
+
+.user-chip {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 6px 0 4px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 140ms ease, transform 150ms var(--spring);
+}
+.user-chip:hover { background: var(--hover-bg); }
+.user-chip:active { transform: scale(0.97); }
+.avatar-wrap {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.avatar-img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,0.22);
+}
+.status-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  border: 1.5px solid #18191e;
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.6);
+}
+.user-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.icon-btn {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+  transition: background 140ms ease, color 140ms ease, transform 150ms var(--spring);
+}
+.icon-btn:hover { background: var(--hover-bg); color: var(--ink); }
+.icon-btn:active { transform: scale(0.92); }
+.icon-btn svg.btn-svg { width: 15px; height: 15px; }
+
+/* 下载环形进度 SVG */
+.ring-progress {
+  position: absolute;
+  inset: 1px;
+  width: 26px;
+  height: 26px;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+.ring-track {
+  fill: none;
+  stroke: rgba(255,255,255,0.08);
+  stroke-width: 1.6;
+}
+.ring-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-dasharray: 69.1;
+  stroke-dashoffset: 22;
+  filter: drop-shadow(0 0 3px var(--accent-glow));
+}
+
+.badge-count {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 3px;
+  border-radius: 99px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 0 1.5px #18191e;
+}
+
+/* 折叠窄轨态适配 */
+.window-frame.collapsed .brand-title,
+.window-frame.collapsed .nav-label,
+.window-frame.collapsed .nav-meta,
+.window-frame.collapsed .group-header,
+.window-frame.collapsed .pet-bubble,
+.window-frame.collapsed .user-name,
+.window-frame.collapsed .footer-actions .hide-on-collapse {
+  display: none;
+}
+.window-frame.collapsed .brand-header { justify-content: center; padding: 14px 0 10px; }
+.window-frame.collapsed .nav-row { justify-content: center; padding: 0; }
+.window-frame.collapsed .pet-img { width: 40px; height: 40px; }
+.window-frame.collapsed .pet-zone::after { width: 44px; height: 12px; }
+.window-frame.collapsed .footer-bar { flex-direction: column; height: auto; padding: 8px 0; gap: 6px; }
+.window-frame.collapsed .user-chip { flex: 0 0 auto; padding: 4px; }
+</style>
+</head>
+<body>
+
+<div class="preview-bar">
+  <div>
+    <h1>Venera 侧栏 · macOS 激进重做方案稿</h1>
+    <p>受光玻璃选中态 · ⌘K 快捷胶囊 · 丝滑折叠动效 · 桌宠环境光斑 · 底栏环形下载进度</p>
+  </div>
+  <div class="preview-actions">
+    <button class="pill-btn" id="toggleCollapse" aria-pressed="false">切换折叠窄轨 (60px)</button>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="window-frame" id="windowFrame">
+    <aside class="sidebar">
+      <!-- 1. 顶部品牌区 -->
+      <div class="brand-header">
+        <div class="brand-logo">V</div>
+        <span class="brand-title">VENERA</span>
+      </div>
+
+      <!-- 2. 主导航区（SF Symbols 风格双色图标 + 受光玻璃选中态） -->
+      <nav class="primary-nav">
+        <button class="nav-row" data-nav>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="sf-fill" d="M3 10.5 12 3l9 7.5V20a1.5 1.5 0 0 1-1.5 1.5h-4.5v-6h-6v6H4.5A1.5 1.5 0 0 1 3 20z"/></svg>
+          <span class="nav-label">首页</span>
+        </button>
+        <button class="nav-row" data-nav>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle class="sf-fill" cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+          <span class="nav-label">漫画搜索</span>
+        </button>
+        <button class="nav-row active" data-nav>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect class="sf-fill" x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15.5-4.5-4.5-5.5 5.5-2.5-2.5L3 19"/></svg>
+          <span class="nav-label">画廊</span>
+        </button>
+        <button class="nav-row" data-nav>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="sf-fill" d="M12 3.5 14.7 9l6 .8-4.3 4.2 1 6-5.4-2.8L6.6 20l1-6L3.3 9.8l6-.8z"/></svg>
+          <span class="nav-label">收藏</span>
+          <span class="nav-meta">248</span>
+        </button>
+      </nav>
+
+      <div class="divider"></div>
+
+      <!-- 3. 中间紧凑可折叠分组（丝滑 Grid 折叠动画） -->
+      <div class="scroll-groups">
+        <div class="group-block">
+          <button class="group-header" data-group>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            <span>画廊</span>
+          </button>
+          <div class="group-items-wrap">
+            <div class="group-items">
+              <button class="nav-row" data-nav>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><circle class="sf-fill" cx="12" cy="12" r="3.5"/></svg>
+                <span class="nav-label">搜图</span>
+              </button>
+              <button class="nav-row" data-nav>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="sf-fill" d="M12 3c.5 3.5-2 5.5-2 8.5a4 4 0 0 0 8 0c0-2.5-1.5-4.5-2-6 2.5 1.5 4 4.2 4 7a8 8 0 1 1-16 0c0-3.8 2.8-7.2 8-9.5z"/></svg>
+                <span class="nav-label">每日热门</span>
+                <span class="nav-meta hot">HOT</span>
+              </button>
+              <button class="nav-row" data-nav>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="sf-fill" d="M6 4h12a1.5 1.5 0 0 1 1.5 1.5V20l-7.5-4-7.5 4V5.5A1.5 1.5 0 0 1 6 4z"/></svg>
+                <span class="nav-label">收藏与历史</span>
+                <span class="nav-meta">412</span>
+              </button>
+              <button class="nav-row" data-nav>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle class="sf-fill" cx="9.5" cy="8" r="3.5"/><path d="M3 19.5c0-3.2 2.9-5 6.5-5s6.5 1.8 6.5 5"/><path d="M17 11l2 2 3-3"/></svg>
+                <span class="nav-label">关注画师</span>
+                <span class="nav-meta">36</span>
+              </button>
+              <button class="nav-row" data-nav>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect class="sf-fill" x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M6 16c.8-1.5 2-2 3-2s2.2.5 3 2M14.5 10h3.5M14.5 14h3.5"/></svg>
+                <span class="nav-label">我的 pixiv</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="group-block">
+          <button class="group-header" data-group>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            <span>漫画</span>
+          </button>
+          <div class="group-items-wrap">
+            <div class="group-items">
+              <button class="nav-row" data-nav>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle class="sf-fill" cx="12" cy="12" r="8.5"/><path d="M12 7.5v4.5l3 2"/></svg>
+                <span class="nav-label">阅读历史</span>
+                <span class="nav-meta">128</span>
+              </button>
+              <button class="nav-row" data-nav>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect class="sf-fill" x="4" y="12" width="3.5" height="8" rx="1"/><rect class="sf-fill" x="10.25" y="5" width="3.5" height="15" rx="1"/><rect class="sf-fill" x="16.5" y="9" width="3.5" height="11" rx="1"/></svg>
+                <span class="nav-label">阅读统计</span>
+                <span class="nav-meta">14h</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="group-block">
+          <button class="group-header" data-group>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            <span>工具</span>
+          </button>
+          <div class="group-items-wrap">
+            <div class="group-items">
+              <button class="nav-row" data-nav>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/><circle class="sf-fill" cx="9" cy="7" r="2" fill="#18191e"/><circle class="sf-fill" cx="15" cy="12" r="2" fill="#18191e"/><circle class="sf-fill" cx="10" cy="17" r="2" fill="#18191e"/></svg>
+                <span class="nav-label">源管理</span>
+                <span class="nav-meta">4</span>
+              </button>
+              <button class="nav-row" data-nav>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path class="sf-fill" d="M7 18a4.5 4.5 0 0 1-.5-8.97A5.5 5.5 0 0 1 17.2 7.5 4 4 0 0 1 18 15.5"/><path d="M12 12v8m0 0-3-3m3 3 3-3"/></svg>
+                <span class="nav-label">备份与还原</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. 桌宠区（带尖角磨砂气泡 + 呼吸浮动） -->
+      <div class="pet-zone">
+        <div class="pet-bubble" id="petBubble">又回来啦，接着看吧，我等着</div>
+        <img class="pet-img" id="petImg" src="pet_idle.png" alt="桌宠">
+      </div>
+
+      <!-- 5. 极简单行底栏（顶边进度光带 + 环形下载进度） -->
+      <div class="footer-bar">
+        <div class="footer-progress-line"></div>
+        <button class="user-chip" title="极东的Djehuty · pixiv 已登录">
+          <div class="avatar-wrap">
+            <img class="avatar-img" src="avatar.png" alt="头像">
+            <span class="status-dot"></span>
+          </div>
+          <span class="user-name">极东的Djehuty</span>
+        </button>
+        <div class="footer-actions">
+          <button class="icon-btn hide-on-collapse" title="下载与本地 (68%)">
+            <svg class="ring-progress" viewBox="0 0 26 26">
+              <circle class="ring-track" cx="13" cy="13" r="11"/>
+              <circle class="ring-fill" cx="13" cy="13" r="11"/>
+            </svg>
+            <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10m0 0-3.5-3.5M12 14l3.5-3.5M5 18.5h14"/></svg>
+            <span class="badge-count">2</span>
+          </button>
+          <button class="icon-btn hide-on-collapse" title="设置">
+            <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+          <button class="icon-btn" id="footerCollapseBtn" title="折叠/展开侧栏">
+            <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M9 4v16"/></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 模拟右侧内容区 -->
+    <main class="main-content">
+      <div class="mock-card"></div><div class="mock-card"></div><div class="mock-card"></div><div class="mock-card"></div>
+      <div class="mock-card"></div><div class="mock-card"></div><div class="mock-card"></div><div class="mock-card"></div>
+      <div class="mock-card"></div><div class="mock-card"></div><div class="mock-card"></div><div class="mock-card"></div>
+      <div class="mock-card"></div><div class="mock-card"></div><div class="mock-card"></div><div class="mock-card"></div>
+    </main>
+  </div>
+</div>
+
+<script>
+const frame = document.getElementById('windowFrame');
+const toggleBtn = document.getElementById('toggleCollapse');
+const footerCollapseBtn = document.getElementById('footerCollapseBtn');
+
+function toggleSidebar() {
+  const collapsed = frame.classList.toggle('collapsed');
+  toggleBtn.setAttribute('aria-pressed', String(collapsed));
+}
+toggleBtn.addEventListener('click', toggleSidebar);
+footerCollapseBtn.addEventListener('click', toggleSidebar);
+
+document.querySelectorAll('[data-nav]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-nav]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+document.querySelectorAll('[data-group]').forEach(header => {
+  header.addEventListener('click', () => {
+    header.closest('.group-block').classList.toggle('collapsed');
+  });
+});
+
+const lines = [
+  '又回来啦，接着看吧，我等着',
+  '今天想看漫画还是逛画廊？',
+  '下载队列还有 2 个任务在跑哦'
+];
+let idx = 0;
+const bubble = document.getElementById('petBubble');
+document.getElementById('petImg').addEventListener('click', () => {
+  idx = (idx + 1) % lines.length;
+  bubble.textContent = lines[idx];
+  bubble.classList.remove('pop');
+  void bubble.offsetWidth;
+  bubble.classList.add('pop');
+});
+</script>
+</body>
+</html>

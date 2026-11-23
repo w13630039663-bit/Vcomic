@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-zcode-design data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>珍藏册方案稿 · venera-desktop 2026-11-18</title>
+<style>
+  /* ===== 令牌:深档(默认) ===== */
+  :root{
+    --bg:#0A0D12;
+    --s1:#12161F;
+    --s2:#161B26;
+    --s3:#1B2130;
+    --glass:rgba(18,22,31,.85);
+    --glass-line:rgba(255,255,255,.10);
+    --hair:rgba(255,255,255,.06);
+    --hair-hover:rgba(255,255,255,.16);
+    --div:rgba(255,255,255,.08);
+    --tp1:#E8ECF4;
+    --tp2:#98A2B6;
+    --tp3:#6F7890;
+    --accent:#4D9FFF;
+    --accent-soft:rgba(77,159,255,.16);
+    --fav:#E26D8A;
+    --on-accent:#FFFFFF;
+    --canvas:#05070B;
+    --shadow-card:0 1px 2px rgba(0,0,0,.30),0 10px 28px rgba(0,0,0,.24);
+    --shadow-hover:0 2px 4px rgba(0,0,0,.34),0 14px 36px rgba(0,0,0,.32);
+    --image-hair:transparent;
+    --r-card:14px;
+    --r-inner:10px;
+    --r-cell:6px;
+    --on-glass:#FFFFFF;
+    --glass-hover:rgba(27,33,48,.92);
+  }
+  /* ===== 令牌:浅档 ===== */
+  html[data-theme="light"]{
+    --bg:#F0F2F6;
+    --s1:#FFFFFF;
+    --s2:#E8ECF2;
+    --s3:#DBE2EC;
+    --glass:rgba(27,33,48,.85);
+    --glass-line:rgba(255,255,255,.08);
+    --hair:rgba(23,32,46,.18);
+    --hair-hover:rgba(23,32,46,.28);
+    --div:rgba(23,32,46,.08);
+    --tp1:#17202E;
+    --tp2:#55617A;
+    --tp3:#8791A6;
+    --accent:#0A63F6;
+    --accent-soft:rgba(37,99,235,.14);
+    --fav:#C2436A;
+    --on-accent:#FFFFFF;
+    --canvas:#D7DCE4;
+    --shadow-card:0 1px 2px rgba(16,24,40,.08),0 10px 28px rgba(16,24,40,.10);
+    --shadow-hover:0 2px 4px rgba(16,24,40,.12),0 14px 36px rgba(16,24,40,.16);
+    --image-hair:rgba(23,32,46,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--canvas);
+    color:var(--tp1);
+    font-family:system-ui,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+    font-size:13px;line-height:1.55;
+  }
+  button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+  a{color:var(--accent);text-decoration:none}
+  svg{display:block}
+  .stat,.cv-count,.pages-badge,.acct-count{font-variant-numeric:tabular-nums}
+
+  @media (prefers-reduced-motion: no-preference){
+    .t-fade{transition:opacity 150ms ease,background-color 150ms ease,border-color 150ms ease,box-shadow 150ms ease,transform 150ms cubic-bezier(0.2,0,0,1)}
+  }
+
+  /* ===== 稿头 ===== */
+  .deck-head{
+    max-width:1440px;margin:0 auto;padding:28px 24px 0;
+  }
+  .deck-card{
+    background:var(--s1);border:1px solid var(--hair);border-radius:var(--r-card);
+    padding:18px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    box-shadow:var(--shadow-card);
+  }
+  .deck-card h1{font-size:20px;font-weight:700;letter-spacing:.5px}
+  .deck-card .sub{color:var(--tp2);font-size:12px}
+  .deck-card .spacer{flex:1}
+  .deck-nav{display:flex;gap:8px}
+  .deck-nav a{
+    font-size:12px;color:var(--tp2);padding:6px 12px;border-radius:999px;
+    border:1px solid var(--hair);
+  }
+  .deck-nav a:hover{border-color:var(--hair-hover);color:var(--tp1)}
+  .theme-btn{
+    font-size:12px;color:var(--on-accent);background:var(--accent);
+    padding:6px 14px;border-radius:999px;font-weight:600;
+  }
+  .theme-btn:active{transform:scale(.96)}
+
+  /* ===== 画板 ===== */
+  .board{
+    width:1440px;margin:32px auto 0;background:var(--bg);
+    border:1px solid var(--hair);border-radius:16px;
+    padding:36px 48px 44px;position:relative;overflow:hidden;
+  }
+  .board-label{
+    position:absolute;top:14px;left:18px;font-size:11px;color:var(--tp3);
+    letter-spacing:2px;font-weight:600;
+  }
+  .board-label b{color:var(--tp2);font-weight:600}
+
+  /* ===== 墙头(域胶囊+搜索示意) ===== */
+  .wall-top{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .domain-group{display:flex;gap:2px;background:var(--s2);border:1px solid var(--hair);border-radius:999px;padding:3px}
+  .domain-group button{
+    font-size:12px;padding:5px 14px;border-radius:999px;color:var(--tp2);font-weight:600;
+  }
+  .domain-group button.on{background:var(--accent);color:var(--on-accent)}
+  .wall-top .flex1{flex:1}
+  .search-chip{
+    display:flex;align-items:center;gap:8px;background:var(--s2);
+    border:1px solid var(--hair);border-radius:999px;padding:7px 14px;
+    color:var(--tp3);font-size:12px;min-width:220px;
+  }
+  .tabs{display:flex;gap:8px;align-items:baseline;margin-bottom:6px}
+  .page-title{font-size:26px;font-weight:700;letter-spacing:-.2px}
+  .page-tabs{display:flex;gap:6px;margin-left:16px}
+  .page-tabs button{
+    font-size:13px;font-weight:600;color:var(--tp2);padding:6px 16px;border-radius:999px;
+    border:1px solid var(--hair);
+  }
+  .page-tabs button.on{color:var(--tp1);background:var(--accent-soft);border-color:var(--accent)}
+  .page-sub{color:var(--tp3);font-size:12px;margin-bottom:22px}
+
+  /* ===== 简介横幅 ===== */
+  .intro{
+    display:flex;align-items:center;gap:14px;background:var(--s1);
+    border:1px solid var(--hair);border-radius:var(--r-card);
+    padding:12px 18px;margin-bottom:26px;
+  }
+  .intro .ttl{font-weight:700;font-size:14px}
+  .beta-badge{
+    font-size:11px;font-weight:600;color:var(--on-accent);background:var(--accent);
+    border-radius:4px;padding:1px 7px;letter-spacing:1px;
+  }
+  .intro .desc{color:var(--tp2);font-size:12px}
+  .intro .flex1{flex:1}
+  .link-btn{font-size:12px;font-weight:600;color:var(--accent);padding:5px 10px;border-radius:8px}
+  .icon-btn{
+    width:28px;height:28px;border-radius:999px;display:grid;place-items:center;color:var(--tp3);
+  }
+  .icon-btn:hover{background:var(--s2);color:var(--tp1)}
+
+  /* ===== 筛选行 ===== */
+  .filter-row{display:flex;align-items:center;gap:10px;margin-bottom:34px}
+  .filter-chip{
+    display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+    color:var(--tp2);background:var(--s2);border:1px solid var(--hair);
+    border-radius:999px;padding:7px 14px;white-space:nowrap;
+  }
+  .tag-rail{display:flex;gap:8px;overflow:hidden;position:relative;flex:1}
+  .tag{
+    font-size:12px;font-weight:600;white-space:nowrap;color:var(--tp2);
+    background:var(--s2);border:1px solid var(--hair);border-radius:999px;padding:7px 15px;
+  }
+  .tag:hover{border-color:var(--hair-hover);color:var(--tp1)}
+  .tag.on{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+  .fade-mask{
+    position:absolute;right:0;top:0;bottom:0;width:64px;pointer-events:none;
+    background:linear-gradient(90deg,transparent,var(--bg));
+  }
+
+  /* ===== 节与 rail ===== */
+  .section{margin-bottom:40px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+  .sec-head h2{font-size:17px;font-weight:700;letter-spacing:-.2px}
+  .sec-head .hash{color:var(--accent);font-weight:700}
+  .sec-head .flex1{flex:1}
+  .view-all{display:flex;align-items:center;gap:2px;font-size:12px;color:var(--tp2);font-weight:600}
+  .view-all:hover{color:var(--tp1)}
+  .rail{
+    display:flex;gap:12px;overflow:hidden;position:relative;padding-bottom:4px;
+  }
+  .rail::after{
+    content:"";position:absolute;right:0;top:0;bottom:4px;width:72px;pointer-events:none;
+    background:linear-gradient(90deg,transparent,var(--bg));
+  }
+
+  /* ===== 珍藏册卡(封面拼贴) ===== */
+  .col-card{width:260px;flex:none}
+  .col-body{
+    background:var(--s1);border:1px solid var(--hair);border-radius:var(--r-card);
+    padding:4px;box-shadow:var(--shadow-card);
+  }
+  @media (hover:hover){
+    .col-card:hover .col-body{border-color:var(--hair-hover);box-shadow:var(--shadow-hover);transform:translateY(-2px)}
+  }
+  .col-card:active .col-body{transform:scale(.96)}
+  .collage{
+    display:grid;grid-template-columns:62% 1fr;grid-template-rows:1fr 1fr;gap:4px;
+    height:160px;border-radius:var(--r-inner);overflow:hidden;
+    border:1px solid var(--image-hair);position:relative;
+  }
+  .cv{position:relative;overflow:hidden}
+  .cv.a{grid-row:1/3}
+  .cv.b,.cv.c{border-radius:var(--r-cell)}
+  .cv.a{border-radius:var(--r-cell) 0 0 var(--r-cell)}
+  .like-btn{
+    position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:999px;
+    background:var(--glass);color:var(--on-glass);display:grid;place-items:center;
+    border:1px solid var(--glass-line);
+  }
+  .like-btn:hover{color:var(--on-glass);background:var(--glass-hover)}
+  .like-btn.liked{color:var(--fav)}
+  .like-btn svg{fill:none;stroke:currentColor;stroke-width:1.6}
+  .like-btn.liked svg{fill:currentColor}
+  .like-btn:active{transform:scale(.96)}
+  .cv-count{
+    position:absolute;right:6px;bottom:6px;font-size:11px;font-weight:600;color:var(--on-glass);
+    background:var(--glass);border-radius:999px;padding:2px 8px;border:1px solid var(--glass-line);
+  }
+  .col-meta{padding:9px 8px 6px}
+  .col-title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .col-creator{display:flex;align-items:center;gap:7px;margin-top:5px;color:var(--tp2);font-size:12px}
+  .avatar{width:22px;height:22px;border-radius:999px;flex:none}
+
+  /* 占位封面池(纯渐变,示意插画位) */
+  .ph{background:radial-gradient(at 28% 24%,rgba(255,255,255,.34),transparent 56%),linear-gradient(135deg,var(--g1),var(--g2))}
+  .g1{--g1:#F7A8C4;--g2:#8E7CF3}.g2{--g1:#74B9FF;--g2:#2D7FF0}
+  .g3{--g1:#FFD5A0;--g2:#FF8F6B}.g4{--g1:#9BE8D8;--g2:#3ECFB2}
+  .g5{--g1:#C9B6FF;--g2:#6F5AE0}.g6{--g1:#FF9FB2;--g2:#E2577F}
+  .g7{--g1:#A8D8FF;--g2:#5F8FF7}.g8{--g1:#FFE08A;--g2:#F2A35C}
+  .g9{--g1:#B8F0C8;--g2:#4EC98A}.g10{--g1:#D3A8FF;--g2:#9A5CE0}
+  .g11{--g1:#FFB3D9;--g2:#C46BD6}.g12{--g1:#8AD2C8;--g2:#4A9AC2}
+  .g13{--g1:#FFC4A8;--g2:#E08A6B}.g14{--g1:#A0C8FF;--g2:#7C8FF0}
+  .av1{background:radial-gradient(at 35% 30%,#FFE08A,#F28B82)}
+  .av2{background:radial-gradient(at 35% 30%,#9BE8D8,#3E8EF0)}
+  .av3{background:radial-gradient(at 35% 30%,#D3A8FF,#7C5AE0)}
+  .av4{background:radial-gradient(at 35% 30%,#FFD5A0,#E26D5A)}
+  .av5{background:radial-gradient(at 35% 30%,#A8D8FF,#4D9FFF)}
+  .av6{background:radial-gradient(at 35% 30%,#B8F0C8,#3ECF8E)}
+  .av7{background:radial-gradient(at 35% 30%,#FFB3D9,#C46B8A)}
+
+  /* ===== 屏2:详情页双列 ===== */
+  .detail{display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start}
+  .detail-main{min-width:0}
+  .title-bar{
+    background:var(--s1);border:1px solid var(--hair);border-radius:var(--r-card);
+    padding:16px;text-align:center;margin-bottom:14px;box-shadow:var(--shadow-card);
+  }
+  .title-bar h2{font-size:18px;font-weight:700}
+  .title-bar .cr{
+    display:inline-flex;align-items:center;gap:7px;margin-top:7px;color:var(--tp2);font-size:12px;
+  }
+  .wall-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .tile{
+    position:relative;border-radius:var(--r-inner);overflow:hidden;aspect-ratio:1/1;
+    border:1px solid var(--image-hair);
+  }
+  @media (hover:hover){
+    @media (prefers-reduced-motion: no-preference){
+      .tile .ph{transition:transform 150ms ease}
+    }
+    .tile:hover .ph{transform:scale(1.03)}
+    .tile:hover{border-color:var(--hair-hover)}
+  }
+  .artist-chip{
+    position:absolute;left:8px;bottom:8px;display:flex;align-items:center;gap:6px;
+    background:var(--glass);border:1px solid var(--glass-line);color:var(--on-glass);
+    border-radius:999px;padding:3px 9px 3px 4px;font-size:12px;max-width:85%;
+  }
+  .artist-chip .avatar{width:18px;height:18px}
+  .artist-chip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pages-badge{
+    position:absolute;right:8px;bottom:8px;font-size:11px;font-weight:600;color:var(--on-glass);
+    background:var(--glass);border:1px solid var(--glass-line);border-radius:999px;padding:2px 8px;
+  }
+  .detail-side{
+    background:var(--s1);border:1px solid var(--hair);border-radius:var(--r-card);
+    padding:20px;box-shadow:var(--shadow-card);
+  }
+  .side-block{padding-bottom:16px;margin-bottom:16px;border-bottom:1px solid var(--div)}
+  .side-block:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+  .side-title{font-size:20px;font-weight:700;letter-spacing:-.2px;margin-bottom:8px}
+  .side-desc{color:var(--tp2);font-size:13px}
+  .tag-flow{display:flex;flex-wrap:wrap;gap:6px}
+  .tag-flow .tag{font-size:12px;padding:5px 12px}
+  .stat-row{display:flex;align-items:center;gap:14px}
+  .stat{display:flex;align-items:center;gap:6px;color:var(--tp2);font-size:13px;font-weight:600}
+  .stat .heart{color:var(--fav)}
+  .stat svg{fill:none;stroke:currentColor;stroke-width:1.6}
+  .date-line{color:var(--tp3);font-size:12px}
+  .creator-card{display:flex;align-items:center;gap:12px}
+  .creator-card .avatar{width:40px;height:40px}
+  .creator-card .name{font-weight:700;font-size:14px}
+  .creator-card .role{color:var(--tp3);font-size:12px}
+  .follow-btn{
+    margin-left:auto;background:var(--accent);color:var(--on-accent);font-weight:600;
+    font-size:13px;border-radius:999px;padding:7px 22px;
+  }
+  .follow-btn.following{background:var(--accent-soft);color:var(--accent)}
+  .follow-btn:active{transform:scale(.96)}
+  .mini-wall{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+  .mini{
+    aspect-ratio:4/3;border-radius:var(--r-cell);position:relative;overflow:hidden;
+    border:1px solid var(--image-hair);
+  }
+  .mini .cv-count{top:5px;right:5px;bottom:auto}
+  .comment-box{
+    display:flex;align-items:center;gap:8px;background:var(--s3);
+    border:1px solid var(--hair);border-radius:999px;padding:6px 6px 6px 16px;
+  }
+  .comment-box .ph-in{flex:1;color:var(--tp3);font-size:13px}
+  .send-btn{background:var(--accent);color:var(--on-accent);border-radius:999px;padding:6px 16px;font-size:12px;font-weight:600}
+  .comment{display:flex;gap:10px;margin-top:14px}
+  .comment .avatar{width:26px;height:26px}
+  .comment .who{font-weight:600;font-size:12px;color:var(--tp1)}
+  .comment .what{color:var(--tp2);font-size:12px;margin-top:2px}
+
+  /* ===== 屏3:账号页珍藏册块 ===== */
+  .account-strip{display:flex;gap:12px;overflow:hidden;position:relative}
+  .acct-card{width:176px;flex:none}
+  .acct-body{
+    background:var(--s1);border:1px solid var(--hair);border-radius:var(--r-card);
+    padding:4px;box-shadow:var(--shadow-card);
+  }
+  @media (hover:hover){
+    .acct-card:hover .acct-body{border-color:var(--hair-hover);transform:translateY(-2px)}
+  }
+  .acct-collage{
+    display:grid;grid-template-columns:58% 1fr;grid-template-rows:1fr 1fr;gap:3px;
+    height:104px;border-radius:var(--r-inner);overflow:hidden;border:1px solid var(--image-hair);
+  }
+  .acct-meta{padding:7px 8px 5px}
+  .acct-title{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .acct-count{color:var(--tp3);font-size:11px;margin-top:2px}
+  .new-card{width:176px;flex:none}
+  .new-body{
+    height:104px;border:1px dashed var(--hair-hover);border-radius:var(--r-inner);
+    display:grid;place-items:center;color:var(--tp2);gap:6px;grid-auto-flow:row;
+    background:transparent;font-size:12px;font-weight:600;
+  }
+  .new-body:hover{border-color:var(--accent);color:var(--accent)}
+  .new-body svg{margin:0 auto}
+  .account-strip::after{
+    content:"";position:absolute;right:0;top:0;bottom:0;width:72px;pointer-events:none;
+    background:linear-gradient(90deg,transparent,var(--bg));
+  }
+
+  /* ===== 屏4:pixiv 搜索目标下拉 ===== */
+  .search-hero{position:relative;margin-bottom:34px}
+  .cmd-bar{
+    display:flex;align-items:center;gap:10px;background:var(--s1);
+    border:1px solid var(--hair);border-radius:999px;padding:9px 10px 9px 18px;
+    box-shadow:var(--shadow-card);
+  }
+  .cmd-bar svg{color:var(--tp3);flex:none}
+  .cmd-in{flex:1;color:var(--tp1);font-size:14px}
+  .target-menu{
+    display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+    color:var(--tp2);background:var(--s2);border:1px solid var(--hair);
+    border-radius:999px;padding:7px 13px;white-space:nowrap;
+  }
+  .target-menu:hover{border-color:var(--hair-hover);color:var(--tp1)}
+  .target-pop{
+    position:absolute;right:52px;top:52px;min-width:170px;
+    background:var(--s1);border:1px solid var(--hair);border-radius:12px;
+    padding:5px;box-shadow:var(--shadow-hover);
+  }
+  .opt{
+    display:flex;align-items:center;gap:9px;width:100%;height:34px;
+    border-radius:8px;padding:0 11px;font-size:13px;color:var(--tp1);text-align:left;
+  }
+  .opt .tick{width:15px;flex:none;color:transparent}
+  .opt.sel{background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .opt.sel .tick{color:var(--accent)}
+  .opt:hover{background:var(--s2)}
+  .pair-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+  .thumb-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .thumb{
+    aspect-ratio:3/4;border-radius:var(--r-cell);overflow:hidden;
+    border:1px solid var(--image-hair);position:relative;
+  }
+  .s4-rail .col-card{width:240px}
+  .pair-note{color:var(--tp3);font-size:11px;margin-top:8px}
+
+  /* ===== 规格摘要区 ===== */
+  .spec{
+    width:1440px;margin:32px auto 64px;background:var(--bg);
+    border:1px solid var(--hair);border-radius:16px;padding:36px 48px;
+  }
+  .spec h2{font-size:17px;font-weight:700;margin:0 0 14px}
+  .spec table{border-collapse:collapse;width:100%;margin-bottom:28px;font-size:12px}
+  .spec th{
+    text-align:left;color:var(--tp3);font-weight:600;border-bottom:1px solid var(--div);
+    padding:7px 10px;white-space:nowrap;
+  }
+  .spec td{border-bottom:1px solid var(--div);padding:7px 10px;color:var(--tp2);vertical-align:top}
+  .spec td:first-child{color:var(--tp1);font-weight:600;white-space:nowrap}
+  .sw{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid var(--hair-hover);vertical-align:-2px;margin-right:6px}
+  .spec ul{margin:0 0 24px;padding-left:20px;color:var(--tp2)}
+  .spec li{margin-bottom:6px}
+  .spec li b{color:var(--tp1)}
+</style>
+</head>
+<body>
+
+<header class="deck-head">
+  <div class="deck-card">
+    <div>
+      <h1>珍藏册方案稿</h1>
+      <div class="sub">pixiv 专属模块 · venera-desktop · 2026-11-18 · 规格见下方摘要区</div>
+    </div>
+    <div class="spacer"></div>
+    <nav class="deck-nav">
+      <a href="#s1">屏1 发现页</a>
+      <a href="#s2">屏2 详情页</a>
+      <a href="#s3">屏3 账号页入口</a>
+      <a href="#s4">屏4 搜索目标</a>
+      <a href="#spec">规格摘要</a>
+    </nav>
+    <button class="theme-btn t-fade" data-toggle-theme>浅色稿</button>
+  </div>
+</header>
+
+<!-- ================= 屏1:发现珍藏册 ================= -->
+<section class="board" id="s1">
+  <div class="board-label"><b>屏1</b> · 画廊 Pixiv 域 · 珍藏册发现页</div>
+
+  <div class="wall-top">
+    <div class="domain-group">
+      <button class="on t-fade">Pixiv</button>
+      <button class="t-fade">图库站</button>
+    </div>
+    <div class="flex1"></div>
+    <div class="search-chip">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="M16.5 16.5 20 20"/></svg>
+      搜索 pixiv
+    </div>
+  </div>
+
+  <div class="tabs">
+    <span class="page-title">珍藏册</span>
+    <div class="page-tabs">
+      <button class="t-fade">推荐</button>
+      <button class="on">珍藏册</button>
+    </div>
+  </div>
+  <div class="page-sub">pixiv 测试版功能 · 收藏的珍藏册在账号页</div>
+
+  <div class="intro">
+    <span class="ttl">珍藏册</span>
+    <span class="beta-badge">测试版</span>
+    <span class="desc">把投稿、漫画、站外链接集中到一页</span>
+    <div class="flex1"></div>
+    <button class="link-btn t-fade">查看详情</button>
+    <button class="icon-btn t-fade" title="关闭">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+
+  <div class="filter-row">
+    <button class="filter-chip">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M4 5h16l-6.5 7.5V19l-3-1.8v-4.7L4 5z"/></svg>
+      筛选
+    </button>
+    <div class="tag-rail">
+      <button class="tag on t-fade">全部</button>
+      <button class="tag t-fade">原创</button>
+      <button class="tag t-fade">东方Project</button>
+      <button class="tag t-fade">魔法少女</button>
+      <button class="tag t-fade">初音未来</button>
+      <button class="tag t-fade">女孩</button>
+      <button class="tag t-fade">风景</button>
+      <button class="tag t-fade">像素画</button>
+      <button class="tag t-fade">兽耳</button>
+      <button class="tag t-fade">水彩</button>
+      <div class="fade-mask"></div>
+    </div>
+  </div>
+
+  <!-- 节1:推荐珍藏册 -->
+  <div class="section">
+    <div class="sec-head">
+      <h2>推荐珍藏册</h2>
+      <div class="flex1"></div>
+      <button class="view-all">查看全部
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+    <div class="rail">
+      <article class="col-card"><div class="col-body t-fade">
+        <div class="collage">
+          <div class="cv a ph g1"></div><div class="cv b ph g11"></div><div class="cv c ph g7"></div>
+          <button class="like-btn t-fade liked" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+        </div>
+        <div class="col-meta">
+          <div class="col-title">星屑夜航手册</div>
+          <div class="col-creator"><span class="avatar av1"></span>苍井铃</div>
+        </div>
+      </div></article>
+      <article class="col-card"><div class="col-body t-fade">
+        <div class="collage">
+          <div class="cv a ph g3"></div><div class="cv b ph g8"></div><div class="cv c ph g13"></div>
+          <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+        </div>
+        <div class="col-meta">
+          <div class="col-title">暖色小景收藏帖</div>
+          <div class="col-creator"><span class="avatar av2"></span>早野绮</div>
+        </div>
+      </div></article>
+      <article class="col-card"><div class="col-body t-fade">
+        <div class="collage">
+          <div class="cv a ph g5"></div><div class="cv b ph g10"></div><div class="cv c ph g11"></div>
+          <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+        </div>
+        <div class="col-meta">
+          <div class="col-title">紫藤魔女夜行</div>
+          <div class="col-creator"><span class="avatar av3"></span>霜月结</div>
+        </div>
+      </div></article>
+      <article class="col-card"><div class="col-body t-fade">
+        <div class="collage">
+          <div class="cv a ph g4"></div><div class="cv b ph g9"></div><div class="cv c ph g12"></div>
+          <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+        </div>
+        <div class="col-meta">
+          <div class="col-title">青苔与森林志</div>
+          <div class="col-creator"><span class="avatar av4"></span>林间月</div>
+        </div>
+      </div></article>
+      <article class="col-card"><div class="col-body t-fade">
+        <div class="collage">
+          <div class="cv a ph g2"></div><div class="cv b ph g7"></div><div class="cv c ph g14"></div>
+          <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+        </div>
+        <div class="col-meta">
+          <div class="col-title">蓝天航图集</div>
+          <div class="col-creator"><span class="avatar av5"></span>海风青</div>
+        </div>
+      </div></article>
+      <article class="col-card"><div class="col-body t-fade">
+        <div class="collage">
+          <div class="cv a ph g6"></div><div class="cv b ph g1"></div><div class="cv c ph g3"></div>
+          <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+        </div>
+        <div class="col-meta">
+          <div class="col-title">甜心战绩名册</div>
+          <div class="col-creator"><span class="avatar av6"></span>桃井花</div>
+        </div>
+      </div></article>
+    </div>
+  </div>
+
+  <!-- 节2:大家的珍藏册 -->
+  <div class="section">
+    <div class="sec-head">
+      <h2>大家的珍藏册</h2>
+      <div class="flex1"></div>
+      <button class="view-all">查看全部
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+    <div class="rail">
+      <article class="col-card"><div class="col-body t-fade">
+        <div class="collage">
+          <div class="cv a ph g12"></div><div class="cv b ph g4"></div><div class="cv c ph g9"></div>
+          <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+        </div>
+        <div class="col-meta">
+          <div class="col-title">君与共度的春</div>
+          <div class="col-creator"><span class="avatar av7"></span>白瀬窗</div>
+        </div>
+      </div></article>
+      <article class="col-card"><div class="col-body t-fade">
+        <div class="collage">
+          <div class="cv a ph g6"></div><div class="cv b ph g13"></div><div class="cv c ph g1"></div>
+          <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+        </div>
+        <div class="col-meta">
+          <div class="col-title">夜色裸麦集</div>
+          <div class="col-creator"><span class="avatar av1"></span>桐生茜</div>
+        </div>
+      </div></article>
+      <article class="col-card"><div class="col-body t-fade">
+        <div class="collage">
+          <div class="cv a ph g2"></div><div class="cv b ph g14"></div><div class="cv c ph g5"></div>
+          <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+        </div>
+        <div class="col-meta">
+          <div class="col-title">龙与骑士团志</div>
+          <div class="col-creator"><span class="avatar av3"></span>泠野司</div>
+        </div>
+      </div></article>
+      <article class="col-card"><div class="col-body t-fade">
+        <div class="collage">
+          <div class="cv a ph g8"></div><div class="cv b ph g3"></div><div class="cv c ph g6"></div>
+          <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+        </div>
+        <div class="col-meta">
+          <div class="col-title">纸间黑白画稿</div>
+          <div class="col-creator"><span class="avatar av2"></span>墨见秋</div>
+        </div>
+      </div></article>
+      <article class="col-card"><div class="col-body t-fade">
+        <div class="collage">
+          <div class="cv a ph g10"></div><div class="cv b ph g11"></div><div class="cv c ph g2"></div>
+          <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+        </div>
+        <div class="col-meta">
+          <div class="col-title">薄暮电车风景</div>
+          <div class="col-creator"><span class="avatar av4"></span>南云澄</div>
+        </div>
+      </div></article>
+      <article class="col-card"><div class="col-body t-fade">
+        <div class="collage">
+          <div class="cv a ph g9"></div><div class="cv b ph g12"></div><div class="cv c ph g4"></div>
+          <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+        </div>
+        <div class="col-meta">
+          <div class="col-title">散步途中见闻</div>
+          <div class="col-creator"><span class="avatar av5"></span>苗村径</div>
+        </div>
+      </div></article>
+    </div>
+  </div>
+
+  <!-- 节3:#标签 相关珍藏册 -->
+  <div class="section" style="margin-bottom:0">
+    <div class="sec-head">
+      <h2><span class="hash">#女孩</span> 相关珍藏册</h2>
+      <div class="flex1"></div>
+      <button class="view-all">查看全部
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+    <div class="rail">
+      <article class="col-card"><div class="col-body t-fade">
+        <div class="collage">
+          <div class="cv a ph g11"></div><div class="cv b ph g1"></div><div class="cv c ph g6"></div>
+          <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+        </div>
+        <div class="col-meta">
+          <div class="col-title">春樱少女录</div>
+          <div class="col-creator"><span class="avatar av6"></span>绫濑千夏</div>
+        </div>
+      </div></article>
+      <article class="col-card"><div class="col-body t-fade">
+        <div class="collage">
+          <div class="cv a ph g3"></div><div class="cv b ph g8"></div><div class="cv c ph g5"></div>
+          <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+        </div>
+        <div class="col-meta">
+          <div class="col-title">夏日祭之页</div>
+          <div class="col-creator"><span class="avatar av7"></span>御堂花梨</div>
+        </div>
+      </div></article>
+      <article class="col-card"><div class="col-body t-fade">
+        <div class="collage">
+          <div class="cv a ph g14"></div><div class="cv b ph g2"></div><div class="cv c ph g10"></div>
+          <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+        </div>
+        <div class="col-meta">
+          <div class="col-title">原创少女线稿</div>
+          <div class="col-creator"><span class="avatar av1"></span>真白凛</div>
+        </div>
+      </div></article>
+      <article class="col-card"><div class="col-body t-fade">
+        <div class="collage">
+          <div class="cv a ph g7"></div><div class="cv b ph g4"></div><div class="cv c ph g9"></div>
+          <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+        </div>
+        <div class="col-meta">
+          <div class="col-title">放学后的路</div>
+          <div class="col-creator"><span class="avatar av2"></span>小仓绘里</div>
+        </div>
+      </div></article>
+      <article class="col-card"><div class="col-body t-fade">
+        <div class="collage">
+          <div class="cv a ph g13"></div><div class="cv b ph g6"></div><div class="cv c ph g3"></div>
+          <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+        </div>
+        <div class="col-meta">
+          <div class="col-title">花与发饰图鉴</div>
+          <div class="col-creator"><span class="avatar av3"></span>花冈枫</div>
+        </div>
+      </div></article>
+      <article class="col-card"><div class="col-body t-fade">
+        <div class="collage">
+          <div class="cv a ph g4"></div><div class="cv b ph g9"></div><div class="cv c ph g12"></div>
+          <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+        </div>
+        <div class="col-meta">
+          <div class="col-title">夏日白裙集</div>
+          <div class="col-creator"><span class="avatar av5"></span>冰室雪乃</div>
+        </div>
+      </div></article>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 屏2:珍藏册详情页 ================= -->
+<section class="board" id="s2">
+  <div class="board-label"><b>屏2</b> · 珍藏册详情 · 左墙右栏 · 作品点击进现有作品详情页</div>
+
+  <div class="detail">
+    <!-- 左:标题条 + 封面墙 -->
+    <div class="detail-main">
+      <div class="title-bar">
+        <h2>魔法少女魔法评审部</h2>
+        <div class="cr"><span class="avatar av3"></span>霜月结</div>
+      </div>
+      <div class="wall-grid">
+        <div class="tile"><div class="ph g1" style="position:absolute;inset:0"></div>
+          <div class="artist-chip"><span class="avatar av1"></span><span>保科梓</span></div></div>
+        <div class="tile"><div class="ph g6" style="position:absolute;inset:0"></div>
+          <div class="artist-chip"><span class="avatar av4"></span><span>二濑纱弓</span></div></div>
+        <div class="tile"><div class="ph g7" style="position:absolute;inset:0"></div>
+          <div class="artist-chip"><span class="avatar av5"></span><span>长月杏子</span></div></div>
+        <div class="tile"><div class="ph g10" style="position:absolute;inset:0"></div>
+          <div class="artist-chip"><span class="avatar av3"></span><span>城千鹤</span></div></div>
+        <div class="tile"><div class="ph g3" style="position:absolute;inset:0"></div>
+          <div class="artist-chip"><span class="avatar av2"></span><span>遥音蕾娜</span></div>
+          <div class="pages-badge">12页</div></div>
+        <div class="tile"><div class="ph g11" style="position:absolute;inset:0"></div>
+          <div class="artist-chip"><span class="avatar av7"></span><span>佐伯由夏</span></div></div>
+        <div class="tile"><div class="ph g2" style="position:absolute;inset:0"></div>
+          <div class="artist-chip"><span class="avatar av6"></span><span>宝多美雪</span></div></div>
+        <div class="tile"><div class="ph g12" style="position:absolute;inset:0"></div>
+          <div class="artist-chip"><span class="avatar av1"></span><span>黑濑卡乃</span></div></div>
+        <div class="tile"><div class="ph g8" style="position:absolute;inset:0"></div>
+          <div class="artist-chip"><span class="avatar av4"></span><span>爱杏羽衣</span></div></div>
+      </div>
+    </div>
+
+    <!-- 右栏:信息板 -->
+    <aside class="detail-side">
+      <div class="side-block">
+        <div class="side-title">魔法少女魔法评审部</div>
+        <div class="side-desc">按魔法少女主题整理的珍藏册,收录评审部相关投稿,持续更新。</div>
+      </div>
+      <div class="side-block">
+        <div class="tag-flow">
+          <button class="tag t-fade">#魔法少女</button>
+          <button class="tag t-fade">#女孩</button>
+          <button class="tag t-fade">#原创</button>
+          <button class="tag t-fade">#蝴蝶</button>
+        </div>
+      </div>
+      <div class="side-block">
+        <div class="stat-row">
+          <span class="stat heart"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg>231</span>
+          <button class="stat t-fade" title="分享"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>分享</button>
+          <button class="stat t-fade" title="更多"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></button>
+        </div>
+        <div class="date-line" style="margin-top:10px">2026年8月10日 23:04</div>
+      </div>
+      <div class="side-block">
+        <div class="creator-card">
+          <span class="avatar av3"></span>
+          <div>
+            <div class="name">霜月结</div>
+            <div class="role">创建者 · 6 本珍藏册</div>
+          </div>
+          <button class="follow-btn t-fade">关注</button>
+        </div>
+        <div class="mini-wall">
+          <div class="mini"><div class="ph g5" style="position:absolute;inset:0"></div><div class="cv-count">40</div></div>
+          <div class="mini"><div class="ph g14" style="position:absolute;inset:0"></div><div class="cv-count">28</div></div>
+        </div>
+      </div>
+      <div class="side-block">
+        <div class="side-title" style="font-size:15px">评论</div>
+        <div class="comment-box">
+          <span class="ph-in">发表评论</span>
+          <button class="send-btn t-fade">发送</button>
+        </div>
+        <div class="comment">
+          <span class="avatar av2"></span>
+          <div><div class="who">早野绮</div><div class="what">第二张配色收得真好。</div></div>
+        </div>
+        <div class="comment">
+          <span class="avatar av6"></span>
+          <div><div class="who">桃井花</div><div class="what">已收藏,期待更新。</div></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ================= 屏3:账号页珍藏册入口 ================= -->
+<section class="board" id="s3">
+  <div class="board-label"><b>屏3</b> · Pixiv 账号页 · 我的珍藏册(收藏的珍藏册 + 新建)</div>
+
+  <div class="section" style="margin-bottom:0">
+    <div class="sec-head">
+      <h2>珍藏册</h2>
+      <div class="flex1"></div>
+      <button class="view-all">查看全部
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+    <div class="account-strip">
+      <div class="new-card">
+        <button class="new-body t-fade">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          新建珍藏册
+        </button>
+      </div>
+      <div class="acct-card"><div class="acct-body t-fade">
+        <div class="acct-collage">
+          <div class="cv a ph g1"></div><div class="cv b ph g11"></div><div class="cv c ph g7"></div>
+        </div>
+        <div class="acct-meta"><div class="acct-title">星屑夜航手册</div><div class="acct-count">40 件作品</div></div>
+      </div></div>
+      <div class="acct-card"><div class="acct-body t-fade">
+        <div class="acct-collage">
+          <div class="cv a ph g5"></div><div class="cv b ph g10"></div><div class="cv c ph g2"></div>
+        </div>
+        <div class="acct-meta"><div class="acct-title">紫藤魔女夜行</div><div class="acct-count">28 件作品</div></div>
+      </div></div>
+      <div class="acct-card"><div class="acct-body t-fade">
+        <div class="acct-collage">
+          <div class="cv a ph g3"></div><div class="cv b ph g8"></div><div class="cv c ph g13"></div>
+        </div>
+        <div class="acct-meta"><div class="acct-title">暖色小景收藏帖</div><div class="acct-count">16 件作品</div></div>
+      </div></div>
+      <div class="acct-card"><div class="acct-body t-fade">
+        <div class="acct-collage">
+          <div class="cv a ph g4"></div><div class="cv b ph g9"></div><div class="cv c ph g12"></div>
+        </div>
+        <div class="acct-meta"><div class="acct-title">青苔与森林志</div><div class="acct-count">22 件作品</div></div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 屏4:pixiv 搜索目标类型下拉 ================= -->
+<section class="board" id="s4">
+  <div class="board-label"><b>屏4</b> · Pixiv 搜索 · 目标类型下拉(插画·漫画 / 小说 / 珍藏册 / 用户)</div>
+
+  <div class="search-hero">
+    <div class="cmd-bar">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="M16.5 16.5 20 20"/></svg>
+      <span class="cmd-in">魔法少女</span>
+      <button class="target-menu t-fade">
+        插画·漫画
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+    </div>
+    <div class="target-pop">
+      <button class="opt sel">
+        <svg class="tick" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>
+        插画·漫画
+      </button>
+      <button class="opt t-fade">
+        <svg class="tick" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>
+        小说
+      </button>
+      <button class="opt t-fade">
+        <svg class="tick" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>
+        珍藏册
+      </button>
+      <button class="opt t-fade">
+        <svg class="tick" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>
+        用户
+      </button>
+    </div>
+  </div>
+
+  <div class="pair-grid">
+    <div>
+      <div class="sec-head"><h2>插画·漫画</h2><div class="flex1"></div><span class="pair-note" style="margin-top:0">现状保留,结果为作品墙</span></div>
+      <div class="thumb-grid">
+        <div class="thumb"><div class="ph g1" style="position:absolute;inset:0"></div></div>
+        <div class="thumb"><div class="ph g4" style="position:absolute;inset:0"></div></div>
+        <div class="thumb"><div class="ph g6" style="position:absolute;inset:0"></div></div>
+        <div class="thumb"><div class="ph g9" style="position:absolute;inset:0"></div></div>
+        <div class="thumb"><div class="ph g2" style="position:absolute;inset:0"></div></div>
+        <div class="thumb"><div class="ph g11" style="position:absolute;inset:0"></div></div>
+        <div class="thumb"><div class="ph g3" style="position:absolute;inset:0"></div></div>
+        <div class="thumb"><div class="ph g14" style="position:absolute;inset:0"></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="sec-head"><h2>珍藏册</h2><div class="flex1"></div><span class="pair-note" style="margin-top:0">本次新增,结果为珍藏册卡带</span></div>
+      <div class="rail s4-rail">
+        <article class="col-card"><div class="col-body t-fade">
+          <div class="collage">
+            <div class="cv a ph g5"></div><div class="cv b ph g10"></div><div class="cv c ph g11"></div>
+            <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+          </div>
+          <div class="col-meta">
+            <div class="col-title">紫藤魔女夜行</div>
+            <div class="col-creator"><span class="avatar av3"></span>霜月结</div>
+          </div>
+        </div></article>
+        <article class="col-card"><div class="col-body t-fade">
+          <div class="collage">
+            <div class="cv a ph g1"></div><div class="cv b ph g7"></div><div class="cv c ph g2"></div>
+            <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+          </div>
+          <div class="col-meta">
+            <div class="col-title">星屑夜航手册</div>
+            <div class="col-creator"><span class="avatar av1"></span>苍井铃</div>
+          </div>
+        </div></article>
+        <article class="col-card"><div class="col-body t-fade">
+          <div class="collage">
+            <div class="cv a ph g3"></div><div class="cv b ph g8"></div><div class="cv c ph g13"></div>
+            <button class="like-btn t-fade" title="收藏珍藏册"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M12 20.4c-5.3-3.4-8.8-6.6-8.8-10.4C3.2 7 5.4 5 8 5c1.6 0 3 .8 4 2.1C13 5.8 14.4 5 16 5c2.6 0 4.8 2 4.8 5 0 3.8-3.5 7-8.8 10.4z"/></svg></button>
+          </div>
+          <div class="col-meta">
+            <div class="col-title">暖色小景收藏帖</div>
+            <div class="col-creator"><span class="avatar av2"></span>早野绮</div>
+          </div>
+        </div></article>
+      </div>
+      <div class="pair-note">「小说」为官方同类目标,本仓暂无数据源,先画位;「用户」沿用现有用户结果。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 规格摘要 ================= -->
+<section class="spec" id="spec">
+  <h2>规格摘要(全文见同目录三份 md)</h2>
+
+  <table>
+    <tr><th>令牌</th><th>深档</th><th>浅档</th><th>用途</th></tr>
+    <tr><td>Background</td><td><span class="sw" style="background:#0A0D12"></span>#0A0D12</td><td><span class="sw" style="background:#F0F2F6"></span>#F0F2F6</td><td>页底</td></tr>
+    <tr><td>SurfaceLevel1/2/3</td><td>#12161F / #161B26 / #1B2130</td><td>#FFFFFF / #E8ECF2 / #DBE2EC</td><td>卡片/分组/输入面</td></tr>
+    <tr><td>SurfaceGlass(图上)</td><td>85% #12161F</td><td>85% #1B2130(恒深)</td><td>画师胶囊 / 收藏钮</td></tr>
+    <tr><td>OutlineHairline/Hover</td><td>6% / 16% 白</td><td>18% / 28% 墨</td><td>描边两档</td></tr>
+    <tr><td>TextPrimary/2/3</td><td>#E8ECF4 / #98A2B6 / #6F7890</td><td>#17202E / #55617A / #8791A6</td><td>文字三级</td></tr>
+    <tr><td>AccentPrimary / Soft</td><td>#4D9FFF / 16%</td><td>#0A63F6 / 14%</td><td>关注钮 / 选中胶囊</td></tr>
+    <tr><td>StatusFavorite</td><td>#E26D8A</td><td>#C2436A</td><td>心形收藏</td></tr>
+  </table>
+
+  <table>
+    <tr><th>组件</th><th>度量</th></tr>
+    <tr><td>珍藏册卡</td><td>宽 260;拼贴高 160(左大 62% + 右两格);底托圆角 14 / 内衬 4 / 内图 10 / 子格 6</td></tr>
+    <tr><td>收藏钮</td><td>28 圆钮恒深玻璃;未收藏白描线,已收藏填充 StatusFavorite;按压 0.96</td></tr>
+    <tr><td>详情墙</td><td>等宽 3 列方图,间距 12;画师胶囊贴左下 8,恒深玻璃;多页徽右下</td></tr>
+    <tr><td>详情右栏</td><td>380 定宽;描述 / 标签 / 数据 / 日期 / 创建者+迷你墙 2 列 / 评论</td></tr>
+    <tr><td>账号页卡</td><td>宽 176;拼贴高 104;新建虚线卡同宽</td></tr>
+  </table>
+
+  <ul>
+    <li><b>入口</b>:画廊 Pixiv 域页签「珍藏册」;收藏的珍藏册在 Pixiv 账号页「珍藏册」块。</li>
+    <li><b>交互</b>:墙格点击进现有 DesktopPixivWorkScreen;标签胶囊选中即刷新;rail 右端渐隐、横向滚动。</li>
+    <li><b>动效</b>:卡 hover 抬升 2px + 阴影增强 150ms ease-out;按压统一 0.96;页签切换 crossfade 200ms;全部动效受 prefers-reduced-motion 守门,降级为 opacity 过渡。</li>
+    <li><b>占位说明</b>:封面与头像为纯渐变占位,实现阶段取真图;站方彩色标签胶囊改为本仓中性胶囊 + accent 选中。</li>
+    <li><b>路由</b>:新增 DesktopRoute.PixivCollections 与 PixivCollectionDetail(id);返回把手沿用 VeneraBackHandle。</li>
+  </ul>
+</section>
+
+<script>
+  var root = document.documentElement;
+  var btn = document.querySelector("[data-toggle-theme]");
+  btn.addEventListener("click", function () {
+    var next = root.dataset.theme === "light" ? "dark" : "light";
+    root.dataset.theme = next;
+    btn.textContent = next === "light" ? "深色稿" : "浅色稿";
+  });
+</script>
+</body>
+</html>

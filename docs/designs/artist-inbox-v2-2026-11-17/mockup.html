@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>关注动态 · 双源重做稿 v2</title>
+<style>
+  :root{
+    /* 色值取自 DesktopTheme，不自造色阶 */
+    --win:#202020;
+    --rail:#1C1C1C;
+    --pane:#272727;
+    --card:#2C2C2C;
+    --raised:#353535;
+    --t1:#FFFFFF;
+    --t2:#A0A0A0;
+    --t3:#8B8B8B;
+    --fuji:#CBB6FF;
+    --beni:#D6463C;
+    --hair:rgba(255,255,255,.08);
+    --hair-strong:rgba(255,255,255,.16);
+    --font:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:#101010;color:var(--t1);font-family:var(--font);
+    padding:36px 36px 72px;-webkit-font-smoothing:antialiased;
+  }
+  .stage{width:1440px;margin:0 auto 44px}
+  .cap{font-size:12px;color:#77777F;letter-spacing:.4px;margin:0 0 10px 4px;display:flex;align-items:center;gap:8px}
+  .cap b{color:#A6A6AD;font-weight:600}
+  .cap s{text-decoration:none;color:#5C5C63}
+
+  .win{
+    width:1440px;height:900px;background:var(--win);
+    border-radius:10px;overflow:hidden;
+    box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.06);
+    display:flex;flex-direction:column;position:relative;
+  }
+
+  /* ── 顶栏 ── */
+  .topbar{
+    height:56px;flex:0 0 56px;background:var(--rail);
+    border-bottom:1px solid var(--hair);
+    display:flex;align-items:center;gap:12px;padding:0 18px 0 14px;
+  }
+  .iconbtn{
+    width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+    color:var(--t2);cursor:pointer;transition:background 120ms ease-out,color 120ms ease-out;
+  }
+  .iconbtn:hover{background:var(--raised);color:var(--t1)}
+  .iconbtn svg{width:16px;height:16px}
+  .title{font-size:17px;font-weight:700;letter-spacing:-.2px}
+  .count{
+    height:20px;padding:0 8px;border-radius:10px;display:inline-flex;align-items:center;
+    background:rgba(214,70,60,.14);color:#FF9E94;font-size:11px;font-weight:600;
+    letter-spacing:.2px;white-space:nowrap;
+  }
+  .grow{flex:1}
+
+  .seg{
+    display:flex;align-items:center;height:28px;padding:2px;
+    background:#171717;border:1px solid var(--hair);border-radius:999px;
+  }
+  .seg span{
+    height:22px;padding:0 12px;border-radius:999px;display:flex;align-items:center;
+    font-size:12px;color:var(--t2);cursor:pointer;
+    transition:background 140ms ease-out,color 140ms ease-out;white-space:nowrap;
+  }
+  .seg span:hover{color:var(--t1)}
+  .seg span.on{background:var(--raised);color:var(--t1);font-weight:600}
+  .seg span.on::before{
+    content:"";width:4px;height:4px;border-radius:50%;background:var(--fuji);margin-right:6px;
+  }
+
+  /* ── 副栏：来源轴 ── */
+  .subbar{
+    height:48px;flex:0 0 48px;display:flex;align-items:center;gap:12px;padding:0 22px;
+    border-bottom:1px solid rgba(255,255,255,.04);background:var(--win);
+  }
+  .srchips{
+    display:flex;align-items:center;height:26px;padding:2px;
+    background:#171717;border:1px solid var(--hair);border-radius:999px;
+  }
+  .srchips span{
+    height:20px;padding:0 10px;border-radius:999px;display:flex;align-items:center;
+    font-size:11.5px;color:var(--t2);cursor:pointer;white-space:nowrap;
+    transition:background 140ms ease-out,color 140ms ease-out;
+  }
+  .srchips span:hover{color:var(--t1)}
+  .srchips span.on{background:var(--raised);color:var(--t1);font-weight:600}
+  .sync{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--t3)}
+  .sync i{width:5px;height:5px;border-radius:50%;background:#4E7A4E;display:block}
+  .textbtn{
+    font-size:12px;color:var(--t2);cursor:pointer;padding:5px 9px;border-radius:6px;
+    transition:background 120ms ease-out,color 120ms ease-out;white-space:nowrap;
+  }
+  .textbtn:hover{background:var(--raised);color:var(--t1)}
+  .textbtn.sm{font-size:11px;padding:4px 7px}
+
+  /* ── 内容 ── */
+  .body{flex:1;position:relative;overflow:hidden;padding:14px 24px 0}
+  .body::after{
+    content:"";position:absolute;left:0;right:0;bottom:0;height:72px;
+    background:linear-gradient(rgba(32,32,32,0),var(--win));pointer-events:none;
+  }
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 16px}
+
+  .card{
+    background:var(--card);border:1px solid rgba(255,255,255,.05);border-radius:10px;
+    overflow:hidden;cursor:pointer;
+    transition:transform 150ms ease-out,border-color 150ms ease-out,box-shadow 150ms ease-out;
+  }
+  .card:hover{transform:translateY(-2px);border-color:var(--hair-strong);box-shadow:0 12px 26px rgba(0,0,0,.38)}
+  .art{position:relative;aspect-ratio:4/3;background-size:cover;background-position:center}
+  .art::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+  .dot{
+    position:absolute;left:10px;top:10px;width:6px;height:6px;border-radius:50%;
+    background:var(--beni);box-shadow:0 0 0 3px rgba(214,70,60,.16);z-index:2;
+  }
+  .pages{
+    position:absolute;right:8px;top:8px;height:17px;padding:0 6px;border-radius:5px;
+    background:rgba(0,0,0,.6);color:#E6E6E6;font-size:10px;font-weight:600;
+    display:flex;align-items:center;letter-spacing:.3px;z-index:2;
+  }
+  .meta{padding:9px 11px 11px}
+  .t{font-size:13px;font-weight:600;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .afoot{margin-top:2px;display:flex;align-items:center;gap:6px;min-width:0}
+  .a{font-size:11px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .sitebadge{
+    flex:0 0 auto;height:14px;padding:0 4px;border-radius:3px;display:inline-flex;align-items:center;
+    background:rgba(255,255,255,.07);color:#9A9AA2;font-size:9.5px;letter-spacing:.2px;
+  }
+
+  .card.read{opacity:.55}
+  .card.read .dot{display:none}
+
+  /* 分区标题（全部视图） */
+  .sectionhead{
+    grid-column:1/-1;display:flex;align-items:center;gap:9px;height:32px;margin-top:4px;
+  }
+  .sectionhead b{font-size:12.5px;font-weight:600;color:var(--t1)}
+  .sectionhead .cnt{font-size:11px;color:var(--t3)}
+  .sectionhead .line{flex:1;height:1px;background:rgba(255,255,255,.07)}
+  .sectionhead .mark{width:4px;height:4px;border-radius:50%;background:#6E8FA8}
+
+  /* 分界线：整行 */
+  .divider{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:4px 0 2px}
+  .divider .line{flex:1;height:1px;background:rgba(255,255,255,.11)}
+  .divider .label{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--t3);white-space:nowrap}
+  .divider .label b{width:5px;height:5px;border-radius:50%;background:var(--fuji);display:block}
+
+  /* ── 画师视图 ── */
+  .rows{display:flex;flex-direction:column;gap:8px}
+  .arow{
+    display:flex;align-items:center;gap:14px;padding:10px 14px;border-radius:10px;
+    background:rgba(255,255,255,.02);border:1px solid transparent;cursor:pointer;
+    transition:background 140ms ease-out,border-color 140ms ease-out;
+  }
+  .arow:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.07)}
+  .av{
+    width:32px;height:32px;flex:0 0 32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;color:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.12);
+  }
+  .av.seat{background:#2E2E34;color:#B9B9C0;font-size:12.5px}
+  .ainfo{width:262px;flex:0 0 262px;min-width:0}
+  .an{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+  .am{margin-top:5px;display:flex;align-items:center;gap:7px}
+  .pill{
+    height:18px;padding:0 7px;border-radius:9px;display:inline-flex;align-items:center;
+    background:rgba(214,70,60,.13);color:#FF9E94;font-size:10.5px;font-weight:600;
+  }
+  .pill.zero{background:rgba(255,255,255,.06);color:var(--t3);font-weight:400}
+  .strip{flex:1;display:flex;align-items:center;gap:8px;justify-content:flex-end}
+  .th{width:86px;height:86px;border-radius:7px;background-size:cover;background-position:center;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+  .more{
+    width:54px;height:86px;border-radius:7px;background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;
+    font-size:11px;color:var(--t2);
+  }
+  .chev{width:22px;color:#5E5E66;font-size:15px;text-align:center}
+
+  /* ── 状态卡 ── */
+  .states{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:20px 24px 0}
+  .statebox{
+    height:250px;border-radius:12px;background:var(--pane);border:1px solid var(--hair);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;
+  }
+  .statebox h3{font-size:15px;font-weight:600;letter-spacing:-.2px}
+  .statebox p{font-size:12px;color:var(--t3);line-height:17px;max-width:230px}
+  .ghostbtn{
+    margin-top:12px;height:30px;padding:0 14px;border-radius:6px;background:var(--raised);
+    border:1px solid var(--hair);display:flex;align-items:center;font-size:12px;color:var(--t1);
+  }
+  .ring{width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.12);
+        display:flex;align-items:center;justify-content:center;margin-bottom:10px;color:var(--t2);font-size:16px}
+  .sk{width:180px;height:7px;border-radius:4px;background:rgba(255,255,255,.10);margin-top:3px}
+  .sk.s2{width:120px}
+  .skwrap{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:14px}
+
+  /* 三态条 */
+  .trits{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:18px 24px 8px}
+  .trit{background:var(--card);border-radius:10px;border:1px solid rgba(255,255,255,.05);overflow:hidden}
+  .trit .art{aspect-ratio:16/7}
+  .trit .lbl{padding:8px 10px;font-size:11px;color:var(--t2);display:flex;align-items:center;gap:6px}
+  .trit .lbl span{width:5px;height:5px;border-radius:50%;background:var(--beni)}
+  .trit .lbl.plain span{background:#4A4A52}
+  .trit .lbl.dim span{background:transparent}
+
+  /* ── 说明区（非产品界面） ── */
+  .note{
+    width:1440px;margin:0 auto;border:1px dashed rgba(255,255,255,.16);border-radius:12px;
+    padding:22px 26px;background:rgba(255,255,255,.02);
+  }
+  .note h2{font-size:13px;font-weight:600;color:#C9C9CE;margin-bottom:14px;letter-spacing:.3px}
+  .note .cols{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+  .note h3{font-size:11.5px;font-weight:600;margin-bottom:8px}
+  .note h3.keep{color:#9BC48F}
+  .note h3.drop{color:#D99A93}
+  .note li{font-size:11.5px;color:#8C8C93;line-height:19px;list-style:none;padding-left:11px;position:relative}
+  .note li::before{content:"";position:absolute;left:0;top:9px;width:4px;height:1px;background:#5E5E66}
+  .note .fine{margin-top:16px;font-size:10.5px;color:#66666D;line-height:17px}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ 屏 1 · 全部（分区，不混排） ═══════════════ -->
+<div class="stage">
+  <div class="cap"><b>屏 1</b> 全部 <s>两源分区堆叠，各自成流 · 不共用一条时间轴</s></div>
+  <div class="win">
+    <div class="topbar">
+      <div class="iconbtn" title="返回">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </div>
+      <div class="title">关注动态</div>
+      <div class="count">未读 20 项</div>
+      <div class="grow"></div>
+      <div class="seg"><span class="on">时间</span><span>画师</span></div>
+      <div class="iconbtn" title="刷新">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.4 6.4"/><path d="M20 5v6h-6"/></svg>
+      </div>
+      <div class="iconbtn" title="更多">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+      </div>
+    </div>
+
+    <div class="subbar">
+      <div class="srchips"><span class="on">全部</span><span>图库</span><span>pixiv</span></div>
+      <div class="sync"><i></i>14:20 同步</div>
+      <div class="grow"></div>
+      <div class="textbtn">全部已读</div>
+    </div>
+
+    <div class="body">
+      <div class="grid">
+
+        <div class="sectionhead">
+          <span class="mark"></span><b>图库</b><span class="cnt">12 张</span>
+          <span class="line"></span>
+          <span class="textbtn sm">全部已读</span>
+        </div>
+
+        <article class="card">
+          <div class="art" style="background-image:linear-gradient(155deg,#F0C49A 0%,#C2704F 42%,#3A2028 100%)"><span class="dot"></span></div>
+          <div class="meta">
+            <div class="t">初音ミク</div>
+            <div class="afoot"><div class="a">kantoku</div><span class="sitebadge">yande.re</span></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="art" style="background-image:linear-gradient(150deg,#AFCFDD 0%,#5C8296 46%,#1D2A35 100%)"><span class="dot"></span></div>
+          <div class="meta">
+            <div class="t">雨の日の屋根裏</div>
+            <div class="afoot"><div class="a">hiten</div><span class="sitebadge">yande.re</span></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="art" style="background-image:linear-gradient(140deg,#F4DCCB 0%,#D5A08F 45%,#4A2B30 100%)"><span class="dot"></span></div>
+          <div class="meta">
+            <div class="t">浴衣と団扇</div>
+            <div class="afoot"><div class="a">wada_arco</div><span class="sitebadge">gelbooru</span></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="art" style="background-image:linear-gradient(165deg,#2B3554 0%,#1A2238 55%,#0E1220 100%)"><span class="dot"></span></div>
+          <div class="meta">
+            <div class="t">夜の窓</div>
+            <div class="afoot"><div class="a">ask_(artist)</div><span class="sitebadge">gelbooru</span></div>
+          </div>
+        </article>
+
+        <div class="divider">
+          <span class="line"></span>
+          <span class="label"><b></b>上次查看 · 11月14日</span>
+          <span class="line"></span>
+        </div>
+
+        <article class="card read">
+          <div class="art" style="background-image:linear-gradient(150deg,#D9CBB4 0%,#9C8A72 48%,#33291F 100%)"></div>
+          <div class="meta">
+            <div class="t">灯籠</div>
+            <div class="afoot"><div class="a">三日月</div><span class="sitebadge">konachan</span></div>
+          </div>
+        </article>
+
+        <article class="card read">
+          <div class="art" style="background-image:linear-gradient(145deg,#BFC6CF 0%,#7A848F 46%,#242A31 100%)"></div>
+          <div class="meta">
+            <div class="t">雪の街</div>
+            <div class="afoot"><div class="a">wlop</div><span class="sitebadge">gelbooru</span></div>
+          </div>
+        </article>
+
+        <article class="card read">
+          <div class="art" style="background-image:linear-gradient(158deg,#E9B7C4 0%,#B4728A 45%,#3B1F2C 100%)"></div>
+          <div class="meta">
+            <div class="t">夏の残り</div>
+            <div class="afoot"><div class="a">lpip</div><span class="sitebadge">yande.re</span></div>
+          </div>
+        </article>
+
+        <article class="card read">
+          <div class="art" style="background-image:linear-gradient(150deg,#A9B99C 0%,#6A7A5B 48%,#232B1E 100%)"></div>
+          <div class="meta">
+            <div class="t">本棚</div>
+            <div class="afoot"><div class="a">atdan</div><span class="sitebadge">safebooru</span></div>
+          </div>
+        </article>
+
+        <div class="sectionhead">
+          <span class="mark"></span><b>pixiv</b><span class="cnt">8 篇</span>
+          <span class="line"></span>
+          <span class="textbtn sm">全部已读</span>
+        </div>
+
+        <article class="card">
+          <div class="art" style="background-image:linear-gradient(152deg,#C8AE8C 0%,#8E6547 45%,#2C1D14 100%)"><span class="dot"></span><span class="pages">4P</span></div>
+          <div class="meta">
+            <div class="t">夏の終わりの光</div>
+            <div class="afoot"><div class="a">羽宫みこ</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="art" style="background-image:linear-gradient(148deg,#9FB6C4 0%,#5A7484 46%,#1B2730 100%)"><span class="dot"></span><span class="pages">1P</span></div>
+          <div class="meta">
+            <div class="t">雨上がりの路地</div>
+            <div class="afoot"><div class="a">わんわんろいど</div></div>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ 屏 2 · 图库单源 ═══════════════ -->
+<div class="stage">
+  <div class="cap"><b>屏 2</b> 图库单源 <s>有 created_at 与自增 id · 可放真实分界线 · 站徽标必显</s></div>
+  <div class="win">
+    <div class="topbar">
+      <div class="iconbtn" title="返回">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </div>
+      <div class="title">关注动态</div>
+      <div class="count">未读 12 张</div>
+      <div class="grow"></div>
+      <div class="seg"><span class="on">时间</span><span>画师</span></div>
+      <div class="iconbtn" title="刷新">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.4 6.4"/><path d="M20 5v6h-6"/></svg>
+      </div>
+      <div class="iconbtn" title="更多">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+      </div>
+    </div>
+
+    <div class="subbar">
+      <div class="srchips"><span>全部</span><span class="on">图库</span><span>pixiv</span></div>
+      <div class="sync"><i></i>14:20 同步</div>
+      <div class="grow"></div>
+      <div class="textbtn">全部已读</div>
+    </div>
+
+    <div class="body">
+      <div class="grid">
+
+        <article class="card">
+          <div class="art" style="background-image:linear-gradient(155deg,#F0C49A 0%,#C2704F 42%,#3A2028 100%)"><span class="dot"></span></div>
+          <div class="meta"><div class="t">初音ミク</div><div class="afoot"><div class="a">kantoku</div><span class="sitebadge">yande.re</span></div></div>
+        </article>
+
+        <article class="card">
+          <div class="art" style="background-image:linear-gradient(150deg,#AFCFDD 0%,#5C8296 46%,#1D2A35 100%)"><span class="dot"></span></div>
+          <div class="meta"><div class="t">雨の日の屋根裏</div><div class="afoot"><div class="a">hiten</div><span class="sitebadge">yande.re</span></div></div>
+        </article>
+
+        <article class="card">
+          <div class="art" style="background-image:linear-gradient(140deg,#F4DCCB 0%,#D5A08F 45%,#4A2B30 100%)"><span class="dot"></span></div>
+          <div class="meta"><div class="t">浴衣と団扇</div><div class="afoot"><div class="a">wada_arco</div><span class="sitebadge">gelbooru</span></div></div>
+        </article>
+
+        <article class="card">
+          <div class="art" style="background-image:linear-gradient(165deg,#2B3554 0%,#1A2238 55%,#0E1220 100%)"><span class="dot"></span></div>
+          <div class="meta"><div class="t">夜の窓</div><div class="afoot"><div class="a">ask_(artist)</div><span class="sitebadge">gelbooru</span></div></div>
+        </article>
+
+        <article class="card">
+          <div class="art" style="background-image:linear-gradient(145deg,#CDBE9C 0%,#8E7A4F 46%,#2E2716 100%)"><span class="dot"></span></div>
+          <div class="meta"><div class="t">昼の光</div><div class="afoot"><div class="a">mika_pikazo</div><span class="sitebadge">yande.re</span></div></div>
+        </article>
+
+        <article class="card">
+          <div class="art" style="background-image:linear-gradient(152deg,#B9C7BE 0%,#6E857A 46%,#202B26 100%)"><span class="dot"></span></div>
+          <div class="meta"><div class="t">森の入口</div><div class="afoot"><div class="a">atdan</div><span class="sitebadge">safebooru</span></div></div>
+        </article>
+
+        <div class="divider">
+          <span class="line"></span>
+          <span class="label"><b></b>上次查看 · 11月14日</span>
+          <span class="line"></span>
+        </div>
+
+        <article class="card read">
+          <div class="art" style="background-image:linear-gradient(150deg,#D9CBB4 0%,#9C8A72 48%,#33291F 100%)"></div>
+          <div class="meta"><div class="t">灯籠</div><div class="afoot"><div class="a">三日月</div><span class="sitebadge">konachan</span></div></div>
+        </article>
+
+        <article class="card read">
+          <div class="art" style="background-image:linear-gradient(145deg,#BFC6CF 0%,#7A848F 46%,#242A31 100%)"></div>
+          <div class="meta"><div class="t">雪の街</div><div class="afoot"><div class="a">wlop</div><span class="sitebadge">gelbooru</span></div></div>
+        </article>
+
+        <article class="card read">
+          <div class="art" style="background-image:linear-gradient(158deg,#E9B7C4 0%,#B4728A 45%,#3B1F2C 100%)"></div>
+          <div class="meta"><div class="t">夏の残り</div><div class="afoot"><div class="a">lpip</div><span class="sitebadge">yande.re</span></div></div>
+        </article>
+
+        <article class="card read">
+          <div class="art" style="background-image:linear-gradient(150deg,#A9B99C 0%,#6A7A5B 48%,#232B1E 100%)"></div>
+          <div class="meta"><div class="t">本棚</div><div class="afoot"><div class="a">atdan</div><span class="sitebadge">safebooru</span></div></div>
+        </article>
+
+        <article class="card read">
+          <div class="art" style="background-image:linear-gradient(160deg,#E3D3C1 0%,#B69C86 45%,#3A2A22 100%)"></div>
+          <div class="meta"><div class="t">白いリボン</div><div class="afoot"><div class="a">hiten</div><span class="sitebadge">yande.re</span></div></div>
+        </article>
+
+        <article class="card read">
+          <div class="art" style="background-image:linear-gradient(148deg,#F2E2A8 0%,#C4A24E 48%,#3D2E12 100%)"></div>
+          <div class="meta"><div class="t">縁側</div><div class="afoot"><div class="a">wada_arco</div><span class="sitebadge">gelbooru</span></div></div>
+        </article>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ 屏 3 · 画师视图（双源） ═══════════════ -->
+<div class="stage">
+  <div class="cap"><b>屏 3</b> 画师视图 <s>图库用首字母座 + 站徽标 · pixiv 用真头像</s></div>
+  <div class="win">
+    <div class="topbar">
+      <div class="iconbtn" title="返回">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </div>
+      <div class="title">关注动态</div>
+      <div class="count">未读 20 项</div>
+      <div class="grow"></div>
+      <div class="seg"><span>时间</span><span class="on">画师</span></div>
+      <div class="iconbtn" title="刷新">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.4 6.4"/><path d="M20 5v6h-6"/></svg>
+      </div>
+      <div class="iconbtn" title="更多">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+      </div>
+    </div>
+
+    <div class="subbar">
+      <div class="srchips"><span class="on">全部</span><span>图库</span><span>pixiv</span></div>
+      <div class="sync"><i></i>14:20 同步</div>
+      <div class="grow"></div>
+      <div class="textbtn">全部已读</div>
+    </div>
+
+    <div class="body" style="padding-top:12px">
+      <div class="rows">
+
+        <div class="arow">
+          <div class="av seat">K</div>
+          <div class="ainfo">
+            <div class="an">kantoku <span class="sitebadge">yande.re</span></div>
+            <div class="am"><span class="pill">4 张未读</span></div>
+          </div>
+          <div class="strip">
+            <div class="th" style="background-image:linear-gradient(155deg,#F0C49A,#C2704F 55%,#3A2028)"></div>
+            <div class="th" style="background-image:linear-gradient(150deg,#D8B48C,#9A6A45 55%,#2E1B16)"></div>
+            <div class="th" style="background-image:linear-gradient(140deg,#F5D6BE,#CFA079 55%,#39241C)"></div>
+            <div class="th" style="background-image:linear-gradient(160deg,#E7BFA4,#B27C5E 55%,#33201A)"></div>
+            <div class="more">+2</div>
+          </div>
+          <div class="chev">›</div>
+        </div>
+
+        <div class="arow">
+          <div class="av seat">H</div>
+          <div class="ainfo">
+            <div class="an">hiten <span class="sitebadge">yande.re</span></div>
+            <div class="am"><span class="pill">3 张未读</span></div>
+          </div>
+          <div class="strip">
+            <div class="th" style="background-image:linear-gradient(150deg,#AFCFDD,#5C8296 55%,#1D2A35)"></div>
+            <div class="th" style="background-image:linear-gradient(140deg,#C6DEE8,#7899AA 55%,#223039)"></div>
+            <div class="th" style="background-image:linear-gradient(160deg,#9CC0D0,#4E7286 55%,#182430)"></div>
+            <div class="th" style="background-image:linear-gradient(145deg,#B4D2DE,#648CA2 55%,#1C2A33)"></div>
+            <div class="more">+1</div>
+          </div>
+          <div class="chev">›</div>
+        </div>
+
+        <div class="arow">
+          <div class="av seat">W</div>
+          <div class="ainfo">
+            <div class="an">wada_arco <span class="sitebadge">gelbooru</span></div>
+            <div class="am"><span class="pill">2 张未读</span></div>
+          </div>
+          <div class="strip">
+            <div class="th" style="background-image:linear-gradient(140deg,#F4DCCB,#D5A08F 55%,#4A2B30)"></div>
+            <div class="th" style="background-image:linear-gradient(155deg,#EBC7B4,#C0907E 55%,#3E252A)"></div>
+            <div class="th" style="background-image:linear-gradient(150deg,#F7E4D6,#DBA99A 55%,#502F34)"></div>
+            <div class="th" style="background-image:linear-gradient(145deg,#E2C3B2,#B98473 55%,#3A2226)"></div>
+            <div class="more">+2</div>
+          </div>
+          <div class="chev">›</div>
+        </div>
+
+        <div class="arow">
+          <div class="av seat">A</div>
+          <div class="ainfo">
+            <div class="an">ask_(artist) <span class="sitebadge">gelbooru</span></div>
+            <div class="am"><span class="pill">1 张未读</span></div>
+          </div>
+          <div class="strip">
+            <div class="th" style="background-image:linear-gradient(165deg,#2B3554,#1A2238 55%,#0E1220)"></div>
+            <div class="th" style="background-image:linear-gradient(150deg,#38425F,#232C46 55%,#121727)"></div>
+            <div class="th" style="background-image:linear-gradient(145deg,#242E4C,#161E33 55%,#0B1019)"></div>
+            <div class="th" style="background-image:linear-gradient(158deg,#303A5A,#1E273D 55%,#0D1220)"></div>
+          </div>
+          <div class="chev">›</div>
+        </div>
+
+        <div class="arow">
+          <div class="av" style="background:linear-gradient(135deg,#C8AE8C,#8E6547)">羽</div>
+          <div class="ainfo">
+            <div class="an">羽宫みこ</div>
+            <div class="am"><span class="pill">4 篇未读</span></div>
+          </div>
+          <div class="strip">
+            <div class="th" style="background-image:linear-gradient(152deg,#C8AE8C,#8E6547 55%,#2C1D14)"></div>
+            <div class="th" style="background-image:linear-gradient(145deg,#D6BC9C,#A07855 55%,#32231A)"></div>
+            <div class="th" style="background-image:linear-gradient(155deg,#BCA384,#84603F 55%,#281B13)"></div>
+            <div class="th" style="background-image:linear-gradient(140deg,#DCC4A6,#A88260 55%,#35261C)"></div>
+            <div class="more">+2</div>
+          </div>
+          <div class="chev">›</div>
+        </div>
+
+        <div class="arow">
+          <div class="av" style="background:linear-gradient(135deg,#9FB6C4,#5A7484)">わ</div>
+          <div class="ainfo">
+            <div class="an">わんわんろいど</div>
+            <div class="am"><span class="pill zero">已读</span></div>
+          </div>
+          <div class="strip">
+            <div class="th" style="background-image:linear-gradient(148deg,#9FB6C4,#5A7484 55%,#1B2730);opacity:.55"></div>
+            <div class="th" style="background-image:linear-gradient(150deg,#B8CBD6,#76909E 55%,#202C35);opacity:.55"></div>
+            <div class="th" style="background-image:linear-gradient(142deg,#91A9B8,#516B7B 55%,#172229);opacity:.55"></div>
+            <div class="th" style="background-image:linear-gradient(160deg,#A8BECB,#64808F 55%,#1D2830);opacity:.55"></div>
+            <div class="more">+1</div>
+          </div>
+          <div class="chev">›</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ 屏 4 · 状态与卡片对照 ═══════════════ -->
+<div class="stage">
+  <div class="cap"><b>屏 4</b> 状态与对照 <s>首轮索引 · 空态 · 限流失败 · 两源卡片差异</s></div>
+  <div class="win" style="height:700px">
+    <div class="topbar">
+      <div class="iconbtn" title="返回">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </div>
+      <div class="title">关注动态</div>
+      <div class="grow"></div>
+      <div class="seg"><span class="on">时间</span><span>画师</span></div>
+      <div class="iconbtn" title="刷新">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.4 6.4"/><path d="M20 5v6h-6"/></svg>
+      </div>
+    </div>
+
+    <div class="states">
+      <div class="statebox">
+        <div class="skwrap"><div class="sk"></div><div class="sk s2"></div></div>
+        <h3>正在建立索引</h3>
+        <p>首次同步需要一点时间</p>
+      </div>
+      <div class="statebox">
+        <div class="ring">—</div>
+        <h3>暂无新作品</h3>
+        <p>关注画师最近没有更新</p>
+      </div>
+      <div class="statebox">
+        <div class="ring">!</div>
+        <h3>图库限流</h3>
+        <p>稍后自动重试</p>
+        <div class="ghostbtn">立即重试</div>
+      </div>
+    </div>
+
+    <div class="trits">
+      <div class="trit">
+        <div class="art" style="background-image:linear-gradient(155deg,#F0C49A,#C2704F 45%,#3A2028)"><span class="dot"></span></div>
+        <div class="lbl"><span></span>图库新入库</div>
+      </div>
+      <div class="trit">
+        <div class="art" style="background-image:linear-gradient(150deg,#AFCFDD,#5C8296 45%,#1D2A35)"><span class="pages">4P</span></div>
+        <div class="lbl plain"><span></span>pixiv 新作</div>
+      </div>
+      <div class="trit" style="opacity:.55">
+        <div class="art" style="background-image:linear-gradient(145deg,#BFC6CF,#7A848F 45%,#242A31)"></div>
+        <div class="lbl dim"><span></span>已读</div>
+      </div>
+      <div class="trit">
+        <div class="art" style="background-image:linear-gradient(148deg,#F2E2A8,#C4A24E 45%,#3D2E12)"></div>
+        <div class="lbl plain"><span></span>无页数标</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ 说明（非界面） ═══════════════ -->
+<div class="note">
+  <h2>设计说明 · 非界面元素</h2>
+  <div class="cols">
+    <div>
+      <h3 class="keep">保留（现有端口与模型支撑得住）</h3>
+      <ul>
+        <li>来源轴：pixiv 走 followIllustFeed，图库走 GalleryArtistFollowsStore 名单 + tags 查询</li>
+        <li>全部视图分区：两源各成一流，不共用时间轴（pixiv 行没有 publishAt）</li>
+        <li>图库单源：有 created_at 与自增 id，可放真实分界线，水位用 maxPostId</li>
+        <li>图库卡片必显来源站徽标：名单键是 site+tag，跨站同名不合并成一条作品流</li>
+        <li>图库卡片无页数标：booru 不给 pageCount，缺值不补 1</li>
+        <li>图库画师行：首字母座 + 站徽标；pixiv 行用真头像</li>
+        <li>图库标题是标签推算（角色/作品名），不是站方标题；pixiv 才是原题</li>
+        <li>已读仍作品级，两源共用一套 (site,id) 键</li>
+      </ul>
+    </div>
+    <div>
+      <h3 class="drop">移除（当前做不到或不该假装）</h3>
+      <ul>
+        <li>跨源单一时间轴：pixiv 列表行无发布时间，混排即假排序</li>
+        <li>图库画师头像：站方不提供，只有 partial 的 artist.json urls</li>
+        <li>“画师刚发布”：图库的“新”是新入库，转载与重传都会出现</li>
+        <li>“新增 30 部”：页长冒充增量，改为真实未读计数</li>
+        <li>五分段、星标重点、暂缓池：粒度与键都不可靠</li>
+        <li>统一量词：图库用“张”、pixiv 用“篇”，合并视图用“项”</li>
+        <li>把图库标签当账号：同名角色标签会污染，需 tag type 过滤后才能称“画师”</li>
+      </ul>
+    </div>
+  </div>
+  <div class="fine">
+    封面为色块占位，落地为 AsyncImage 双档加载；纸张比例按原图 cardRatio 自适应，稿中统一 4:3 仅为对齐演示。
+    色值取自 DesktopTheme：窗底 #202020 / 卡 #2C2C2C / 主字 #FFFFFF / 次字 #A0A0A0 / 三档 #8B8B8B / 藤紫 #CBB6FF / 朱 #D6463C。
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Venera 双域多选与批量管理交互方案 · 2026-11-18</title>
+<style>
+:root {
+  --bg-app: #0B0E14;
+  --bg-page: #121620;
+  --bg-card: #1A2130;
+  --bg-card-hover: #222B3E;
+  --text-main: #F1F5F9;
+  --text-sub: #94A3B8;
+  --text-tertiary: #64748B;
+  --accent: #3B82F6;
+  --accent-hover: #2563EB;
+  --accent-tint: rgba(59, 130, 246, 0.16);
+  --accent-wash: rgba(59, 130, 246, 0.18);
+  --danger: #EF4444;
+  --danger-tint: rgba(239, 68, 68, 0.16);
+  --dock-bg: rgba(20, 26, 38, 0.88);
+  --dock-border: rgba(255, 255, 255, 0.12);
+  --dock-shadow: 0 18px 52px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --modal-bg: #161C2A;
+  --modal-overlay: rgba(4, 7, 12, 0.72);
+  --radius-card: 14px;
+  --radius-dock: 26px;
+  --radius-modal: 20px;
+  --hairline: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] {
+  --bg-app: #E2E8F0;
+  --bg-page: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F1F5F9;
+  --text-main: #0F172A;
+  --text-sub: #475569;
+  --text-tertiary: #94A3B8;
+  --accent: #2563EB;
+  --accent-hover: #1D4ED8;
+  --accent-tint: rgba(37, 99, 235, 0.10);
+  --accent-wash: rgba(37, 99, 235, 0.14);
+  --danger: #DC2626;
+  --danger-tint: rgba(220, 38, 38, 0.10);
+  --dock-bg: rgba(255, 255, 255, 0.90);
+  --dock-border: rgba(255, 255, 255, 0.90);
+  --dock-shadow: 0 16px 44px rgba(15, 23, 42, 0.16), 0 2px 8px rgba(15, 23, 42, 0.06);
+  --modal-bg: #FFFFFF;
+  --modal-overlay: rgba(15, 23, 42, 0.45);
+  --hairline: rgba(15, 23, 42, 0.08);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft YaHei", sans-serif;
+  background: var(--bg-app);
+  color: var(--text-main);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  min-height: 100vh;
+}
+
+/* 顶部总控条 */
+.top-header {
+  width: 100%;
+  max-width: 1260px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.header-titles h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+.header-titles p { font-size: 13px; color: var(--text-sub); margin-top: 4px; }
+.header-tools { display: flex; gap: 12px; align-items: center; }
+
+/* 业务域切换分段器 */
+.domain-switch {
+  display: flex;
+  background: var(--bg-card);
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline);
+}
+.d-btn {
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text-sub);
+  transition: all 0.16s ease;
+}
+.d-btn.active {
+  background: var(--accent);
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+}
+
+.theme-toggle-btn {
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+/* 主展示台窗口 */
+.stage-window {
+  width: 100%;
+  max-width: 1260px;
+  height: 750px;
+  background: var(--bg-page);
+  border-radius: var(--radius-modal);
+  border: 1px solid var(--hairline);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 顶部模拟导航栏 */
+.nav-header {
+  height: 52px;
+  border-bottom: 1px solid var(--hairline);
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--dock-bg);
+  backdrop-filter: blur(12px);
+  z-index: 5;
+}
+.nav-tabs { display: flex; gap: 18px; font-size: 13px; font-weight: 600; }
+.nav-tab.active { color: var(--accent); }
+.nav-stats { font-size: 12px; color: var(--text-sub); }
+
+/* 主网格画廊墙 */
+.gallery-wall {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+/* 画廊模式为 1:1 方格 */
+.gallery-wall.mode-gallery {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+/* 漫画模式为 3:4.05 竖版封套 */
+.gallery-wall.mode-comics {
+  grid-template-columns: repeat(auto-fill, minmax(154px, 1fr));
+}
+
+/* 卡片基类 */
+.g-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--hairline);
+  padding: 4px;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+  user-select: none;
+}
+.g-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+}
+.g-card.selected {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+}
+.g-cover-box {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #2D3748;
+}
+.mode-gallery .g-cover-box { aspect-ratio: 1 / 1; }
+.mode-comics .g-cover-box { aspect-ratio: 3 / 4.05; }
+
+.g-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 卡片角标 */
+.g-badge {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* 左上角勾选框 */
+.g-check-circle {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1.8px solid rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  backdrop-filter: blur(4px);
+}
+.g-card:hover .g-check-circle { border-color: var(--accent); }
+.g-card.selected .g-check-circle {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.g-check-circle svg {
+  width: 13px;
+  height: 13px;
+  stroke: #fff;
+  stroke-width: 2.5;
+  fill: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.g-card.selected .g-check-circle svg { opacity: 1; }
+
+.g-info { padding: 8px 6px 4px; }
+.g-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.g-author {
+  font-size: 11px;
+  color: var(--text-sub);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ══════════════════════════════════════════════════════
+   形态 1：底部悬浮总控操作坞 (Floating Selection Dock)
+══════════════════════════════════════════════════════ */
+.selection-dock {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  opacity: 0;
+  pointer-events: none;
+  height: 52px;
+  background: var(--dock-bg);
+  border: 1px solid var(--dock-border);
+  box-shadow: var(--dock-shadow);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border-radius: var(--radius-dock);
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 20;
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+}
+.selection-dock.active {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dock-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.dock-badge {
+  background: var(--accent-tint);
+  color: var(--accent);
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.dock-link-btn {
+  font-size: 12px;
+  color: var(--text-sub);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  user-select: none;
+  transition: color 0.12s;
+}
+.dock-link-btn:hover { color: var(--accent); }
+
+.dock-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--hairline);
+}
+
+.dock-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dock-btn {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 19px;
+  font-size: 12.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.dock-btn.primary {
+  background: var(--accent);
+  color: #FFFFFF;
+}
+.dock-btn.primary:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+}
+.dock-btn.secondary {
+  background: var(--accent-tint);
+  color: var(--accent);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+.dock-btn.secondary:hover {
+  background: rgba(59, 130, 246, 0.24);
+}
+.dock-btn.icon-only {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-sub);
+}
+.dock-btn.icon-only:hover {
+  background: var(--accent-tint);
+  color: var(--text-main);
+}
+.dock-btn.close {
+  color: var(--text-sub);
+}
+.dock-btn.close:hover {
+  background: var(--danger-tint);
+  color: var(--danger);
+}
+
+/* ══════════════════════════════════════════════════════
+   形态 2：深度批量任务弹窗 (Batch Action Modal)
+══════════════════════════════════════════════════════ */
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--modal-overlay);
+  backdrop-filter: blur(8px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.modal-card {
+  width: 580px;
+  background: var(--modal-bg);
+  border: 1px solid var(--hairline);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+  border-radius: var(--radius-modal);
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transform: scale(0.95) translateY(12px);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.modal-overlay.active .modal-card {
+  transform: scale(1) translateY(0);
+}
+
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-title { font-size: 16px; font-weight: 700; color: var(--text-main); }
+.modal-desc { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+.modal-close-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--text-sub);
+}
+.modal-close-icon:hover { background: var(--hairline); color: var(--text-main); }
+
+/* 缩略卷轴 */
+.reel-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.reel-label { font-size: 12px; font-weight: 600; color: var(--text-sub); }
+.reel-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+}
+.reel-item {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+  border: 1px solid var(--hairline);
+}
+.mode-comics .reel-item {
+  width: 60px;
+  height: 80px;
+}
+.reel-item-remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+  font-size: 11px;
+}
+.reel-item:hover .reel-item-remove { opacity: 1; }
+
+/* Tabs */
+.modal-tabs {
+  display: flex;
+  background: var(--bg-card);
+  padding: 4px;
+  border-radius: 10px;
+  gap: 4px;
+  border: 1px solid var(--hairline);
+}
+.m-tab {
+  flex: 1;
+  text-align: center;
+  padding: 7px 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-sub);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.m-tab.active {
+  background: var(--accent);
+  color: #FFFFFF;
+}
+
+.modal-body {
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13px;
+}
+.config-group { display: flex; flex-direction: column; gap: 6px; }
+.config-label { font-size: 12px; color: var(--text-sub); }
+.config-radios { display: flex; gap: 8px; }
+.radio-pill {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--hairline);
+  background: var(--bg-card);
+  color: var(--text-main);
+  text-align: center;
+  font-size: 12px;
+  cursor: pointer;
+}
+.radio-pill.active {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+  color: var(--accent);
+  font-weight: 600;
+}
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+}
+.btn-m-action {
+  padding: 8px 20px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+.btn-m-action.secondary {
+  background: var(--bg-card);
+  border: 1px solid var(--hairline);
+  color: var(--text-main);
+}
+.btn-m-action.primary {
+  background: var(--accent);
+  color: #FFFFFF;
+}
+
+/* Toast */
+.toast-bar {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-30px);
+  background: var(--dock-bg);
+  border: 1px solid var(--accent);
+  color: var(--text-main);
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 99;
+}
+.toast-bar.active {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+</style>
+</head>
+<body>
+
+<div class="top-header">
+  <div class="header-titles">
+    <h1>Venera 桌面端双域多选与批量管理交互规范</h1>
+    <p>画廊插画域 (Gallery) 与 漫画作品域 (Comics) 共享一套悬浮总控坞 + 专属任务弹窗体系</p>
+  </div>
+  <div class="header-tools">
+    <!-- 业务域切换器 -->
+    <div class="domain-switch">
+      <button class="d-btn active" id="btnDomainGallery" onclick="switchDomain('gallery')">🌟 画廊域 (Gallery)</button>
+      <button class="d-btn" id="btnDomainComics" onclick="switchDomain('comics')">📚 漫画域 (Comics)</button>
+    </div>
+    <button class="theme-toggle-btn" onclick="toggleTheme()">🌓 切换深浅主题</button>
+  </div>
+</div>
+
+<div class="stage-window">
+  <!-- Toast 提示 -->
+  <div class="toast-bar" id="toast">操作已完成</div>
+
+  <!-- 模拟顶栏 -->
+  <div class="nav-header">
+    <div class="nav-tabs" id="navTabs">
+      <!-- 动态标签 -->
+    </div>
+    <div class="nav-stats" id="navHint">💡 点击任意卡片勾选，触发底部悬浮总控坞</div>
+  </div>
+
+  <!-- 画廊/漫画网格墙 -->
+  <div class="gallery-wall mode-gallery" id="mainWall">
+    <!-- 动态卡片 -->
+  </div>
+
+  <!-- ════════ 形态 1：底部悬浮操作坞 ════════ -->
+  <div class="selection-dock" id="selectionDock">
+    <div class="dock-meta">
+      <span class="dock-badge" id="dockCount">已选择 0 项</span>
+      <span class="dock-link-btn" onclick="selectAll()">全选</span>
+      <span class="dock-link-btn" onclick="invertSelect()">反选</span>
+    </div>
+
+    <div class="dock-divider"></div>
+
+    <!-- 右侧动作按业务域动态渲染 -->
+    <div class="dock-actions" id="dockActionGroup">
+      <!-- 动态动作组 -->
+    </div>
+  </div>
+
+  <!-- ════════ 形态 2：深度批量任务弹窗 ════════ -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title" id="modalMainTitle">批量任务处理</div>
+          <div class="modal-desc" id="modalSub">已选 3 件作品 · 预计执行批量动作</div>
+        </div>
+        <div class="modal-close-icon" onclick="closeModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </div>
+      </div>
+
+      <!-- 所选缩略图卷轴排 (可单项移出) -->
+      <div class="reel-section">
+        <div class="reel-label">已选清单 (悬停可点 ✕ 剔除)：</div>
+        <div class="reel-scroll" id="reelScroll">
+          <!-- 动态缩略图 -->
+        </div>
+      </div>
+
+      <!-- Tab 切换 -->
+      <div class="modal-tabs" id="modalTabsBar">
+        <!-- 动态 Tabs -->
+      </div>
+
+      <!-- 选项配置体 -->
+      <div class="modal-body" id="modalTabBody">
+        <!-- 动态内容 -->
+      </div>
+
+      <!-- 底部行动条 -->
+      <div class="modal-foot">
+        <button class="btn-m-action secondary" onclick="closeModal()">取消</button>
+        <button class="btn-m-action primary" id="btnModalConfirm" onclick="runModalAction()">开始执行 (3项)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// 1. 数据集定义
+let currentDomain = 'gallery'; // 'gallery' | 'comics'
+let currentModalTab = 'download';
+
+// 画廊数据集 (1:1 方形图，单张作品)
+const GALLERY_ITEMS = [
+  { id: 'g1', title: '星夜少女与猫', author: '秋山澪', site: 'Pixiv', color: '#6366F1' },
+  { id: 'g2', title: '夏日落日海滩', author: 'ハルカ', site: 'Danbooru', color: '#EC4899' },
+  { id: 'g3', title: '赛博雨林 2077', author: 'Kuro', site: 'Pixiv', color: '#10B981' },
+  { id: 'g4', title: '雨后神社台阶', author: 'Sakura', site: 'Gelbooru', color: '#F59E0B' },
+  { id: 'g5', title: '深海发光水母', author: 'Mizuki', site: 'Pixiv', color: '#06B6D4' },
+  { id: 'g6', title: '魔法学院图书馆', author: 'Yuki', site: 'Yande', color: '#8B5CF6' },
+  { id: 'g7', title: '秋色落叶庭院', author: 'Aoi', site: 'Pixiv', color: '#EF4444' },
+  { id: 'g8', title: '霓虹街角咖啡', author: 'Rin', site: 'Pixiv', color: '#3B82F6' },
+];
+
+// 漫画数据集 (3:4 封套比例，本子/漫画集)
+const COMIC_ITEMS = [
+  { id: 'c1', title: '葬送的芙莉莲', author: '山田钟人 / 阿部司', site: '拷贝漫画', color: '#4F46E5', chapters: '更新至 138 话' },
+  { id: 'c2', title: '迷宫饭 (全彩版)', author: '九井谅子', site: '包子漫画', color: '#EA580C', chapters: '全 97 话 · 完结' },
+  { id: 'c3', title: '电锯人 第二部', author: '藤本树', site: '拷贝漫画', color: '#DC2626', chapters: '更新至 174 话' },
+  { id: 'c4', title: '孤独摇滚！', author: '滨路晶', site: '哔哩漫画', color: '#DB2777', chapters: '更新至 72 话' },
+  { id: 'c5', title: '我推的孩子', author: '赤坂明 / 横枪萌果', site: '拷贝漫画', color: '#9333EA', chapters: '全 166 话 · 完结' },
+  { id: 'c6', title: '咒术回战', author: '芥见下下', site: '包子漫画', color: '#2563EB', chapters: '全 271 话 · 完结' },
+  { id: 'c7', title: '间谍过家家', author: '远藤达哉', site: '哔哩漫画', color: '#059669', chapters: '更新至 105 话' },
+  { id: 'c8', title: '怪兽8号', author: '松本直也', site: '拷贝漫画', color: '#475569', chapters: '更新至 115 话' },
+];
+
+let selectedGallery = new Set(['g1', 'g2', 'g3']);
+let selectedComics = new Set(['c1', 'c2']);
+
+function getActiveSet() {
+  return currentDomain === 'gallery' ? selectedGallery : selectedComics;
+}
+function getActiveList() {
+  return currentDomain === 'gallery' ? GALLERY_ITEMS : COMIC_ITEMS;
+}
+
+// 切换业务域
+function switchDomain(domain) {
+  currentDomain = domain;
+  document.getElementById('btnDomainGallery').classList.toggle('active', domain === 'gallery');
+  document.getElementById('btnDomainComics').classList.toggle('active', domain === 'comics');
+  
+  const wall = document.getElementById('mainWall');
+  wall.className = `gallery-wall mode-${domain}`;
+
+  // 顶栏标签
+  const navTabs = document.getElementById('navTabs');
+  if (domain === 'gallery') {
+    navTabs.innerHTML = `
+      <span class="nav-tab active">Pixiv 插画墙</span>
+      <span class="nav-tab">Booru 图库</span>
+      <span class="nav-tab">珍藏册</span>
+      <span class="nav-tab">图库收藏</span>
+    `;
+  } else {
+    navTabs.innerHTML = `
+      <span class="nav-tab active">探索漫画</span>
+      <span class="nav-tab">订阅更新</span>
+      <span class="nav-tab">我的书架</span>
+      <span class="nav-tab">离线库</span>
+    `;
+  }
+
+  renderCards();
+  renderDockActions();
+  updateDock();
+}
+
+// 渲染网格卡片
+function renderCards() {
+  const wall = document.getElementById('mainWall');
+  const list = getActiveList();
+  const selSet = getActiveSet();
+
+  wall.innerHTML = list.map(item => {
+    const isSel = selSet.has(item.id);
+    const badgeText = currentDomain === 'gallery' ? item.site : item.chapters;
+    return `
+      <div class="g-card ${isSel ? 'selected' : ''}" onclick="toggleCard('${item.id}')">
+        <div class="g-cover-box" style="background: linear-gradient(135deg, ${item.color} 0%, #0F172A 100%)">
+          <span class="g-badge">${badgeText}</span>
+          <div class="g-check-circle">
+            <svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 5"/></svg>
+          </div>
+        </div>
+        <div class="g-info">
+          <div class="g-title">${item.title}</div>
+          <div class="g-author">${currentDomain === 'gallery' ? 'by ' + item.author : item.site + ' · ' + item.author}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleCard(id) {
+  const set = getActiveSet();
+  if (set.has(id)) set.delete(id);
+  else set.add(id);
+  renderCards();
+  updateDock();
+}
+
+function selectAll() {
+  const set = getActiveSet();
+  getActiveList().forEach(item => set.add(item.id));
+  renderCards();
+  updateDock();
+}
+
+function invertSelect() {
+  const set = getActiveSet();
+  getActiveList().forEach(item => {
+    if (set.has(item.id)) set.delete(item.id);
+    else set.add(item.id);
+  });
+  renderCards();
+  updateDock();
+}
+
+function clearSelect() {
+  getActiveSet().clear();
+  renderCards();
+  updateDock();
+}
+
+// 渲染底部悬浮坞的动作按钮组
+function renderDockActions() {
+  const group = document.getElementById('dockActionGroup');
+  const count = getActiveSet().size;
+
+  if (currentDomain === 'gallery') {
+    group.innerHTML = `
+      <button class="dock-btn primary" onclick="openModal('download')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        批量下载 (<span id="btnCount">${count}</span>)
+      </button>
+      <button class="dock-btn secondary" onclick="batchActionQuick('favorite')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        收藏
+      </button>
+      <button class="dock-btn icon-only" title="复制所选链接" onclick="batchActionQuick('copyLinks')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      </button>
+      <button class="dock-btn icon-only" title="更多批量操作" onclick="openModal('more')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+      </button>
+      <button class="dock-btn icon-only close" title="取消多选" onclick="clearSelect()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    `;
+  } else {
+    // 漫画域多选操作组
+    group.innerHTML = `
+      <button class="dock-btn primary" onclick="openModal('download')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        批量下载话数 (<span id="btnCount">${count}</span>)
+      </button>
+      <button class="dock-btn secondary" onclick="openModal('favorite')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        移入书架/分类
+      </button>
+      <button class="dock-btn secondary" onclick="batchActionQuick('markRead')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        标为已读
+      </button>
+      <button class="dock-btn icon-only" title="更多/删除" onclick="openModal('more')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+      </button>
+      <button class="dock-btn icon-only close" title="取消多选" onclick="clearSelect()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    `;
+  }
+}
+
+function updateDock() {
+  const dock = document.getElementById('selectionDock');
+  const count = getActiveSet().size;
+  if (count > 0) {
+    dock.classList.add('active');
+    document.getElementById('dockCount').innerText = `已选择 ${count} 项`;
+    const btnCount = document.getElementById('btnCount');
+    if (btnCount) btnCount.innerText = count;
+  } else {
+    dock.classList.remove('active');
+  }
+}
+
+// 快速动作 Toast
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.innerText = msg;
+  t.classList.add('active');
+  setTimeout(() => t.classList.remove('active'), 2400);
+}
+
+function batchActionQuick(act) {
+  const count = getActiveSet().size;
+  if (act === 'copyLinks') {
+    showToast(`已将 ${count} 个画廊作品链接合并复制到剪贴板`);
+  } else if (act === 'favorite') {
+    showToast(`已将 ${count} 个作品成功加入默认图库收藏夹`);
+  } else if (act === 'markRead') {
+    showToast(`已将选中的 ${count} 部漫画全本标记为已读`);
+    clearSelect();
+  }
+}
+
+// 弹窗处理
+function openModal(tab) {
+  if (getActiveSet().size === 0) return;
+  currentModalTab = tab === 'more' ? (currentDomain === 'gallery' ? 'extract' : 'manage') : tab;
+  renderModalTabs();
+  renderReel();
+  switchModalTab(currentModalTab);
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+}
+
+function renderModalTabs() {
+  const tabsBar = document.getElementById('modalTabsBar');
+  if (currentDomain === 'gallery') {
+    tabsBar.innerHTML = `
+      <div class="m-tab active" onclick="switchModalTab('download')">📥 批量保存</div>
+      <div class="m-tab" onclick="switchModalTab('favorite')">❤️ 归档到夹</div>
+      <div class="m-tab" onclick="switchModalTab('extract')">🔗 提取与共享</div>
+    `;
+  } else {
+    tabsBar.innerHTML = `
+      <div class="m-tab active" onclick="switchModalTab('download')">📥 批量下章节</div>
+      <div class="m-tab" onclick="switchModalTab('favorite')">📁 书架分类</div>
+      <div class="m-tab" onclick="switchModalTab('manage')">⚙️ 状态与维护</div>
+    `;
+  }
+}
+
+function renderReel() {
+  const reel = document.getElementById('reelScroll');
+  const selSet = getActiveSet();
+  const list = getActiveList().filter(item => selSet.has(item.id));
+  
+  reel.innerHTML = list.map(item => `
+    <div class="reel-item" style="background: linear-gradient(135deg, ${item.color} 0%, #1E293B 100%)">
+      <div class="reel-item-remove" onclick="event.stopPropagation(); removeCardFromReel('${item.id}')">✕</div>
+    </div>
+  `).join('');
+
+  const label = currentDomain === 'gallery' ? '画廊作品' : '部漫画';
+  document.getElementById('modalSub').innerText = `已选 ${list.length} ${label} · 预计批量处理`;
+  document.getElementById('btnModalConfirm').innerText = `开始执行 (${list.length}项)`;
+}
+
+function removeCardFromReel(id) {
+  getActiveSet().delete(id);
+  renderCards();
+  if (getActiveSet().size === 0) {
+    closeModal();
+  } else {
+    renderReel();
+  }
+}
+
+function switchModalTab(tab) {
+  currentModalTab = tab;
+  const tabNames = currentDomain === 'gallery' 
+    ? ['download', 'favorite', 'extract'] 
+    : ['download', 'favorite', 'manage'];
+  
+  document.querySelectorAll('.m-tab').forEach((el, idx) => {
+    el.classList.toggle('active', tabNames[idx] === tab);
+  });
+
+  const body = document.getElementById('modalTabBody');
+
+  // 画廊域配置
+  if (currentDomain === 'gallery') {
+    if (tab === 'download') {
+      body.innerHTML = `
+        <div class="config-group">
+          <span class="config-label">保存画质档位：</span>
+          <div class="config-radios">
+            <div class="radio-pill active">原图 (最高清)</div>
+            <div class="radio-pill">1200大图 (较快)</div>
+            <div class="radio-pill">中画质 (省流)</div>
+          </div>
+        </div>
+        <label class="checkbox-row" style="margin-top:6px;">
+          <input type="checkbox" checked> 自动跳过已存在于下载目录的文件
+        </label>
+        <label class="checkbox-row">
+          <input type="checkbox"> 按画师名称自动建立子文件夹分类
+        </label>
+      `;
+    } else if (tab === 'favorite') {
+      body.innerHTML = `
+        <div class="config-group">
+          <span class="config-label">目标图库收藏夹：</span>
+          <select style="padding:8px 12px; border-radius:8px; border:1px solid var(--hairline); background:var(--bg-card); color:var(--text-main); font-size:13px;">
+            <option>默认收藏夹 (Default)</option>
+            <option>精选插画集</option>
+            <option>壁纸灵感池</option>
+            <option>+ 新建分类收藏夹...</option>
+          </select>
+        </div>
+        <div style="font-size:12px; color:var(--text-sub); margin-top:8px;">
+          加入收藏后将在本地收藏库生成快照，支持离线浏览。
+        </div>
+      `;
+    } else {
+      body.innerHTML = `
+        <div class="config-group">
+          <span class="config-label">链接提取与导出：</span>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <button class="dock-btn secondary" style="justify-content:center;" onclick="showToast('已复制 ${getActiveSet().size} 条站方 URL')">📋 复制全部站方网页链接</button>
+            <button class="dock-btn secondary" style="justify-content:center;" onclick="showToast('已复制 ${getActiveSet().size} 条高清直链')">🌐 复制全部图片原图直链</button>
+            <button class="dock-btn secondary" style="justify-content:center;" onclick="showToast('已在默认浏览器并发打开 ${getActiveSet().size} 个标签页')">🚀 在系统默认浏览器中全部打开</button>
+          </div>
+        </div>
+      `;
+    }
+  } else {
+    // 漫画域配置
+    if (tab === 'download') {
+      body.innerHTML = `
+        <div class="config-group">
+          <span class="config-label">下载章节策略：</span>
+          <div class="config-radios">
+            <div class="radio-pill active">全部未下载话</div>
+            <div class="radio-pill">仅下载最新 1 话</div>
+            <div class="radio-pill">仅首话试读</div>
+          </div>
+        </div>
+        <label class="checkbox-row" style="margin-top:6px;">
+          <input type="checkbox" checked> 后台下载队列静默排队 (单任务 <= 3 并发，避免封 IP)
+        </label>
+        <label class="checkbox-row">
+          <input type="checkbox" checked> 下载完成后发送桌宠弹幕提醒
+        </label>
+      `;
+    } else if (tab === 'favorite') {
+      body.innerHTML = `
+        <div class="config-group">
+          <span class="config-label">归类到书架分类标签：</span>
+          <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:4px;">
+            <div class="radio-pill active">🔥 追更中</div>
+            <div class="radio-pill">☕ 稍后再看</div>
+            <div class="radio-pill">🏆 必看神作</div>
+            <div class="radio-pill">📦 完结收藏</div>
+            <div class="radio-pill">💤 暂时搁置</div>
+            <div class="radio-pill">+ 新分类...</div>
+          </div>
+        </div>
+        <label class="checkbox-row" style="margin-top:6px;">
+          <input type="checkbox" checked> 同时同步到源站在线账号收藏 (支持源自动写入)
+        </label>
+      `;
+    } else {
+      body.innerHTML = `
+        <div class="config-group">
+          <span class="config-label">批量进度与缓存维护：</span>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <button class="dock-btn secondary" style="justify-content:center;" onclick="showToast('已将 ${getActiveSet().size} 部漫画阅读进度更新至最新话')">📖 批量标记为已读 (更新进度至最新)</button>
+            <button class="dock-btn secondary" style="justify-content:center;" onclick="showToast('已重置 ${getActiveSet().size} 部漫画的阅读进度')">🔄 重置阅读进度 (标记为未读)</button>
+            <button class="dock-btn secondary" style="justify-content:center; color:var(--danger); border-color:var(--danger);" onclick="showToast('已清理 ${getActiveSet().size} 部漫画的本地缓存')">🗑️ 清除所选漫画的本地离线缓存</button>
+          </div>
+        </div>
+      `;
+    }
+  }
+}
+
+function runModalAction() {
+  const count = getActiveSet().size;
+  const label = currentDomain === 'gallery' ? '画廊作品' : '部漫画';
+  closeModal();
+  showToast(`批量任务已成功提交：${count} ${label} 正在后台队列处理中`);
+  clearSelect();
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+}
+
+// 初始化
+switchDomain('gallery');
+</script>
+</body>
+</html>

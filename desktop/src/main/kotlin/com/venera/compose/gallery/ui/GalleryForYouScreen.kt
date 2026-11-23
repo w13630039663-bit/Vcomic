@@ -1,0 +1,516 @@
+package com.venera.compose.gallery.ui
+
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import coil3.ImageLoader
+import com.venera.compose.data.platform.Logger
+import com.venera.compose.gallery.data.GalleryPorts
+import com.venera.compose.gallery.domain.GalleryPreviewQuality
+import com.venera.compose.gallery.domain.GallerySettingsModel
+import com.venera.compose.gallery.domain.PixivImageQuality
+import com.venera.compose.components.VeneraEmptyTone
+import com.venera.compose.components.VeneraEmptyView
+import com.venera.compose.components.venera.VeneraChip
+import com.venera.compose.components.venera.VeneraChipVariant
+import com.venera.compose.components.venera.blurBackdropSource
+import com.venera.compose.gallery.data.GalleryPost
+import com.venera.compose.gallery.data.GallerySite
+import com.venera.compose.gallery.domain.GalleryRecommendations
+import com.venera.compose.gallery.domain.galleryNotices
+import com.venera.compose.ui.tokens.VeneraSpacing
+import com.venera.compose.ui.tokens.VeneraTokens
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import com.venera.compose.ui.tokens.LocalBottomBarClearance
+
+/**
+ * 「猜你喜欢」那面墙（从**用户自己的收藏**里抽标签，再拿那串标签去站方搜）。
+ *
+ * 批次 K 之前它是同一目的地里的第 1 页（左右滑切换）；合一屏之后它是**详情区的一档**，
+ * 由节点头的「查看全部」切进来，见 [GalleryWallFeed]。
+ *
+ * 判据全部在 `GalleryRecommendations`（纯函数、有单测）与 [GalleryForYouMerge]（分页合并），
+ * 这一层只做"屏上摆哪一档"的选择。四档空态**必须不同脸**（方案 §四.8）：
+ * 合成一个"空"就会让"你还没收藏"和"我们的判据算不出东西"长成同一张脸 ——
+ * 前者该引导去收藏，后者是我们的缺陷，得能炸出来。
+ */
+@Composable
+internal fun GalleryForYouPage(
+    /**
+     * 这一面墙由谁填、空/忙/页尾各念哪一句（[GalleryHomeWallReading]）。
+     *
+     * 从前这里摊开的是 `fvm` + `wall` + `favoriteCount` + `onGoToDaily` 四样，而页里五处各读一遍
+     * —— 两档内容域共用这一面墙之后，那种摊法会让"屏上是 A 池、页尾念 B 账"成为默认写法。
+     */
+    reading: GalleryHomeWallReading,
+    /** 取图器；null = 平台应用级单例（阶段三 T3：桌面没有安卓那颗画廊独立缓存的 loader）。 */
+    imageLoader: ImageLoader?,
+    columnCount: Int,
+    state: LazyStaggeredGridState,
+    topPadding: Dp,
+    /** 横向列间距。桌面画廊传 14dp；其余墙沿用旧档。 */
+    horizontalSpacing: Dp = 10.dp,
+    /** 纵向卡间距。桌面画廊传 14dp；其余墙沿用旧档。 */
+    verticalSpacing: Dp = 12.dp,
+    backdrop: LayerBackdrop?,
+    onOpen: (GalleryPost) -> Unit,
+    /** 提示块里那枚「重试」。⚠️ 走调用方那条清熔断 + force 的路径，不是 `fvm.refresh()`（假按钮）。 */
+    onRetry: () -> Unit,
+    sections: List<GalleryGridSection> = emptyList(),
+    /**
+     * 常驻 chrome（一条搜索入口条）——用户口径「搜索栏保持在这里就行」：
+     * 它是**页面内容的第一行**，跟着内容一起滚走，不再钉在顶栏下方。
+     *
+     * 放在 [GalleryCardsGrid] 的 header 槽位（比节头还靠前），滚动时它与三节一起离屏。
+     * 传 null = 这一面墙不摆（目前只有首页传）。
+     */
+    chrome: (@Composable () -> Unit)? = null,
+    /**
+     * 画廊首页头图。
+     *
+     * 摆在**同一颗 header item 里、chrome 之上**，而不是新插一枚 item —— 后者会撞本仓
+     * 两族已量过的坑：懒列表"第 0 项之后插入"的锚定漂移（首页顶栏重叠那次真机根因），
+     * 以及"header 必须是单根 Column"（错误提示压在搜索栏上）。
+     * 槽位恒在、判空在调用方（未设置头图时这里就是 null，墙的首帧几何与从前逐像素一致）。
+     */
+    hero: (@Composable () -> Unit)? = null,
+    /**
+     * 整页下拉刷新—— **包装槽位**（阶段三共享化）：把整页内容包进
+     * 宿主的下拉容器里（安卓 = M3 `PullToRefreshBox`，见 `AndroidGalleryForYouPage`）。
+     *
+     * null = 这一面墙不接下拉（其余调用点零改动；桌面今天不接 —— 档位差如实登记）。
+     * 指示器的**位置**判据留在页里（header 内 chrome 之后的那一行，用户点名的"搜索框下面"），
+     * 环长什么样、进度从哪读交回宿主（`pullRow` + `pullState`）—— M3 那颗浮顶圆环会跟顶栏
+     * 抢位置，网络收藏那一屏为此撤过它，所以位置不许宿主自己挪。
+     */
+    pullToRefresh: (@Composable (content: @Composable () -> Unit) -> Unit)? = null,
+    /** 宿主的手势状态（安卓 = `PullToRefreshState`，页只通过 `currentProgress()` 读一帧）。 */
+    pullState: GalleryPullState? = null,
+    /** 下拉行里的环（只在 `pullProgress > 0f` 时由页摆 —— 环本体与尺寸归宿主）。 */
+    pullRow: (@Composable () -> Unit)? = null,
+    /** 这一次下拉是否还在刷新（true 钉满格：环不许在刷新途中缩回，那是"以为取消了"）。 */
+    refreshing: Boolean = false,
+    /**
+     * 墙空档/忙档那枚**整页加载环**（槽位，阶段三共享化）：安卓交 M3 Expressive
+     * 波浪环（`AndroidGalleryPageLoadingRing`），桌面交自己那颗 —— JetBrains material3
+     * 没有 `CircularWavyProgressIndicator` 那颗实验件（`GalleryViewerToolbar` 排除注释同族档位差）。
+     * **必传无默认值**：给默认环就是"平台没接上也照样绿"的读空假绿。
+     */
+    pageLoading: @Composable () -> Unit,
+    /**
+     * 这一面墙上**站方自己起的标题**（`uid → 标题`）。
+     *
+     * 有的站给标题、有的站不给：booru 三站的 API 都没有这一格，屏上那行是
+     * `GalleryCardTitle` 从标签**算**出来的；而 pixiv 的每一行都带 `title`。
+     * 空白表 = 与从前逐字一致（只用算出来的那批）。
+     *
+     * ⚠️ 覆盖而不是"合并成两行"：一张卡只有一个标题格，站方给了真题就不该再摆我们猜的那个。
+     */
+    stationTitles: Map<String, String> = emptyMap(),
+    /**
+     * 作者头像（`uid → 地址`，与 [stationTitles] 同一条路径，见 [GalleryCardsGrid]）。
+     * 空 map = 不画头像（默认值 ⇒ 搜索墙 / 收藏墙那几处逐像素不变）；
+     * 非空 ⇒ 卡片文字区走「头像 + 标题/画师名」两行（
+     * 见 [GalleryCardCaption]）。
+     */
+    authorAvatars: Map<String, String> = emptyMap(),
+    /**
+     * 非空 = 这一面墙上**有一段内容坐在一张卡面上**（推荐那一节，见 [GallerySectionSurface]）。
+     *
+     * 只是透传给 [GalleryCardsGrid]：卡面的几何与绘制全在那一层，这一页不掺和。
+     */
+    sectionSurface: GallerySectionSurface? = null,
+    // ── 以下八枚是墙宿主槽位的透传（阶段三 · 首屏共享批 T2）──
+    // 页不读任何平台 handle：三枚偏好、端口/日志、动作表/截帧/落点/头像导航全由装配层给，
+    // 安卓在 `AndroidGalleryForYouPage`（`GalleryWallAndroid.kt`）接真件，桌面接路由或 null。
+    quality: GalleryPreviewQuality,
+    pixivQuality: PixivImageQuality,
+    aiBadge: Boolean,
+    ports: GalleryPorts,
+    logger: Logger,
+    actionSheet: ((onOpenDetail: (GalleryPost) -> Unit) -> @Composable (post: GalleryPost, onDismiss: () -> Unit) -> Unit)? = null,
+    flyCapture: ((androidx.compose.ui.geometry.Rect) -> Unit)? = null,
+    noteFlyBounds: ((viewerKey: String, full: androidx.compose.ui.geometry.Rect, visible: androidx.compose.ui.geometry.Rect) -> Unit)? = null,
+    forgetFlyBounds: ((viewerKey: String) -> Unit)? = null,
+    onOpenArtistPage: ((userId: Long, name: String) -> Unit)? = null,
+    onRatioClamped: ((post: GalleryPost, ratio: Float) -> Unit)? = null,
+    sourceMark: (@Composable (site: GallerySite) -> Unit)? = null,
+    /** 点开那一下的闸（透传给 `[GalleryCardsGrid]`；桌面交"打码/没身份 = 不可点"，安卓不传恒开）。 */
+    openableOf: ((GalleryPost) -> Boolean)? = null,
+    /**
+     * 自定义卡片信息栏。非空时替换共享的 `GalleryCardCaption`，用于桌面统一
+     * 「标题 / 画师 / 站源」两行信息；安卓不传，保持原卡形。
+     */
+    cardInfo: (@Composable (post: GalleryPost, title: String?) -> Unit)? = null,
+    /**
+     * true = 图片按站方原始比例铺满，不夹取极端长条。
+     * 桌面画廊打开它；安卓默认 false，保留既有裁切口径。
+     */
+    preserveNaturalImageHeight: Boolean = false,
+) {
+    val tokens = VeneraTokens
+    val cards = reading.wall.cards
+    val pageModifier = Modifier
+        .fillMaxSize()
+        .blurBackdropSource(backdrop)
+    // 下拉那一行的高度：由下拉进度 1:1 驱动，松手后停在满高，刷新完成收回。
+    // 进度从宿主递来的 `pullState` 读（快照系统跟着手势走）；`rememberPullToRefreshState`
+    // 那颗 M3 状态本身**不在这页里造** —— 阶段三共享化后它住在 `AndroidGalleryForYouPage`。
+    val pullProgress = if (refreshing) 1f else (pullState?.currentProgress() ?: 0f).coerceIn(0f, 1f)
+    val pullRowHeight by animateDpAsState(
+        targetValue = tokens.spacing.pullRefreshRowHeight * pullProgress,
+        label = "gallery-pull-row-height",
+    )
+    val contentPadding = PaddingValues(
+        start = tokens.spacing.screenHorizontal,
+        end = tokens.spacing.screenHorizontal,
+        top = topPadding,
+        bottom = LocalBottomBarClearance.current,
+    )
+
+    // 空档与加载档仅替换卡片区域，保留 chrome、头图与域切换节，避免无图时用户被困在当前域；
+    // IDLE 态不显示空态，refresh 保留旧卡片时由节头环提示加载。
+    val loadingSlot: @Composable () -> Unit = {
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            pageLoading()
+        }
+    }
+    val emptySlot: @Composable () -> Unit = {
+        val copy = reading.empty
+        VeneraEmptyView(
+            title = copy.title,
+            message = copy.message,
+            tone = copy.tone,
+            actionText = copy.actionText,
+            onAction = copy.onAction,
+        )
+    }
+    val grid: @Composable () -> Unit = {
+        GalleryCardsGrid(
+            cards = cards,
+            imageLoader = imageLoader,
+            columnCount = columnCount,
+            state = state,
+            contentPadding = contentPadding,
+            horizontalSpacing = horizontalSpacing,
+            verticalSpacing = verticalSpacing,
+            modifier = pageModifier,
+            onOpen = onOpen,
+            // 有头图时禁用过度滚动，防止下拉露出顶部背景；下拉刷新由父级消费位移，不依赖 overscrollEffect。
+            disableOverscroll = hero != null,
+            stationTitles = stationTitles,
+            authorAvatars = authorAvatars,
+            sectionSurface = sectionSurface,
+            header = {
+                // 必须包进单一 Column：LazyGrid item 内部按 Box 叠放多个根组件，会导致提示压在搜索栏上。
+                Column {
+                    // 头图须整屏通栏，用 fullBleedHorizontal 抵消网格 contentPadding 的左右内缩。
+                    hero?.let { heroSlot ->
+                        Box(Modifier.fullBleedHorizontal(tokens.spacing.screenHorizontal)) {
+                            heroSlot()
+                        }
+                    }
+                    // 常驻 chrome（一条搜索入口条）是**内容的第一行**：
+                    // 随内容滚走（用户口径「搜索栏保持在这里就行」）。
+                    // ⚠️ 它**不**通栏 —— 搜索条左右本来就该有内缩（它是个圆角条，不是整幅图）。
+                    chrome?.invoke()
+                    // 下拉刷新行位于 chrome 之后、提示块之前；高度 0dp 时不占位。
+                    if (pullRow != null && pullToRefresh != null) {
+                        // 下拉行内必须渲染随进度淡入的指示器，避免仅推开页面却无刷新反馈。
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(pullRowHeight),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (pullProgress > 0f) {
+                                Box(modifier = Modifier.alpha(pullProgress.coerceIn(0f, 1f))) {
+                                    pullRow()
+                                }
+                            }
+                        }
+                    }
+                    // 站点提示槽位恒在、内部判空；按未配账号/出错分块提供操作，重试须走 onRetry 先清熔断再强制刷新。
+                    GalleryNotices(
+                        notices = remember(reading.notices) { galleryNotices(reading.notices) },
+                        compact = true,
+                        onRetry = onRetry,
+                        modifier = Modifier.padding(top = tokens.spacing.space3),
+                    )
+                }
+            },
+            sections = sections,
+            // 页尾由 reading.footer 提供；无卡片时同一槽位切换为加载环或空态，保持顶层结构稳定。
+            footer = when {
+                cards.isNotEmpty() -> reading.footer
+                reading.pending -> loadingSlot
+                else -> emptySlot
+            },
+            quality = quality,
+            pixivQuality = pixivQuality,
+            aiBadge = aiBadge,
+            ports = ports,
+            logger = logger,
+            openableOf = openableOf,
+            actionSheet = actionSheet,
+            flyCapture = flyCapture,
+            noteFlyBounds = noteFlyBounds,
+            forgetFlyBounds = forgetFlyBounds,
+            onOpenArtistPage = onOpenArtistPage,
+            onRatioClamped = onRatioClamped,
+            sourceMark = sourceMark,
+            cardInfo = cardInfo,
+            preserveNaturalImageHeight = preserveNaturalImageHeight,
+        )
+    }
+    if (pullToRefresh == null) {
+        grid()
+    } else {
+        // 宿主的下拉容器（安卓 = M3 `PullToRefreshBox`，`indicator = {}` 摘掉那颗浮顶圆环 ——
+        // 它与"动画在搜索框下面"正好相反，也跟折叠顶栏抢位置；位置由 header 里那一行自己说了）。
+        pullToRefresh { grid() }
+    }
+}
+
+/**
+ * 宿主下拉手势状态的**最小读数口**（阶段三共享化）：页只在组合期读一次 `currentProgress()`，
+ * 不 import 任何平台的 pull 状态件。安卓装配用它包 `PullToRefreshState.distanceFraction`。
+ */
+interface GalleryPullState {
+    /** 当前下拉进度 0f..1f（手势驱动，须可在组合期内读到最新值 —— M3 那颗本身是快照状态）。 */
+    fun currentProgress(): Float
+}
+
+/**
+ * 空/错档要说的那几样。分四档说，见 [emptyCopyOf]。
+ *
+ * [tone] 管**图标**（见 [VeneraEmptyTone]）：这一页四档里同时有"用户还没做"（还没收藏）与
+ * "我们没取成"两种完全不同的处境，而老写法一律摆 `Icons.Outlined.Image` ——
+ * 于是"先去收藏几张"与"这一轮没取成"在屏上是同一枚图，只能靠读字才分得开。
+ */
+internal class ForYouEmptyCopy(
+    val title: String,
+    val message: String,
+    val actionText: String?,
+    val onAction: (() -> Unit)?,
+    val tone: VeneraEmptyTone,
+)
+
+/**
+ * **首页那面墙的读数**（两档内容域共用同一面墙，读数必须各给各的）。
+ *
+ * 为什么要把它抽出来而不是在页里加一个 `if (domain == PIXIV)`：这一页在**五处**读 `fvm`
+ * （加载档、空态四档、按站提示、页尾那 8 项、以及页尾出现与否那道 `page > 0` 闸）。
+ * 五处各写一个分支，就是"屏上是 pixiv 那一池、页尾还念着 booru 两站的张数"这种错配的温床 ——
+ * 而本仓为这类错配量过太多次。收成一份读数之后，页里只剩"读这一份"，两档的差异全在造读数那两处。
+ *
+ * ⚠️ [notices] 与 [footer] 不许在页里再算第二遍；[pending] 是"还没判过档"，
+ * 拿 `wall.cards.isEmpty()` 单独当判据会把"还没算"说成"没有东西"（从前正是 `stage == IDLE`
+ * 与 `isLoading` 两道一起判，那条理由逐字搬进 [forYouWallReading]）。
+ */
+internal class GalleryHomeWallReading(
+    val wall: GalleryWall,
+    val pending: Boolean,
+    val empty: ForYouEmptyCopy,
+    /** 「这一轮哪几站没给内容、各是什么原因」，按站一份。pixiv 那一档是空表 —— 它不按站算。 */
+    val notices: Map<GallerySite, String>,
+    val footer: (@Composable () -> Unit)?,
+)
+
+/**
+ * Pixiv 那一档的读数。
+ *
+ * 只带这一档**真的知道**的事：种子是哪几枚标签、这一轮取回几张、为什么是空的。两件事刻意不做：
+ *  - **不摆页尾** —— 猜你喜欢那串读数（按站各几张 / 第几页 / 排掉几张已收藏）在 pixiv 这一池
+ *    一条都成立不了。宁可不念，也不拿别的账凑一句"看起来像读数"的话（那是本仓最忌的假读数）；
+ *  - [GalleryHomeWallReading.notices] 恒空 —— 那块提示说的是"哪几站没给内容、各是什么原因"，
+ *    而这一池不按站分（种子是标签，取数是一跳一站）。
+ *
+ * 空态两档脸（同 [emptyCopyOf] 那份"四档不许同脸"的口径）：没种子 = 用户还没干活（[VeneraEmptyTone.NotYet]，
+ * 不给按钮）；有种子却没取回 = 我们这一轮没成（[VeneraEmptyTone.Failed] + 一枚真能重发的重试）。
+ */
+internal fun pixivRecommendReading(
+    wall: GalleryWall,
+    pending: Boolean,
+    seeds: List<String>,
+    caption: String?,
+    onRetry: () -> Unit,
+    /**
+     * 这一池来自**站方推荐**（`/v1/illust/recommended`，要登录）还是**种子标签**那一跳（匿名可读）。
+     *
+     * 为什么必须分两档说：两者的空态不是同一件事 —— 站方推荐空了是"站方这一轮没给你"，
+     * 种子空了是"你的标签这一轮没命中"。同一句话会把两种处境读成一种（本仓"四档空态不许同脸"那条）。
+     */
+    station: Boolean = false,
+    /** 瀑布流正在取下一屏（这一池改成无限下拉）。 */
+    loadingMore: Boolean = false,
+    /** 这一池已经到底（站方没给 `next_url` / 种子那一页没新东西）。 */
+    exhausted: Boolean = false,
+    /**
+     * 续页**这一下**没取上（与"到底了"分开的那一档，审计 P0）。
+     *
+     * 从前这一档走的是 `exhausted = true`：一次网络抖动被念成「pixiv 这一池到底了」，
+     * 而闸门（`state.exhausted`）从此永久拦住续页。分开之后页尾多一档"没续上 · 重试"。
+     */
+    moreFailed: Boolean = false,
+    /**
+     * 续页失败那一档的重试。默认与 [onRetry] 同一颗 —— 空态那颗重试重发的是首屏，
+     * 而续页这颗要的是"再发一次下一页"（首屏内容已经在了，重发它等于把整墙换掉）。
+     */
+    onRetryMore: () -> Unit = onRetry,
+): GalleryHomeWallReading = GalleryHomeWallReading(
+    wall = wall,
+    // `pending` 由调用点给"还没判过档 || 正在取"两道的并（口径同图库站那档的 `stage == IDLE`）。
+    pending = pending,
+    empty = if (station) {
+        ForYouEmptyCopy(
+            title = "pixiv 这一轮没给你推荐",
+            message = caption ?: "站方推荐的答复是空的 —— 再多收藏几张、或过一会儿再刷一次。",
+            actionText = "再刷一次",
+            onAction = onRetry,
+            tone = VeneraEmptyTone.Failed,
+        )
+    } else if (seeds.isEmpty()) {
+        // 「真·用户还没干活」（没有种子）与「取数失败」分开：前者不给按钮（点了也是同一句
+        // "先去收藏几张"），后者必须给 —— 否则票据取不到那一句上屏时连"再刷一次"都没有
+        // （审计）。
+        val noSeedsYet = caption == null
+        ForYouEmptyCopy(
+            title = "还没有能推荐的基础",
+            message = caption ?: "先去大图页点收藏几张图，这一栏就照着那些标签去 pixiv 找。",
+            actionText = if (noSeedsYet) null else "再刷一次",
+            onAction = if (noSeedsYet) null else onRetry,
+            tone = VeneraEmptyTone.NotYet,
+        )
+    } else {
+        ForYouEmptyCopy(
+            title = "pixiv 这一轮没有回图",
+            message = (caption ?: "种子那几枚标签（「${seeds.joinToString("、")}」）这一轮没从 pixiv 取回图。") +
+                "\n稍后再刷一次，或者多收藏几张换换口味。",
+            actionText = "再刷一次",
+            onAction = onRetry,
+            tone = VeneraEmptyTone.Failed,
+        )
+    },
+    notices = emptyMap(),
+    // 页尾只说**这一池自己知道的事**（还有没有下一屏）。猜你喜欢那串按站读数在这一池
+    // 一条都成立不了，所以这里不复用它 —— 但"到底了 / 正在取"是这一池真有的两档。
+    footer = if (wall.cards.isEmpty()) {
+        null
+    } else {
+        @Composable {
+            PixivRecommendEnd(
+                loadingMore = loadingMore,
+                exhausted = exhausted,
+                moreFailed = moreFailed,
+                onRetryMore = onRetryMore,
+            )
+        }
+    },
+)
+
+/**
+ * 推荐那面墙的页尾（无限下拉配套）。
+ *
+ * 三档：正在取下一屏 / 已经到底 / **这一下没续上**（可点，重发续页）。
+ * 没有"上滑继续取"那一句 —— 无限下拉是滑到底自动发的，不像搜索页要用户再滑一下。
+ *
+ * 失败那一档必须是**可点的**：续页挂在 `LaunchedEffect(forYouGridState…)` 的滚动读数上，
+ * 失败之后不置 exhausted 就不会自己重发，而没有把手的话用户唯一能做的事是退出重进。
+ */
+@Composable
+private fun PixivRecommendEnd(
+    loadingMore: Boolean,
+    exhausted: Boolean,
+    moreFailed: Boolean = false,
+    onRetryMore: (() -> Unit)? = null,
+) {
+    val tokens = VeneraTokens
+    val line = when {
+        loadingMore -> "正在取下一屏…"
+        moreFailed -> "这一下没续上 · 点这里重试"
+        exhausted -> "pixiv 这一池到底了"
+        // 还有下一页但还没滑到：**不念**"上滑继续取"（那是搜索页的手动口径，这里自动发）。
+        else -> null
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                // 只有失败那一档可点（"到底了"点一万次还是到底，那是假把手）。
+                if (moreFailed && onRetryMore != null) {
+                    Modifier.clickable { onRetryMore() }
+                } else {
+                    Modifier
+                },
+            )
+            .padding(vertical = tokens.spacing.space6),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        if (line != null) {
+            Text(
+                text = line,
+                fontSize = tokens.type.overline,
+                // 失败那一档用 primary 色 + 可点：与"到底了"那行同色同手感的话，
+                // 用户会以为点它也没用（那正是这条要治的）。
+                color = if (moreFailed) tokens.color.primary else tokens.color.textTertiary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+
+/**
+ * 让这一格**吃掉容器的左右内缩**，按整屏宽铺开（只在本容器水平居中、两侧等宽时成立）。
+ *
+ * 用在哪：首页头图。它住在网格的 header item 里，而网格的 `contentPadding` 是**所有项共用**
+ * 的（搜索条、卡片那几行都靠它留出左右边距），所以只能由头图自己把这个内缩还回去。
+ *
+ * 做法：把宽度约束放到 `内容宽 + 2 × inset`，量完之后按 `-inset` 摆 —— 报告的高度仍是子元素的
+ * 高度，所以网格那一行的占位**一点没变**（变的只有绘制范围）。这跟 `SettingsHeroImage` 内部
+ * 「占位矮一截、画面画全高」是同一类手法：**报告的尺寸与绘制范围解耦**。
+ *
+ * ⚠️ 不要改用 `.padding(horizontal = -inset)`：`Modifier.padding` 对负值有 `require` 检查，会崩。
+ *
+ * @param inset 容器左右各自的内缩（本仓口径 = `tokens.spacing.screenHorizontal`）。
+ */
+private fun Modifier.fullBleedHorizontal(inset: Dp): Modifier = layout { measurable, constraints ->
+    val insetPx = inset.roundToPx()
+    // 容器宽未知（无限约束）时不做任何事，宁可少通栏也不要量出一个荒谬的宽度。
+    if (insetPx <= 0 || constraints.maxWidth == androidx.compose.ui.unit.Constraints.Infinity) {
+        val placeable = measurable.measure(constraints)
+        return@layout layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+    }
+    val fullWidth = constraints.maxWidth + insetPx * 2
+    val placeable = measurable.measure(
+        constraints.copy(minWidth = fullWidth, maxWidth = fullWidth)
+    )
+    layout(constraints.maxWidth, placeable.height) {
+        placeable.place(-insetPx, 0)
+    }
+}

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-zcode-design>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>首页继续阅读横幅 · 三方向 · 2026-11-20</title>
+<style>
+:root {
+  --accent: #0A63F6;
+  --accent-deep: #1D4ED8;
+  --ink: #E8EDF6;
+  --ink-dim: #9AA7BC;
+  --bg: #0D1016;
+  --card: #161A22;
+  --card-edge: #252C38;
+  --paper: #F5F7FA;
+  --ink-on-light: #0F141C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+  padding: 44px 32px 80px; max-width: 1260px; margin: 0 auto;
+}
+header h1 { font-size: 25px; font-weight: 700; letter-spacing: .5px; }
+header .sub { color: var(--ink-dim); font-size: 13.5px; margin-top: 10px; line-height: 1.85; }
+.badge { display: inline-block; font-size: 12px; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 2px 12px; margin-bottom: 14px; }
+.diag { margin-top: 30px; background: var(--card); border: 1px solid var(--card-edge); border-radius: 14px; padding: 20px 24px; }
+.diag h2 { font-size: 15px; font-weight: 600; }
+.diag ul { list-style: none; margin-top: 8px; }
+.diag li { font-size: 13px; color: var(--ink-dim); line-height: 1.95; padding-left: 16px; position: relative; }
+.diag li::before { content: ""; position: absolute; left: 0; top: 12px; width: 5px; height: 5px; border-radius: 1.5px; background: var(--accent); }
+.diag li b { color: var(--ink); }
+section.opt { margin-top: 40px; }
+.opt-head { display: flex; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--card-edge); padding-bottom: 10px; }
+.opt-head .no { font-size: 12.5px; color: var(--accent); font-weight: 700; letter-spacing: 2px; }
+.opt-head h2 { font-size: 18px; font-weight: 600; }
+.opt-head .desc { font-size: 13px; color: var(--ink-dim); }
+.caption { font-size: 12.5px; color: var(--ink-dim); margin-top: 10px; line-height: 1.9; }
+.caption b { color: var(--ink); }
+/* ── 横幅本体：1160 × 190 实比例 ── */
+.hero { position: relative; width: 100%; max-width: 1160px; height: 190px; border-radius: 20px; overflow: hidden; margin-top: 14px; }
+.hero .watermark { position: absolute; left: 210px; bottom: -34px; font-size: 200px; font-weight: 700; line-height: 1; color: rgba(255,255,255,.08); user-select: none; }
+.hero .left { position: absolute; left: 36px; top: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; }
+.hero .date { font-size: 12.5px; color: rgba(255,255,255,.74); }
+.hero .title { font-size: 26px; font-weight: 700; color: #fff; margin-top: 6px; }
+.hero .subline { font-size: 12.5px; color: rgba(255,255,255,.74); margin-top: 8px; }
+.hero .cta { margin-top: 15px; align-self: flex-start; border-radius: 999px; padding: 8px 20px; font-size: 13px; font-weight: 600; cursor: default; }
+.hero .close { position: absolute; right: 16px; top: 16px; width: 14px; height: 14px; opacity: .72; }
+.hero .close::before, .hero .close::after { content: ""; position: absolute; left: 6px; top: 0; width: 1.6px; height: 14px; background: #fff; border-radius: 1px; }
+.hero .close::before { transform: rotate(45deg); }
+.hero .close::after { transform: rotate(-45deg); }
+.hero .covers { position: absolute; right: 0; top: 0; width: 300px; height: 100%; }
+.hero .covers .cv { position: absolute; top: 50%; border-radius: 12px; overflow: hidden; box-shadow: 0 12px 28px rgba(0,0,0,.45); }
+.hero .covers .c0 { width: 100px; height: 100px; left: 0; transform: translateY(-50%) rotate(-8deg); }
+.hero .covers .c1 { width: 100px; height: 100px; left: 62px; transform: translateY(-50%) rotate(8deg); }
+.hero .covers .c2 { width: 112px; height: 112px; right: 48px; transform: translateY(-50%); }
+.cv svg { display: block; width: 100%; height: 100%; }
+
+/* 方向 1：现状（紫） */
+.v-now { background: linear-gradient(135deg, #8A6BC4, #0F141C 88%); }
+.v-now .cta { background: #0F141C; color: #fff; }
+
+/* 方向 A：封面沉浸 */
+.v-a { background: #10141C; }
+.v-a .wash { position: absolute; inset: 0; }
+.v-a .wash svg { width: 100%; height: 100%; display: block; }
+.v-a .veil { position: absolute; inset: 0; background: linear-gradient(100deg, rgba(10,22,42,.94) 12%, rgba(10,26,54,.72) 52%, rgba(12,18,30,.45) 100%); }
+.v-a .cta { background: #F5F7FA; color: #0F141C; }
+
+/* 方向 B：品牌蓝阶梯 */
+.v-b { background: linear-gradient(120deg, #1E3A8A 0%, #12306E 46%, #0F1729 100%); }
+.v-b .rings { position: absolute; inset: 0; opacity: .5; }
+.v-b .cta { background: #F5F7FA; color: #0F141C; }
+
+/* 方向 C：玻璃暗化 */
+.v-c { background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.10); }
+.v-c .backdrop { position: absolute; inset: 0; opacity: .30; }
+.v-c .backdrop svg { width: 100%; height: 100%; display: block; }
+.v-c .veil { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(13,16,22,.86), rgba(13,16,22,.52)); }
+.v-c .cta { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.42); }
+
+@media (max-width: 900px) {
+  body { padding: 30px 16px 60px; }
+  .hero { height: 168px; }
+  .hero .covers { width: 232px; }
+  .hero .covers .c0, .hero .covers .c1 { width: 78px; height: 78px; }
+  .hero .covers .c1 { left: 48px; }
+  .hero .covers .c2 { width: 88px; height: 88px; right: 26px; }
+  .hero .watermark { font-size: 150px; left: 150px; }
+  .hero .title { font-size: 21px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="badge">阶段 A · 横幅改造 · 三方向 · 待批</span>
+  <h1>首页「继续阅读」横幅</h1>
+  <p class="sub">现状紫色已按指令退役（现基线改为深蓝 <code>#1E3A8A</code>）。下面是四个并排：现状复刻、以及三个改造方向。<b>三方向都保留全部信息与入口</b>（日期 / 标题 / 进度 / 主按钮 / 三张封面 / 关闭），只改视觉语言。</p>
+</header>
+
+<section class="diag">
+  <h2>现状三个病</h2>
+  <ul>
+    <li><b>底色与内容无关</b>：整块纯渐变 + 日期水印，换任何一天只是数字变，读起来像通用模板而不是「你上次读到这一本」</li>
+    <li><b>主按钮最弱</b>：黑胶囊压在深色渐变上，是全屏对比度最低的元素 —— 可它才是唯一要点的东西</li>
+    <li><b>封面被当装饰</b>：三张封面挤在右侧 300dp，主封 112dp 偏小，而封面恰恰是最能"一眼认出是哪本书"的信息</li>
+  </ul>
+</section>
+
+<section class="opt">
+  <div class="opt-head"><span class="no">对照</span><h2>现状（紫色，待退役）</h2></div>
+  <div class="hero v-now">
+    <div class="watermark">20</div>
+    <div class="left">
+      <div class="date">11月20日 星期五</div>
+      <div class="title">继续阅读</div>
+      <div class="subline">腦洞學生會 · 第01话 第6/17页 · 35%</div>
+      <div class="cta">继续阅读</div>
+    </div>
+    <div class="covers">
+      <div class="cv c0"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#C24B5A"/><circle cx="38" cy="44" r="22" fill="#F3D9B0"/><path d="M0 100 Q40 64 100 94 L100 100Z" fill="#2A1C33"/></svg></div>
+      <div class="cv c1"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#7FA8D9"/><circle cx="62" cy="40" r="24" fill="#F7E7CE"/><path d="M0 100 Q46 56 100 88 L100 100Z" fill="#233858"/></svg></div>
+      <div class="cv c2"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#E9C46A"/><circle cx="50" cy="38" r="21" fill="#8E4B4B"/><path d="M0 100 Q42 62 100 90 L100 100Z" fill="#33251A"/></svg></div>
+    </div>
+    <div class="close"></div>
+  </div>
+  <p class="caption">复刻现状：紫色渐变 + 200sp 日期水印 + 黑胶囊。</p>
+</section>
+
+<section class="opt">
+  <div class="opt-head"><span class="no">A</span><h2>封面沉浸</h2><span class="desc">横幅从内容里长出来</span></div>
+  <div class="hero v-a">
+    <div class="wash"><svg viewBox="0 0 1160 190" preserveAspectRatio="xMidYMid slice"><defs><filter id="blurA"><feGaussianBlur stdDeviation="34"/></filter></defs><g filter="url(#blurA)"><rect width="1160" height="190" fill="#C24B5A"/><circle cx="880" cy="60" r="150" fill="#E9C46A"/><circle cx="1080" cy="150" r="130" fill="#7FA8D9"/><circle cx="420" cy="40" r="120" fill="#2A1C33"/></g></svg></div>
+    <div class="veil"></div>
+    <div class="left">
+      <div class="date">11月20日 星期五</div>
+      <div class="title">继续阅读</div>
+      <div class="subline">腦洞學生會 · 第01话 第6/17页 · 35%</div>
+      <div class="cta">继续阅读</div>
+    </div>
+    <div class="covers">
+      <div class="cv c0"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#C24B5A"/><circle cx="38" cy="44" r="22" fill="#F3D9B0"/><path d="M0 100 Q40 64 100 94 L100 100Z" fill="#2A1C33"/></svg></div>
+      <div class="cv c1"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#7FA8D9"/><circle cx="62" cy="40" r="24" fill="#F7E7CE"/><path d="M0 100 Q46 56 100 88 L100 100Z" fill="#233858"/></svg></div>
+      <div class="cv c2"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#E9C46A"/><circle cx="50" cy="38" r="21" fill="#8E4B4B"/><path d="M0 100 Q42 62 100 90 L100 100Z" fill="#33251A"/></svg></div>
+    </div>
+    <div class="close"></div>
+  </div>
+  <p class="caption"><b>做法</b>：把当前漫画封面放大高斯模糊铺底，再压一层深蓝渐隐保证文字对比。横幅颜色每天跟着"你上次读的那本"变，一眼就认得出来。<b>代价</b>：需要一次性模糊渲染，冷启动多一帧；封面取色极端（纯白/纯亮）时要靠遮罩兜底。</p>
+</section>
+
+<section class="opt">
+  <div class="opt-head"><span class="no">B</span><h2>品牌蓝阶梯</h2><span class="desc">干净、稳、零成本</span></div>
+  <div class="hero v-b">
+    <div class="rings"><svg viewBox="0 0 1160 190" preserveAspectRatio="none"><g fill="none" stroke="#FFFFFF" stroke-opacity=".10" stroke-width="1.4"><circle cx="960" cy="95" r="70"/><circle cx="960" cy="95" r="110"/><circle cx="960" cy="95" r="150"/><circle cx="960" cy="95" r="190"/></g></svg></div>
+    <div class="left">
+      <div class="date">11月20日 星期五</div>
+      <div class="title">继续阅读</div>
+      <div class="subline">腦洞學生會 · 第01话 第6/17页 · 35%</div>
+      <div class="cta">继续阅读</div>
+    </div>
+    <div class="covers">
+      <div class="cv c0"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#C24B5A"/><circle cx="38" cy="44" r="22" fill="#F3D9B0"/><path d="M0 100 Q40 64 100 94 L100 100Z" fill="#2A1C33"/></svg></div>
+      <div class="cv c1"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#7FA8D9"/><circle cx="62" cy="40" r="24" fill="#F7E7CE"/><path d="M0 100 Q46 56 100 88 L100 100Z" fill="#233858"/></svg></div>
+      <div class="cv c2"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#E9C46A"/><circle cx="50" cy="38" r="21" fill="#8E4B4B"/><path d="M0 100 Q42 62 100 90 L100 100Z" fill="#33251A"/></svg></div>
+    </div>
+    <div class="close"></div>
+  </div>
+  <p class="caption"><b>做法</b>：品牌蓝三档渐变（<code>#1E3A8A → #12306E → #0F1729</code>）替代原紫，水印数字换成右侧同心圆细纹（不抢信息、有纵深），主按钮改白胶囊。<b>代价</b>：无。是当前基线的最小美化版，一天改完。</p>
+</section>
+
+<section class="opt">
+  <div class="opt-head"><span class="no">C</span><h2>玻璃暗化</h2><span class="desc">最克制，封面是唯一彩色</span></div>
+  <div class="hero v-c">
+    <div class="backdrop"><svg viewBox="0 0 1160 190" preserveAspectRatio="xMidYMid slice"><g filter="url(#blurC)"><rect width="1160" height="190" fill="#C24B5A"/><circle cx="900" cy="70" r="140" fill="#E9C46A"/><circle cx="1080" cy="160" r="120" fill="#7FA8D9"/></g><defs><filter id="blurC"><feGaussianBlur stdDeviation="40"/></filter></defs></svg></div>
+    <div class="veil"></div>
+    <div class="left">
+      <div class="date">11月20日 星期五</div>
+      <div class="title">继续阅读</div>
+      <div class="subline">腦洞學生會 · 第01话 第6/17页 · 35%</div>
+      <div class="cta">继续阅读</div>
+    </div>
+    <div class="covers">
+      <div class="cv c0"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#C24B5A"/><circle cx="38" cy="44" r="22" fill="#F3D9B0"/><path d="M0 100 Q40 64 100 94 L100 100Z" fill="#2A1C33"/></svg></div>
+      <div class="cv c1"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#7FA8D9"/><circle cx="62" cy="40" r="24" fill="#F7E7CE"/><path d="M0 100 Q46 56 100 88 L100 100Z" fill="#233858"/></svg></div>
+      <div class="cv c2"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#E9C46A"/><circle cx="50" cy="38" r="21" fill="#8E4B4B"/><path d="M0 100 Q42 62 100 90 L100 100Z" fill="#33251A"/></svg></div>
+    </div>
+    <div class="close"></div>
+  </div>
+  <p class="caption"><b>做法</b>：横幅变半透明玻璃（4.5% 白 + 10% 描边），背后是极模糊封面，前景压暗；主按钮改描边胶囊。全屏只剩封面是彩色，最像"画廊"该有的克制。<b>代价</b>：玻璃在浅色主题下要另一套反色参数；对比度最依赖 backdrop，得给无壁纸兜底。</p>
+</section>
+
+<section class="diag" style="margin-top:40px">
+  <h2>我的判断</h2>
+  <ul>
+    <li><b>B 是必须做的底线</b>：一次改完、零风险，先把紫色彻底清干净</li>
+    <li><b>A 是最值得做的</b>：它把"通用模板"变成"你的书"，和画廊内容真正接上；成本也在可控范围（一次模糊 + 遮罩）</li>
+    <li><b>C 最漂亮但最挑环境</b>：浅色主题、无壁纸、低配机三个场景都要额外兜底，建议留作后续</li>
+    <li>推荐路径：<b>先 B 落地止血 → A 作为下一批</b>，两者共用同一套 token，不冲突</li>
+  </ul>
+</section>
+
+</body>
+</html>

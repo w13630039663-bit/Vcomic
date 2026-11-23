@@ -1,0 +1,282 @@
+package com.venera.compose.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.ViewAgenda
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.window.Popup
+import com.venera.compose.components.venera.VeneraTopBarPill
+import com.venera.compose.ui.tokens.VeneraTokens
+import kotlinx.coroutines.delay
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.GridView
+import top.yukonga.miuix.kmp.icon.extended.ListView
+
+/**
+ * 漫画列表「双列网格 / 单列大卡」布局系统（对齐原版 ComicTile 三模式中的
+ * brief(双列) / detailed(单列) 与 ComicLayoutToggleButton）。
+ *
+ * 单列 detailed 对齐原版 _buildDetailedMode + _ComicDescription：
+ * 左封面（高约 186dp，宽 = 高×0.68）+ 右侧标题(2行)/副标题(1行)/标签
+ * Wrap 徽章/评分星/描述(2行)/语言徽章。双列 brief 保持封面在上标题在下。
+ */
+
+/** 单列大卡：对齐原版 ComicTile._buildDetailedMode。 */
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
+@Composable
+fun ComicTileDetailed(
+    title: String,
+    coverUrl: String,
+    subtitle: String = "",
+    description: String = "",
+    tags: List<String> = emptyList(),
+    rating: Double? = null,
+    badge: String = "",
+    onClick: () -> Unit,
+    /** 长按回调（如网络收藏的移除确认）；null 时不响应长按。 */
+    onLongClick: (() -> Unit)? = null,
+    coverContent: (@Composable BoxScope.() -> Unit)? = null,
+    /** 分级遮罩：外部传入 "VISIBLE"/"BLURRED"/"HIDDEN"（调用方用 ContentGuard 判定） */
+    coverMaskState: String = "VISIBLE",
+    /**
+     * 共享元素转场：调用方在封面容器上挂 `Modifier.sharedElement(...)`。
+     * 默认 `Modifier` —— 不传就与接入前逐像素一致；打码命中的卡必须不挂。
+     */
+    coverModifier: Modifier = Modifier,
+    likesCount: Int? = null
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                .padding(start = 12.dp, end = 14.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 封面：高 186dp，宽 = 高×0.68 ≈ 127dp（对齐原版 height * 0.68）
+            Box(
+                modifier = coverModifier
+                    .width(122.dp)
+                    .height(180.dp)
+                    .clip(RoundedCornerShape(VeneraTokens.shape.medium))
+                    .background(MiuixTheme.colorScheme.onBackgroundVariant.copy(alpha = 0.1f))
+                    // 「HIDDEN」也必须打码：物理剔除只发生在调用 filterComicModels 的列表里，
+                    // 而本卡片拿到的只是判定结果。原来只认 BLURRED，导致探索页**单列**模式下
+                    // AI 命中（判定恒为 HIDDEN）完全不打码，而同页双列模式是打码的。
+                    .then(if (coverMaskState != "VISIBLE") Modifier.blur(18.dp) else Modifier)
+            ) {
+                if (coverContent != null) {
+                    coverContent()
+                } else {
+                    AsyncImage(
+                        model = coverUrl,
+                        contentDescription = title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            // 右侧信息区：对齐原版 _ComicDescription
+            Column(
+                modifier = Modifier.weight(1f).heightIn(min = 180.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = title.replace("\n", ""),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        lineHeight = 18.sp
+                    )
+                    if (subtitle.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = subtitle,
+                            fontSize = 10.sp,
+                            color = MiuixTheme.colorScheme.onBackgroundVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    ComicMetrics(rating = rating, likesCount = likesCount)
+
+                    // 描述（有标签时 2 行，无标签 3 行，对齐原版 maxLines 规则）
+                    if (description.isNotBlank()) {
+                        Text(
+                            text = description,
+                            fontSize = 12.sp,
+                            color = MiuixTheme.colorScheme.onBackgroundVariant,
+                            maxLines = if (tags.isEmpty()) 3 else 2,
+                            overflow = TextOverflow.Ellipsis,
+                            lineHeight = 15.sp
+                        )
+                    }
+
+                    // 语言/类型徽章（对齐原版 badge Container）
+                    if (badge.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                .padding(horizontal = 6.dp, vertical = 3.dp)
+                                .align(Alignment.End)
+                        ) {
+                            Text(text = badge, fontSize = 10.sp, color = MiuixTheme.colorScheme.primary)
+                        }
+                    }
+                }
+
+                // 标签占用右侧底部空间；内容较多时允许卡片增高，避免挤压或遮挡。
+                if (tags.isNotEmpty()) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        maxLines = 3
+                    ) {
+                        tags.take(10).forEach { tag ->
+                            Text(
+                                text = tag.substringAfter(':'),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.10f))
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                fontSize = 15.sp,
+                                lineHeight = 20.sp,
+                                color = MiuixTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 单列/双列切换钮 —— 全应用**唯一**一份（收藏页原来私有复制过一份，已删）。
+ * brief 显示 ListView（点击切单列），detailed 显示 GridView（点击切双列）。
+ *
+ * 外壳走 [VeneraTopBarPill]：顶栏里有它的那些屏自动获得磨砂，
+ * 没有采样层的屏（如追更页）自动拿到可见回落（半透明底 + 描边），不会静默变平。
+ * 形变动画（图标 morph + 累积 90° 弹簧旋转）挂在这颗上，因为只有它有双态。
+ *
+ * 刻意不收 `modifier` 参数：七个调用点全部用尾随 lambda 写法
+ * `ComicLayoutToggleButton(mode) { … }`，一旦尾位多出第三个参数，尾随 lambda 就会
+ * 悄悄绑到那个参数上（编译期报"缺 onToggle"，人容易误读成调用点少传了东西）。
+ */
+@Composable
+fun ComicLayoutToggleButton(
+    displayMode: String,
+    onToggle: (String) -> Unit,
+) {
+    val tokens = VeneraTokens
+    var showTip by remember { mutableStateOf(false) }
+    // 累积旋转量：每次切换 +90°，animateFloatAsState 负责弹簧扫过（不取模，避免回卷反旋）。
+    var spinDeg by remember { mutableFloatStateOf(0f) }
+    val spin by animateFloatAsState(spinDeg, spring(0.62f, Spring.StiffnessMediumLow), label = "LayoutSpin")
+    LaunchedEffect(showTip) {
+        if (showTip) {
+            delay(1600)
+            showTip = false
+        }
+    }
+    Box(contentAlignment = Alignment.TopEnd) {
+        VeneraTopBarPill(
+            onClick = {
+                spinDeg += 90f
+                onToggle(if (displayMode == "detailed") "brief" else "detailed")
+            },
+            onLongClick = { showTip = true },
+        ) {
+            AnimatedContent(
+                targetState = displayMode,
+                transitionSpec = {
+                    val morph = spring<Float>(dampingRatio = 0.62f, stiffness = Spring.StiffnessMediumLow)
+                    (fadeIn(morph) + scaleIn(morph, initialScale = 0.4f)) togetherWith
+                        (fadeOut(morph) + scaleOut(morph, targetScale = 1.6f))
+                },
+                contentAlignment = Alignment.Center,
+                label = "LayoutToggleMorph",
+            ) { mode ->
+                Icon(
+                    // Miuix 官方图标集：单/双列语义正好有 ListView / GridView 这一对，
+                    // 线宽与圆角和应用内其余 Miuix chrome 同源（material 的 GridView 偏重）。
+                    imageVector = if (mode == "brief") MiuixIcons.ListView else MiuixIcons.GridView,
+                    contentDescription = if (mode == "brief") "切换单列" else "切换双列",
+                    tint = tokens.color.primary,
+                    modifier = Modifier
+                        .size(tokens.spacing.chipIconSize)
+                        .graphicsLayer { rotationZ = spin },
+                )
+            }
+        }
+        // 长按气泡走 Popup 独立窗口：钮已收进顶栏 actions，气泡若画在栏内会被
+        // TopAppBar 的 Surface/毛玻璃裁掉，Popup 不受父级裁剪。
+        if (showTip) {
+            Popup(
+                alignment = Alignment.BottomEnd,
+                offset = IntOffset(0, with(LocalDensity.current) { tokens.spacing.space2.roundToPx() }),
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(tokens.shape.medium),
+                    color = tokens.color.primaryContainer,
+                ) {
+                    Text(
+                        text = "切换列表/网格视图",
+                        fontSize = tokens.type.caption,
+                        color = tokens.color.onPrimaryContainer,
+                        modifier = Modifier.padding(
+                            horizontal = tokens.spacing.space5,
+                            vertical = tokens.spacing.space2,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+}

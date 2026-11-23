@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>34 个源 · 图标最终核对</title>
+<style>
+body { margin:0; padding:26px 28px; background:#131519; color:#fff;
+  font-family:"PingFang SC","Microsoft YaHei",sans-serif; }
+h1 { font-size:16px; margin:0 0 4px; }
+p.sub { margin:0 0 20px; font-size:12px; color:rgba(255,255,255,.5); }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:10px; }
+.item { border:1px solid rgba(255,255,255,.07); border-radius:12px; padding:11px 12px;
+  background:rgba(255,255,255,.035); display:flex; align-items:center; gap:10px; }
+.item.none { border-style:dashed; background:transparent; opacity:.55; }
+.slot { width:32px; height:32px; flex:none; border-radius:9px; background:rgba(255,255,255,.06);
+  display:grid; place-items:center; overflow:hidden; }
+.slot img { width:24px; height:24px; object-fit:contain; }
+.slot.na { font-size:12px; color:rgba(255,255,255,.35); }
+.n { font-size:12px; font-weight:600; line-height:1.3; }
+.s { font-size:10px; color:rgba(255,255,255,.4); margin-top:2px; }
+</style>
+</head>
+<body>
+<h1>34 个源 · 图标核对：26 个有、8 个没有</h1>
+<p class="sub">深挖后从首页 link[rel=icon] 与 webmanifest 补到 7 个；虚线格为仍缺的 8 个。</p>
+<div class="grid" id="g"></div>
+<script>
+var L = [
+  ['baozi','包子漫画','baozi.ico'],
+  ['ccc','CCC追漫台','ccc.png'],
+  ['comic_walker','カドコミ','comic_walker.png'],
+  ['comick','comick','comick.ico'],
+  ['copy_manga','拷贝漫画','copy_manga.ico'],
+  ['ehentai','ehentai','ehentai.png'],
+  ['gelbooru','Gelbooru','gelbooru.ico'],
+  ['goda','GoDa漫画','goda.ico'],
+  ['happy','happy',null],
+  ['hcomic','H-Comic','hcomic.ico'],
+  ['hitomi','hitomi.la','hitomi.png'],
+  ['hot_manga','热辣漫画','hot_manga.ico'],
+  ['ikmmh','爱看漫',null],
+  ['jcomic','jcomic.net',null],
+  ['jm','禁漫天堂','jm.ico'],
+  ['kavita','Kavita',null],
+  ['komga','Komga','komga.png'],
+  ['komiic','Komiic','komiic.ico'],
+  ['lanraragi','Lanraragi','lanraragi.ico'],
+  ['manga_dex','MangaDex','manga_dex.ico'],
+  ['manhuagui','manhuagui',null],
+  ['manhuaren','manhuaren','manhuaren.png'],
+  ['manwaba','漫蛙','manwaba.ico'],
+  ['mh1234','mh1234',null],
+  ['mh18','18mh','mh18.ico'],
+  ['mxs','mxs','mxs.ico'],
+  ['mycomic','mycomic',null],
+  ['nhentai','nhentai','nhentai.png'],
+  ['picacg','picacg',null],
+  ['shonen_jump_plus','少年Jump+','shonen_jump_plus.ico'],
+  ['wnacg','wnacg','wnacg.ico'],
+  ['ykmh','ykmh','ykmh.ico'],
+  ['zaimanhua','zaimanhua','zaimanhua.ico'],
+  ['copy_manga_multi_accounts','拷贝漫画·多账号','copy_manga.ico']
+];
+var g = document.getElementById('g');
+L.forEach(function (r) {
+  var d = document.createElement('div');
+  d.className = 'item' + (r[2] ? '' : ' none');
+  d.innerHTML =
+    '<div class="slot' + (r[2] ? '' : ' na') + '">' +
+      (r[2] ? '<img src="icons/' + r[2] + '">' : '无') +
+    '</div>' +
+    '<div><div class="n">' + r[1] + '</div><div class="s">' + r[0] + '</div></div>';
+  g.appendChild(d);
+});
+</script>
+</body>
+</html>

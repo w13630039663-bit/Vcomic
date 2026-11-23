@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-zcode-design>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>画廊网格 · 四角星替换三案 · app-icon-redesign-2026-11-20</title>
+<style>
+:root {
+  --accent: #0A63F6;
+  --ink: #E8EDF6;
+  --ink-dim: #9AA7BC;
+  --bg: #12151C;
+  --card: #1A1F29;
+  --card-edge: #2A3242;
+  --chip-dark: #1F1F1F;
+  --chip-light: #F5F5F5;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+  padding: 48px 40px 80px; max-width: 1180px; margin: 0 auto;
+}
+header h1 { font-size: 26px; font-weight: 700; letter-spacing: 1px; }
+header .sub { color: var(--ink-dim); font-size: 14px; margin-top: 10px; line-height: 1.8; }
+.badge { display: inline-block; font-size: 12px; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 2px 12px; margin-bottom: 14px; }
+.diag { margin-top: 36px; background: var(--card); border: 1px solid var(--card-edge); border-radius: 16px; padding: 24px 26px; }
+.diag h2 { font-size: 16px; font-weight: 600; }
+.diag ul { list-style: none; margin-top: 10px; }
+.diag li { font-size: 13px; color: var(--ink-dim); line-height: 1.9; padding-left: 18px; position: relative; }
+.diag li::before { content: ""; position: absolute; left: 0; top: 11px; width: 6px; height: 6px; border-radius: 2px; background: var(--accent); }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; margin-top: 22px; }
+@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } body { padding: 32px 20px 60px; } .card .stage { flex-wrap: wrap; } }
+.group { margin-top: 44px; }
+.group-title { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--card-edge); padding-bottom: 12px; }
+.group-title .no { font-size: 13px; color: var(--accent); font-weight: 700; letter-spacing: 2px; }
+.group-title h2 { font-size: 19px; font-weight: 600; }
+.group-title .desc { font-size: 13px; color: var(--ink-dim); }
+.card { background: var(--card); border: 1px solid var(--card-edge); border-radius: 16px; padding: 24px; }
+.card .stage { display: flex; align-items: center; gap: 24px; }
+.card .stage .big { filter: drop-shadow(0 10px 24px rgba(0,0,0,.45)); }
+.card .ladder { display: flex; align-items: flex-end; gap: 18px; color: var(--ink-dim); font-size: 11px; text-align: center; }
+.card .ladder .cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.card h3 { font-size: 16px; font-weight: 600; margin-top: 18px; }
+.card h3 .tag { font-size: 12px; color: var(--accent); margin-right: 8px; font-weight: 700; }
+.card p { font-size: 13px; color: var(--ink-dim); line-height: 1.75; margin-top: 6px; }
+.card p b { color: var(--ink); font-weight: 600; }
+.dock { margin-top: 16px; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 18px; }
+.dock.dark { background: var(--chip-dark); }
+.dock.light { background: var(--chip-light); }
+.dock .label { font-size: 11px; width: 52px; flex: none; }
+.dock.dark .label { color: #7A808C; }
+.dock.light .label { color: #8A8F98; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- 公共底板：白 squircle -->
+    <g id="grid-base">
+      <rect width="512" height="512" rx="116" fill="#FFFFFF"/>
+      <rect width="512" height="512" rx="116" fill="none" stroke="#ECEFF4" stroke-width="3"/>
+    </g>
+    <!-- 左大块 + 右下块（右上块各案自绘） -->
+    <g id="grid-main">
+      <rect x="84" y="96" width="176" height="298" rx="40" fill="#0A0A0A"/>
+      <rect x="284" y="264" width="144" height="130" rx="36" fill="#0A0A0A"/>
+    </g>
+
+    <!-- 原版：右上块 + 四角星 -->
+    <symbol id="ic-g0" viewBox="0 0 512 512">
+      <use href="#grid-base"/>
+      <use href="#grid-main"/>
+      <rect x="284" y="96" width="144" height="144" rx="36" fill="#0A0A0A"/>
+      <path fill="#FFFFFF" d="M356 118 C362 160 376 182 414 190 C376 198 362 220 356 262 C350 220 336 198 298 190 C336 182 350 160 356 118 Z"/>
+    </symbol>
+
+    <!-- A：右上块改空心框（一实一空一实） -->
+    <symbol id="ic-ga" viewBox="0 0 512 512">
+      <use href="#grid-base"/>
+      <use href="#grid-main"/>
+      <rect x="301" y="113" width="110" height="110" rx="24" fill="none" stroke="#0A0A0A" stroke-width="34"/>
+    </symbol>
+
+    <!-- B：右上块留小景（弧 + 日） -->
+    <symbol id="ic-gb" viewBox="0 0 512 512">
+      <use href="#grid-base"/>
+      <use href="#grid-main"/>
+      <rect x="284" y="96" width="144" height="144" rx="36" fill="#0A0A0A"/>
+      <path d="M306 208 Q340 190 374 208" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" fill="none"/>
+      <circle cx="368" cy="150" r="14" fill="#FFFFFF"/>
+    </symbol>
+
+    <!-- C：删星，右上纯块 -->
+    <symbol id="ic-gc" viewBox="0 0 512 512">
+      <use href="#grid-base"/>
+      <use href="#grid-main"/>
+      <rect x="284" y="96" width="144" height="144" rx="36" fill="#0A0A0A"/>
+    </symbol>
+  </defs>
+</svg>
+
+<header>
+  <span class="badge">阶段 A · 网格版 · 星形替换三案 · 待批</span>
+  <h1>画廊网格版：右上块怎么办</h1>
+  <p class="sub">构图本身过关 —— <b>一大两小 = 图库瀑布流的抽象</b>，画廊语义迄今最准。四角星三宗罪：AI 功能符号的语义污染、与画廊/V 血缘不通、异质元素破坏块块平等的秩序。三案替换，判据照旧：<b>16px 清晰</b>。</p>
+</header>
+
+<section class="diag">
+  <h2>原图的星为什么怪</h2>
+  <ul>
+    <li>sparkle 四角星在当下 UI 语境 = "AI 功能"标配符号，贴图库会被误读成 AI 应用</li>
+    <li>它既不是画廊意象也不是 venera 血统，是生图随机装饰</li>
+    <li>整版纯几何块里唯一的有机星形，秩序感破口</li>
+  </ul>
+</section>
+
+<section class="group">
+  <div class="group-title"><span class="no">G</span><h2>右上块三案</h2><span class="desc">原版对照 + 三种替换</span></div>
+  <div class="grid">
+    <div class="card" data-variant="G-A">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-ga"/></svg>
+        <div class="ladder">
+          <span class="cell"><svg width="48" height="48"><use href="#ic-ga"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-ga"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-ga"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-ga"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">A</span>空心框（一实一空一实）</h3>
+      <p>右上块改粗描边空心框 —— 接回主人上一稿"框 + 卡"的<b>空实对比血统</b>。三块节奏"实-空-实"，空框读作待收藏的空位 / 画廊留白。16px 时框芯收窄但仍可辨。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-ga"/></svg><svg width="24" height="24"><use href="#ic-ga"/></svg><svg width="32" height="32"><use href="#ic-ga"/></svg><svg width="48" height="48"><use href="#ic-ga"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-ga"/></svg><svg width="24" height="24"><use href="#ic-ga"/></svg><svg width="32" height="32"><use href="#ic-ga"/></svg><svg width="48" height="48"><use href="#ic-ga"/></svg></div>
+    </div>
+    <div class="card" data-variant="G-B">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-gb"/></svg>
+        <div class="ladder">
+          <span class="cell"><svg width="48" height="48"><use href="#ic-gb"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-gb"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-gb"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-gb"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">B</span>留一小景（弧 + 日）</h3>
+      <p>右上块是一张"有内容的照片"：山弧 + 一轮日，图库的<b>图片内容暗示</b>最直给。16px 时小景退化成一粒白点，块面结构不受损。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-gb"/></svg><svg width="24" height="24"><use href="#ic-gb"/></svg><svg width="32" height="32"><use href="#ic-gb"/></svg><svg width="48" height="48"><use href="#ic-gb"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-gb"/></svg><svg width="24" height="24"><use href="#ic-gb"/></svg><svg width="32" height="32"><use href="#ic-gb"/></svg><svg width="48" height="48"><use href="#ic-gb"/></svg></div>
+    </div>
+    <div class="card" data-variant="G-C">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-gc"/></svg>
+        <div class="ladder">
+          <span class="cell"><svg width="48" height="48"><use href="#ic-gc"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-gc"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-gc"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-gc"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">C</span>删星，三块纯色</h3>
+      <p>最简解：三大色块互不装饰，<b>块块平等的秩序感</b>最完整。代价是三块同为实黑，右上与右下略重复——靠尺寸差（上大下小）撑住节奏。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-gc"/></svg><svg width="24" height="24"><use href="#ic-gc"/></svg><svg width="32" height="32"><use href="#ic-gc"/></svg><svg width="48" height="48"><use href="#ic-gc"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-gc"/></svg><svg width="24" height="24"><use href="#ic-gc"/></svg><svg width="32" height="32"><use href="#ic-gc"/></svg><svg width="48" height="48"><use href="#ic-gc"/></svg></div>
+    </div>
+    <div class="card" data-variant="G-orig">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-g0"/></svg>
+        <div class="ladder">
+          <span class="cell"><svg width="48" height="48"><use href="#ic-g0"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-g0"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-g0"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-g0"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">对照</span>原版（带星）</h3>
+      <p>主人的原构图 + 那颗怪星，留作对照。注意 16px 时星退化成一粒白点 —— 也就是说原版在小尺寸下其实"自动接近"C 案，星只有大尺寸才有存在感，更说明它是装饰而非结构。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-g0"/></svg><svg width="24" height="24"><use href="#ic-g0"/></svg><svg width="32" height="32"><use href="#ic-g0"/></svg><svg width="48" height="48"><use href="#ic-g0"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-g0"/></svg><svg width="24" height="24"><use href="#ic-g0"/></svg><svg width="32" height="32"><use href="#ic-g0"/></svg><svg width="48" height="48"><use href="#ic-g0"/></svg></div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

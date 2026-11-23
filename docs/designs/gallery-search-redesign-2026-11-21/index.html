@@ -1,0 +1,2423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Venera Desktop · 画廊搜索 UI 重做方案稿</title>
+<style>
+  :root {
+    --font-sans: "Segoe UI Variable", "Segoe UI", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
+    --font-mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+
+    /* 深色板 (GalleryTokens.Color.Deep 实测对位) */
+    --bg: #0A0D12;
+    --s1: #12161F;
+    --s2: #161B26;
+    --s3: #1B2130;
+    --glass: rgba(18, 22, 31, 0.88);
+    --hairline: rgba(255, 255, 255, 0.08);
+    --hairline-hover: rgba(255, 255, 255, 0.18);
+    --divider: rgba(255, 255, 255, 0.08);
+    --img-hairline: transparent;
+    --scrim: rgba(7, 9, 12, 0.82);
+
+    --ink1: #E8ECF4;
+    --ink2: #98A2B6;
+    --ink3: #6F7890;
+
+    --accent: #4D9FFF;
+    --accent-hover: #64ACFF;
+    --accent-soft: rgba(77, 159, 255, 0.16);
+    --accent-border: rgba(77, 159, 255, 0.42);
+    --on-accent: #FFFFFF;
+
+    --tone-danger: #F28B82;
+    --tone-caution: #F2B87C;
+    --tone-safe: #78D6C0;
+    --tone-artist: #C084FC;
+
+    --card-shadow: none;
+    --flyout-shadow: 0 18px 42px rgba(0, 0, 0, 0.52);
+    --switch-knob: #FFFFFF;
+  }
+
+  [data-theme="light"] {
+    /* 浅色板 (GalleryTokens.Color.Light 实测对位) */
+    --bg: #F0F2F6;
+    --s1: #FFFFFF;
+    --s2: #E8ECF2;
+    --s3: #DBE2EC;
+    --glass: rgba(255, 255, 255, 0.94);
+    --hairline: rgba(23, 32, 46, 0.14);
+    --hairline-hover: rgba(23, 32, 46, 0.26);
+    --divider: rgba(23, 32, 46, 0.08);
+    --img-hairline: rgba(0, 0, 0, 0.08);
+    --scrim: rgba(27, 33, 48, 0.85);
+
+    --ink1: #17202E;
+    --ink2: #55617A;
+    --ink3: #8791A6;
+
+    --accent: #0A63F6;
+    --accent-hover: #0055E0;
+    --accent-soft: rgba(10, 99, 246, 0.10);
+    --accent-border: rgba(10, 99, 246, 0.36);
+    --on-accent: #FFFFFF;
+
+    --tone-danger: #D9382E;
+    --tone-caution: #C77700;
+    --tone-safe: #0F8A6C;
+    --tone-artist: #7C3AED;
+
+    --card-shadow: 0 3px 10px rgba(16, 24, 40, 0.06);
+    --flyout-shadow: 0 14px 36px rgba(16, 24, 40, 0.14);
+    --switch-knob: #FFFFFF;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: #06080B;
+    color: var(--ink1);
+    min-height: 100vh;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  [data-theme="light"] body,
+  body.theme-light {
+    background: #DDE2EA;
+  }
+
+  /* ── 顶部设计预览控制器（非应用本体） ── */
+  .preview-toolbar {
+    max-width: 1360px;
+    width: 100%;
+    margin: 0 auto;
+    background: var(--s1);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    box-shadow: var(--card-shadow);
+  }
+
+  .preview-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .preview-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid var(--accent-border);
+  }
+
+  .preview-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink1);
+  }
+
+  .preview-sub {
+    font-size: 12px;
+    color: var(--ink3);
+  }
+
+  .preview-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ctrl-group {
+    display: inline-flex;
+    background: var(--s2);
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .ctrl-btn {
+    border: none;
+    background: transparent;
+    color: var(--ink2);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 140ms ease, color 140ms ease;
+    white-space: nowrap;
+  }
+
+  .ctrl-btn:hover {
+    color: var(--ink1);
+    background: var(--s3);
+  }
+
+  .ctrl-btn.active {
+    background: var(--s1);
+    color: var(--accent);
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  }
+
+  /* ── 桌面窗口模拟壳 ── */
+  .desktop-window {
+    max-width: 1360px;
+    width: 100%;
+    height: 820px;
+    margin: 0 auto;
+    background: var(--bg);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    transition: background-color 180ms ease;
+  }
+
+  /* 窗口标题栏 46px */
+  .win-titlebar {
+    height: 44px;
+    flex-shrink: 0;
+    padding: 0 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--divider);
+    background: var(--bg);
+    user-select: none;
+  }
+
+  .win-title-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink2);
+  }
+
+  .win-logo {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    background: var(--accent);
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .win-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .win-ctrl-dot {
+    width: 28px;
+    height: 24px;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    color: var(--ink3);
+    cursor: default;
+  }
+
+  .win-ctrl-dot:hover {
+    background: var(--s2);
+    color: var(--ink1);
+  }
+
+  .win-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+  }
+
+  /* 侧栏 72px 折叠态 */
+  .sidebar {
+    width: 72px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--divider);
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg);
+  }
+
+  .nav-item {
+    width: 50px;
+    height: 46px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    color: var(--ink3);
+    font-size: 10.5px;
+    cursor: pointer;
+    transition: background-color 140ms ease, color 140ms ease;
+  }
+
+  .nav-item:hover {
+    background: var(--s2);
+    color: var(--ink1);
+  }
+
+  .nav-item.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .main-stage {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background: var(--bg);
+  }
+
+  svg.icon {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.65;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+  }
+
+  svg.icon-sm {
+    width: 14px;
+    height: 14px;
+    stroke-width: 1.65;
+  }
+
+  svg.icon-xs {
+    width: 12px;
+    height: 12px;
+    stroke-width: 1.8;
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     公共精修组件：完全遵循同心圆、等高、统一描边、tabular-nums
+     ════════════════════════════════════════════════════════════════ */
+
+  /* 1. 分段控制器（搜索页模式切换等） */
+  .seg-track {
+    height: 36px;
+    padding: 3px;
+    border-radius: 10px; /* Outer = 7 + 3 */
+    background: var(--s2);
+    border: 1px solid var(--hairline);
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .seg-btn {
+    height: 28px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 7px; /* Inner = 10 - 3 */
+    background: transparent;
+    color: var(--ink2);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background-color 140ms ease, color 140ms ease;
+    white-space: nowrap;
+  }
+
+  .seg-btn:hover:not(.active) {
+    color: var(--ink1);
+    background: rgba(128, 128, 128, 0.08);
+  }
+
+  .seg-btn.active {
+    background: var(--s1);
+    color: var(--accent);
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+  }
+
+  .dot-station {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* 2. 物理开关 (34x20, 滑块 16) */
+  .toggle-switch {
+    width: 34px;
+    height: 20px;
+    border-radius: 10px;
+    background: var(--s3);
+    border: 1px solid var(--hairline);
+    padding: 2px;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 160ms ease, border-color 160ms ease;
+    flex-shrink: 0;
+  }
+
+  .toggle-switch.on {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .toggle-knob {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--switch-knob);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .toggle-switch.on .toggle-knob {
+    transform: translateX(14px);
+  }
+
+  /* 3. 共享智能化下拉浮层 (Flyout) */
+  .flyout-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 100%;
+    min-width: 400px;
+    max-width: 560px;
+    background: var(--s1);
+    border: 1px solid var(--hairline-hover);
+    border-radius: 12px; /* Outer */
+    padding: 8px;        /* Padding */
+    box-shadow: var(--flyout-shadow);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: opacity 150ms ease, transform 150ms ease;
+  }
+
+  .flyout-panel.open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .flyout-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px 2px;
+  }
+
+  .flyout-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink3);
+    letter-spacing: 0.02em;
+  }
+
+  .flyout-link-btn {
+    border: none;
+    background: transparent;
+    color: var(--ink3);
+    font-family: inherit;
+    font-size: 11.5px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: color 120ms ease, background-color 120ms ease;
+  }
+
+  .flyout-link-btn:hover {
+    color: var(--tone-danger);
+    background: var(--s2);
+  }
+
+  /* 流式自适应站点范围行：彻底告别单行裁断 "Ko" */
+  .flyout-sites-flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 2px 4px 4px;
+  }
+
+  .scope-chip {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 6px; /* 同心圆舒适小芯片 */
+    border: 1px solid var(--hairline);
+    background: var(--s2);
+    color: var(--ink2);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+  }
+
+  .scope-chip:hover {
+    background: var(--s3);
+    border-color: var(--hairline-hover);
+    color: var(--ink1);
+  }
+
+  .scope-chip.active {
+    background: var(--accent-soft);
+    border-color: var(--accent-border);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .flyout-r18-row {
+    height: 36px;
+    padding: 0 8px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background-color 120ms ease;
+  }
+
+  .flyout-r18-row:hover {
+    background: var(--s2);
+  }
+
+  .flyout-r18-label {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink1);
+  }
+
+  .flyout-r18-desc {
+    font-size: 11.5px;
+    color: var(--ink3);
+  }
+
+  .flyout-divider {
+    height: 1px;
+    background: var(--divider);
+    margin: 2px 4px;
+  }
+
+  .flyout-row {
+    height: 34px;
+    padding: 0 8px;
+    border-radius: 6px; /* Inner 接近 12-6 视觉贴合 */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background-color 100ms ease;
+  }
+
+  .flyout-row:hover,
+  .flyout-row.active {
+    background: var(--s2);
+  }
+
+  .flyout-row.active {
+    background: var(--accent-soft);
+  }
+
+  .flyout-row-icon {
+    color: var(--ink3);
+    display: grid;
+    place-items: center;
+  }
+
+  .flyout-row-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    overflow: hidden;
+  }
+
+  .flyout-term {
+    font-size: 13px;
+    color: var(--ink1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .flyout-sub {
+    font-size: 11.5px;
+    color: var(--ink3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .flyout-tag-meta {
+    font-size: 11px;
+    color: var(--ink3);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+
+  .flyout-site-pill {
+    font-size: 10.5px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--s2);
+    border: 1px solid var(--hairline);
+    color: var(--ink2);
+    flex-shrink: 0;
+  }
+
+  .flyout-row-del {
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    color: var(--ink3);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 100ms ease, color 100ms ease, background-color 100ms ease;
+  }
+
+  .flyout-row:hover .flyout-row-del {
+    opacity: 1;
+  }
+
+  .flyout-row-del:hover {
+    color: var(--tone-danger);
+    background: var(--s3);
+  }
+
+  .cat-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     场景 A：首页顶栏悬浮搜索 (DesktopGalleryTopSearch)
+     ════════════════════════════════════════════════════════════════ */
+  .home-topbar {
+    height: 58px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--divider);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--bg);
+    position: relative;
+    z-index: 40;
+  }
+
+  .home-domain-tabs {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  .domain-tab {
+    height: 58px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--ink2);
+    cursor: pointer;
+    position: relative;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+  }
+
+  .domain-tab.active {
+    color: var(--ink1);
+    font-weight: 600;
+  }
+
+  .domain-tab.active::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: var(--accent);
+  }
+
+  .top-search-anchor {
+    flex: 1;
+    min-width: 220px;
+    max-width: 460px;
+    position: relative;
+  }
+
+  .top-search-field {
+    height: 34px;
+    border-radius: 8px; /* Outer = 4 + 4 */
+    background: var(--s2);
+    border: 1px solid var(--hairline);
+    padding: 0 4px 0 11px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  }
+
+  .top-search-field:hover {
+    border-color: var(--hairline-hover);
+  }
+
+  .top-search-field.focused {
+    background: var(--s1);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+  }
+
+  .search-input-raw {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--ink1);
+    font-family: inherit;
+    font-size: 13px;
+  }
+
+  .search-input-raw::placeholder {
+    color: var(--ink3);
+  }
+
+  .clear-icon-btn {
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 50%;
+    background: var(--s3);
+    color: var(--ink2);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .clear-icon-btn:hover {
+    color: var(--ink1);
+  }
+
+  /* 输入框内嵌范围胶囊：严格同心圆 8 - 4 = 4px */
+  .top-scope-pill {
+    height: 26px;
+    padding: 0 8px;
+    border-radius: 4px;
+    border: 1px solid var(--hairline);
+    background: var(--s3);
+    color: var(--ink1);
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .top-scope-pill:hover {
+    border-color: var(--hairline-hover);
+  }
+
+  .popup-mini {
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid var(--hairline);
+    background: var(--s2);
+    color: var(--ink2);
+    font-family: inherit;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .popup-mini strong {
+    color: var(--ink1);
+    font-weight: 500;
+  }
+
+  .home-right-tools {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .status-readout {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 8px;
+    height: 32px;
+    font-size: 12px;
+    color: var(--ink2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--tone-safe);
+  }
+
+  .icon-tool-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--hairline);
+    background: var(--s2);
+    color: var(--ink2);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+  }
+
+  .icon-tool-btn:hover {
+    background: var(--s3);
+    color: var(--ink1);
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     场景 B & C：独立画廊搜索结果页 (DesktopGallerySearchScreen)
+     ════════════════════════════════════════════════════════════════ */
+  .search-chrome {
+    padding: 12px 20px 10px;
+    background: var(--bg); /* 彻底撤掉半透明灰底板：Chrome 不做独立容器 */
+    border-bottom: 1px solid var(--divider);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    z-index: 40;
+  }
+
+  /* 第一行：所有主控件严格等高 36px，外圆角 10px */
+  .command-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .main-search-anchor {
+    flex: 1;
+    min-width: 240px;
+    position: relative;
+  }
+
+  .main-search-box {
+    height: 36px;
+    border-radius: 10px;
+    background: var(--s2);
+    border: 1px solid var(--hairline);
+    padding: 0 6px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  }
+
+  .main-search-box:hover {
+    border-color: var(--hairline-hover);
+  }
+
+  .main-search-box.focused {
+    background: var(--s1);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+  }
+
+  /* Pixiv 目标下拉按钮（与搜索框同系列，不再使用写死深色黑块） */
+  .target-menu-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .target-btn {
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid var(--hairline);
+    background: var(--s2);
+    color: var(--ink1);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: background-color 140ms ease, border-color 140ms ease;
+    white-space: nowrap;
+  }
+
+  .target-btn:hover {
+    background: var(--s3);
+    border-color: var(--hairline-hover);
+  }
+
+  .target-popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    width: 164px;
+    padding: 5px;
+    border-radius: 10px;
+    background: var(--s1);
+    border: 1px solid var(--hairline-hover);
+    box-shadow: var(--flyout-shadow);
+    z-index: 110;
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .target-popover.open {
+    display: flex;
+  }
+
+  .target-option {
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--ink1);
+    font-family: inherit;
+    font-size: 12.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .target-option:hover:not(:disabled) {
+    background: var(--s2);
+  }
+
+  .target-option.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .target-option:disabled {
+    color: var(--ink3);
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  /* 全屏唯一主行动按钮：搜索 */
+  .primary-search-btn {
+    height: 36px;
+    padding: 0 18px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    transition: background-color 120ms ease, opacity 120ms ease;
+    white-space: nowrap;
+  }
+
+  .primary-search-btn:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
+
+  .primary-search-btn:disabled {
+    background: var(--s2);
+    border-color: var(--hairline);
+    color: var(--ink3);
+    cursor: not-allowed;
+  }
+
+  /* 高级筛选抽屉开关 */
+  .inspector-toggle-btn {
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid var(--hairline);
+    background: var(--s2);
+    color: var(--ink2);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    flex-shrink: 0;
+    transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+    white-space: nowrap;
+  }
+
+  .inspector-toggle-btn:hover {
+    background: var(--s3);
+    border-color: var(--hairline-hover);
+    color: var(--ink1);
+  }
+
+  .inspector-toggle-btn.open {
+    background: var(--accent-soft);
+    border-color: var(--accent-border);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .count-badge {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    display: grid;
+    place-items: center;
+  }
+
+  /* 第二行：收敛快捷筛选条（单行完整、绝不溢出、零渐隐块） */
+  .quick-strip {
+    min-height: 30px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .strip-label {
+    font-size: 11.5px;
+    color: var(--ink3);
+    margin-right: 2px;
+    white-space: nowrap;
+  }
+
+  .strip-divider {
+    width: 1px;
+    height: 14px;
+    background: var(--divider);
+    margin: 0 6px;
+  }
+
+  /* 桌面统一紧凑方圆角筛选芯片（取代圆形粗描边 VeneraChip） */
+  .filter-chip {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 6px;
+    border: 1px solid var(--hairline);
+    background: transparent;
+    color: var(--ink2);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+    white-space: nowrap;
+  }
+
+  .filter-chip:hover {
+    background: var(--s2);
+    border-color: var(--hairline-hover);
+    color: var(--ink1);
+  }
+
+  .filter-chip.active {
+    background: var(--accent-soft);
+    border-color: var(--accent-border);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Pop-up 聚合芯片（收进排行 / 收藏门槛等长选项） */
+  .strip-popup-wrap {
+    position: relative;
+  }
+
+  .strip-popup-btn {
+    height: 28px;
+    padding: 0 9px;
+    border-radius: 6px;
+    border: 1px solid var(--hairline);
+    background: var(--s2);
+    color: var(--ink2);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+
+  .strip-popup-btn:hover {
+    background: var(--s3);
+    border-color: var(--hairline-hover);
+    color: var(--ink1);
+  }
+
+  .strip-popup-btn strong {
+    color: var(--ink1);
+    font-weight: 600;
+  }
+
+  .strip-popup-btn.has-value {
+    background: var(--accent-soft);
+    border-color: var(--accent-border);
+    color: var(--accent);
+  }
+
+  .strip-popup-btn.has-value strong {
+    color: var(--accent);
+  }
+
+  .strip-r18-pill {
+    margin-left: auto;
+    height: 28px;
+    padding: 0 8px 0 10px;
+    border-radius: 6px;
+    border: 1px solid var(--hairline);
+    background: var(--s1);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--ink2);
+    cursor: pointer;
+  }
+
+  .strip-r18-pill:hover {
+    border-color: var(--hairline-hover);
+    color: var(--ink1);
+  }
+
+  .active-tag-pill {
+    height: 26px;
+    padding: 0 6px 0 9px;
+    border-radius: 6px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-border);
+    color: var(--accent);
+    font-size: 11.5px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+  }
+
+  /* ── 主体区：左抽屉 + 右结果墙 ── */
+  .search-workspace {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* 左侧高级筛选抽屉（卡片化分组 + 同心圆） */
+  .inspector-drawer {
+    width: 284px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--divider);
+    padding: 14px 14px 20px 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--bg);
+    transition: width 200ms ease, padding 200ms ease, opacity 180ms ease;
+  }
+
+  .inspector-drawer.collapsed {
+    width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    opacity: 0;
+    border-right-color: transparent;
+    overflow: hidden;
+  }
+
+  .inspector-card {
+    background: var(--s1);
+    border: 1px solid var(--hairline);
+    border-radius: 12px; /* Outer = 6 + 6 / 12 */
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: var(--card-shadow);
+  }
+
+  .inspector-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .inspector-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink1);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .inspector-title::before {
+    content: "";
+    width: 3px;
+    height: 12px;
+    border-radius: 2px;
+    background: var(--accent);
+  }
+
+  .inspector-sub-label {
+    font-size: 11.5px;
+    color: var(--ink3);
+    margin-bottom: 5px;
+  }
+
+  .chip-flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .date-inputs-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .date-field {
+    height: 32px;
+    padding: 0 9px;
+    border-radius: 6px;
+    border: 1px solid var(--hairline);
+    background: var(--s2);
+    color: var(--ink1);
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    outline: none;
+    width: 100%;
+  }
+
+  .date-field:focus {
+    background: var(--s1);
+    border-color: var(--accent);
+  }
+
+  .period-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--s2);
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    padding: 3px;
+  }
+
+  .step-btn {
+    height: 26px;
+    padding: 0 8px;
+    border: none;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--ink2);
+    font-family: inherit;
+    font-size: 11.5px;
+    cursor: pointer;
+  }
+
+  .step-btn:hover {
+    background: var(--s3);
+    color: var(--ink1);
+  }
+
+  .period-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink1);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 右侧内容舞台 */
+  .results-stage {
+    flex: 1;
+    min-width: 0;
+    padding: 14px 20px 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .results-meta-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--ink3);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 瀑布流卡片网格 */
+  .wall-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
+
+  .art-card {
+    background: var(--s1);
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
+    cursor: pointer;
+    transition: border-color 140ms ease, transform 180ms ease;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .art-card:hover {
+    border-color: var(--hairline-hover);
+    transform: translateY(-2px);
+  }
+
+  .art-thumb {
+    aspect-ratio: 3 / 4;
+    position: relative;
+    overflow: hidden;
+    outline: 1px solid var(--img-hairline);
+    outline-offset: -1px;
+  }
+
+  .art-thumb-fill {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .art-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: var(--scrim);
+    color: #fff;
+    font-size: 10.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .art-info {
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .art-title {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .art-artist {
+    font-size: 11px;
+    color: var(--ink3);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* 画师搜索结果列表 */
+  .artist-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .artist-row-card {
+    background: var(--s1);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--card-shadow);
+    cursor: pointer;
+    transition: background-color 140ms ease, border-color 140ms ease;
+  }
+
+  .artist-row-card:hover {
+    background: var(--s2);
+    border-color: var(--hairline-hover);
+  }
+
+  .artist-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    outline: 1px solid var(--img-hairline);
+    outline-offset: -1px;
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    font-size: 15px;
+    color: #fff;
+  }
+
+  .artist-meta {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .artist-name {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--ink1);
+  }
+
+  .artist-handle {
+    font-size: 12px;
+    color: var(--ink3);
+    margin-top: 2px;
+  }
+
+  .artist-action {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 6px;
+    border: 1px solid var(--hairline);
+    background: var(--s2);
+    color: var(--ink2);
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .artist-row-card:hover .artist-action {
+    border-color: var(--accent-border);
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  /* 空白引导态 */
+  .empty-guide {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 40px 20px;
+    text-align: center;
+  }
+
+  .empty-icon-circle {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: var(--s1);
+    border: 1px solid var(--hairline);
+    display: grid;
+    place-items: center;
+    color: var(--ink2);
+    box-shadow: var(--card-shadow);
+  }
+
+  .empty-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink1);
+  }
+
+  .empty-desc {
+    font-size: 12.5px;
+    color: var(--ink3);
+    max-width: 340px;
+    line-height: 1.5;
+  }
+
+  .empty-quick-tags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  /* 隐藏与显隐辅助 */
+  .hidden {
+    display: none !important;
+  }
+
+  /* ── 首页背景占位网格（仅烘托顶栏悬浮浮层） ── */
+  .home-backdrop {
+    flex: 1;
+    padding: 16px 20px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .home-section-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .home-sec-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink1);
+  }
+
+  .skeleton-cards {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+  }
+
+  .skeleton-card {
+    height: 168px;
+    border-radius: 10px;
+    background: var(--s1);
+    border: 1px solid var(--hairline);
+    opacity: 0.7;
+  }
+</style>
+</head>
+<body>
+
+  <!-- 预览控制器（仅方便设计审阅，非实际客户端界面） -->
+  <div class="preview-toolbar">
+    <div class="preview-brand">
+      <span class="preview-badge">阶段 A · UI 方案稿</span>
+      <div>
+        <div class="preview-title">画廊搜索 UI 重做（首页顶栏搜索 + 独立搜索结果页）</div>
+        <div class="preview-sub">点击下方选项实时交互预览 · 严守 VDDS 深浅双板与同心圆几何</div>
+      </div>
+    </div>
+
+    <div class="preview-controls">
+      <div class="ctrl-group" id="sceneGroup">
+        <button class="ctrl-btn active" data-scene="top">场景 A · 首页顶栏悬浮搜索</button>
+        <button class="ctrl-btn" data-scene="booru">场景 B · 搜索页 (Booru)</button>
+        <button class="ctrl-btn" data-scene="pixiv">场景 C · 搜索页 (Pixiv)</button>
+      </div>
+
+      <div class="ctrl-group" id="themeGroup">
+        <button class="ctrl-btn active" data-theme="dark">深色模式</button>
+        <button class="ctrl-btn" data-theme="light">浅色模式</button>
+      </div>
+
+      <div class="ctrl-group" id="stateGroup">
+        <button class="ctrl-btn active" id="toggleFlyoutBtn">浮层：展开</button>
+        <button class="ctrl-btn" id="toggleDrawerBtn">高级筛选：关</button>
+        <button class="ctrl-btn" id="toggleResultBtn">结果流：图墙</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 桌面端窗口外壳 -->
+  <div class="desktop-window">
+    <!-- 44px 窗口栏 -->
+    <div class="win-titlebar">
+      <div class="win-title-left">
+        <span class="win-logo">V</span>
+        <span>Venera Desktop</span>
+      </div>
+      <div class="win-controls">
+        <div class="win-ctrl-dot"><svg class="icon-xs" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+        <div class="win-ctrl-dot"><svg class="icon-xs" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg></div>
+        <div class="win-ctrl-dot"><svg class="icon-xs" viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></div>
+      </div>
+    </div>
+
+    <div class="win-body">
+      <!-- 72px 侧栏 -->
+      <aside class="sidebar">
+        <div class="nav-item">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+          <span>漫画</span>
+        </div>
+        <div class="nav-item active" id="navGallery">
+          <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+          <span>图库</span>
+        </div>
+        <div class="nav-item" id="navSearch">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <span>搜索</span>
+        </div>
+        <div class="nav-item">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          <span>收藏</span>
+        </div>
+      </aside>
+
+      <!-- ════════════════════════════════════════════════════════
+           舞台 1：场景 A · 首页顶栏悬浮搜索 (DesktopGalleryTopSearch)
+           ════════════════════════════════════════════════════════ -->
+      <main class="main-stage" id="stageTop">
+        <header class="home-topbar">
+          <div class="home-domain-tabs">
+            <button class="domain-tab active" id="topDomainBooru">
+              <span class="dot-station" style="background:#00B3B0;"></span>
+              <span>图库站</span>
+            </button>
+            <button class="domain-tab" id="topDomainPixiv">
+              <span class="dot-station" style="background:#0096FA;"></span>
+              <span>Pixiv</span>
+            </button>
+          </div>
+
+          <!-- 顶栏居中悬浮搜索槽 -->
+          <div class="top-search-anchor">
+            <div class="top-search-field focused" id="topField">
+              <svg class="icon-sm" style="color:var(--ink3)" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input class="search-input-raw" id="topInput" type="text" placeholder="搜索标签" value="" />
+              <button class="clear-icon-btn hidden" id="topClearBtn" title="清空">
+                <svg class="icon-xs" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+              <button class="top-scope-pill" id="topScopeBtn">
+                <span id="topScopeLabel">聚合</span>
+                <svg class="icon-xs" style="color:var(--ink3)" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+            </div>
+
+            <!-- 精修下拉浮层：自适应换行流 + 清晰分层 + 0 截断 -->
+            <div class="flyout-panel open" id="topFlyout">
+              <div id="topBooruControls">
+                <div class="flyout-section-head">
+                  <span class="flyout-section-title">检索源范围</span>
+                  <span class="flyout-sub">支持多站聚合或单站精确联想</span>
+                </div>
+                <div class="flyout-sites-flow" id="topSitesFlow">
+                  <button class="scope-chip active" data-site="聚合">聚合</button>
+                  <button class="scope-chip" data-site="yande.re">yande.re</button>
+                  <button class="scope-chip" data-site="Gelbooru">Gelbooru</button>
+                  <button class="scope-chip" data-site="Safebooru">Safebooru</button>
+                  <button class="scope-chip" data-site="Konachan">Konachan</button>
+                  <button class="scope-chip" data-site="Konachan R18">Konachan R18</button>
+                  <button class="scope-chip" data-site="TBIB">TBIB</button>
+                </div>
+
+                <div class="flyout-r18-row" id="topR18Row">
+                  <div class="toggle-switch on" id="topR18Switch"><div class="toggle-knob"></div></div>
+                  <span class="flyout-r18-label">全年龄</span>
+                  <span class="flyout-r18-desc">搜索结果排除成人评级内容</span>
+                </div>
+                <div class="flyout-divider"></div>
+              </div>
+
+              <div class="flyout-section-head">
+                <span class="flyout-section-title" id="topListHeading">最近搜索</span>
+                <button class="flyout-link-btn" id="topClearHistBtn">清除</button>
+              </div>
+              <div id="topFlyoutList"></div>
+            </div>
+          </div>
+
+          <div class="home-right-tools">
+            <button class="popup-mini">评分 <strong>全站</strong> <svg class="icon-xs" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg></button>
+            <button class="popup-mini">排序 <strong>最新</strong> <svg class="icon-xs" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg></button>
+            <div class="status-readout">
+              <span class="status-dot"></span>
+              <span>已接入 6 站</span>
+            </div>
+            <button class="icon-tool-btn" title="刷新">
+              <svg class="icon-sm" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+            </button>
+            <button class="icon-tool-btn" title="更多">
+              <svg class="icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            </button>
+          </div>
+        </header>
+
+        <!-- 首页背景内容示意 -->
+        <div class="home-backdrop">
+          <div class="home-section-row">
+            <div class="home-sec-title">热门画师与发现</div>
+            <div class="skeleton-cards">
+              <div class="skeleton-card"></div><div class="skeleton-card"></div>
+              <div class="skeleton-card"></div><div class="skeleton-card"></div>
+              <div class="skeleton-card"></div><div class="skeleton-card"></div>
+            </div>
+          </div>
+          <div class="home-section-row">
+            <div class="home-sec-title">最新图墙</div>
+            <div class="skeleton-cards">
+              <div class="skeleton-card" style="height:240px"></div><div class="skeleton-card" style="height:240px"></div>
+              <div class="skeleton-card" style="height:240px"></div><div class="skeleton-card" style="height:240px"></div>
+              <div class="skeleton-card" style="height:240px"></div><div class="skeleton-card" style="height:240px"></div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- ════════════════════════════════════════════════════════
+           舞台 2：场景 B & C · 独立画廊搜索结果页 (DesktopGallerySearchScreen)
+           ════════════════════════════════════════════════════════ -->
+      <main class="main-stage hidden" id="stageSearch">
+        <!-- 透明指挥栏：无厚重灰底板，仅底部 1px 分隔线 -->
+        <header class="search-chrome">
+          <!-- 第一行：等高 36px，外圆角 10px -->
+          <div class="command-row">
+            <div class="seg-track" id="modeSegment">
+              <button class="seg-btn active" data-mode="booru">
+                <span class="dot-station" style="background:#00B3B0;"></span>
+                <span>图库 (Booru)</span>
+              </button>
+              <button class="seg-btn" data-mode="pixiv">
+                <span class="dot-station" style="background:#0096FA;"></span>
+                <span>Pixiv 专属</span>
+              </button>
+            </div>
+
+            <!-- 主搜索框 + 同款结构化智能下拉浮层 -->
+            <div class="main-search-anchor">
+              <div class="main-search-box" id="mainSearchBox">
+                <svg class="icon-sm" style="color:var(--ink3)" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <input class="search-input-raw" id="mainSearchInput" type="text" value="touhou" placeholder="标签，空格分隔；减号开头是排除" />
+                <button class="clear-icon-btn" id="mainClearBtn" title="清空">
+                  <svg class="icon-xs" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+
+              <!-- 与首页同源的统一精修下拉浮层 -->
+              <div class="flyout-panel" id="mainFlyout">
+                <div class="flyout-section-head">
+                  <span class="flyout-section-title">最近搜索</span>
+                  <button class="flyout-link-btn">清空</button>
+                </div>
+                <div class="flyout-row">
+                  <span class="flyout-row-icon"><svg class="icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span>
+                  <div class="flyout-row-text"><span class="flyout-term">touhou</span></div>
+                  <span class="flyout-site-pill">聚合</span>
+                  <button class="flyout-row-del"><svg class="icon-xs" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+                <div class="flyout-row">
+                  <span class="flyout-row-icon"><svg class="icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span>
+                  <div class="flyout-row-text"><span class="flyout-term">muchi_maro</span></div>
+                  <span class="flyout-site-pill">yande.re</span>
+                  <button class="flyout-row-del"><svg class="icon-xs" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+
+                <div class="flyout-divider"></div>
+
+                <div class="flyout-section-head">
+                  <span class="flyout-section-title" id="mainSuggestHead">标签联想 · 聚合</span>
+                  <span class="flyout-sub">点击回填原名</span>
+                </div>
+                <div id="mainSuggestList"></div>
+              </div>
+            </div>
+
+            <!-- Pixiv 专属目标下拉：与主栏统一色板圆角高度 -->
+            <div class="target-menu-wrap hidden" id="pixivTargetWrap">
+              <button class="target-btn" id="pixivTargetBtn">
+                <span id="pixivTargetText">插画·漫画</span>
+                <svg class="icon-xs" style="color:var(--ink3)" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              <div class="target-popover" id="pixivTargetPop">
+                <button class="target-option active" data-kind="works">
+                  <svg class="icon-xs" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span>插画·漫画</span>
+                </button>
+                <button class="target-option" disabled title="当前数据源暂不支持小说">
+                  <span style="width:12px"></span>
+                  <span>小说（暂无）</span>
+                </button>
+                <button class="target-option" data-kind="collection">
+                  <span style="width:12px"></span>
+                  <span>珍藏册</span>
+                </button>
+                <button class="target-option" data-kind="artist">
+                  <span style="width:12px"></span>
+                  <span>用户 / 画师</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 全屏唯一强调色主按钮 -->
+            <button class="primary-search-btn" id="mainSubmitBtn">
+              <svg class="icon-sm" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <span>搜索</span>
+            </button>
+
+            <!-- 高级筛选抽屉开关 -->
+            <button class="inspector-toggle-btn" id="inspectorToggleBtn">
+              <svg class="icon-sm" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+              <span>高级筛选</span>
+              <span class="count-badge hidden" id="inspectorBadge">2</span>
+            </button>
+          </div>
+
+          <!-- 第二行：收敛快捷筛选条（无长串横滚、无右侧渐隐块） -->
+          <!-- Booru 快捷条 -->
+          <div class="quick-strip" id="quickStripBooru">
+            <span class="strip-label">来源</span>
+            <button class="filter-chip active">全部</button>
+            <button class="filter-chip">yande.re</button>
+            <button class="filter-chip">Gelbooru</button>
+            <button class="filter-chip">Safebooru</button>
+            <button class="filter-chip">Konachan</button>
+            <button class="filter-chip">Konachan R18</button>
+            <button class="filter-chip">TBIB</button>
+
+            <span class="strip-divider"></span>
+
+            <!-- 排行收为紧凑 Pop-up 下拉 -->
+            <div class="strip-popup-wrap">
+              <button class="strip-popup-btn" id="booruRankBtn">
+                <span>排行：</span>
+                <strong id="booruRankVal">默认（最新）</strong>
+                <svg class="icon-xs" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>
+              </button>
+              <div class="target-popover" id="booruRankPop" style="left:0; right:auto;">
+                <button class="target-option active" data-val="默认（最新）">默认（最新）</button>
+                <button class="target-option" data-val="每日热门">每日热门</button>
+                <button class="target-option" data-val="每周热门">每周热门</button>
+                <button class="target-option" data-val="每月热门">每月热门</button>
+              </div>
+            </div>
+
+            <!-- 同步首页的全年龄开关，状态一目了然 -->
+            <div class="strip-r18-pill" id="searchR18Pill">
+              <span>全年龄过滤</span>
+              <div class="toggle-switch on" id="searchR18Switch"><div class="toggle-knob"></div></div>
+            </div>
+          </div>
+
+          <!-- Pixiv 快捷条 -->
+          <div class="quick-strip hidden" id="quickStripPixiv">
+            <span class="strip-label">维度</span>
+            <button class="filter-chip active" data-pkind="works">作品</button>
+            <button class="filter-chip" data-pkind="artist">画师</button>
+            <button class="filter-chip" data-pkind="collection">珍藏册</button>
+
+            <span class="strip-divider"></span>
+
+            <div class="strip-popup-wrap">
+              <button class="strip-popup-btn" id="pixivOrderBtn">
+                <span>排序：</span>
+                <strong id="pixivOrderVal">最新</strong>
+                <svg class="icon-xs" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>
+              </button>
+              <div class="target-popover" id="pixivOrderPop" style="left:0; right:auto;">
+                <button class="target-option active" data-val="最新">最新</button>
+                <button class="target-option" data-val="旧序">旧序</button>
+                <button class="target-option" data-val="人气（需登录）">人气（需登录）</button>
+              </div>
+            </div>
+
+            <!-- 原来的 7 个长药丸 100+..10000+ 收敛进单个紧凑下拉芯片 -->
+            <div class="strip-popup-wrap">
+              <button class="strip-popup-btn has-value" id="pixivFavBtn">
+                <span>收藏：</span>
+                <strong id="pixivFavVal">1000+</strong>
+                <svg class="icon-xs" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>
+              </button>
+              <div class="target-popover" id="pixivFavPop" style="left:0; right:auto; width:140px;">
+                <button class="target-option" data-val="全部">全部</button>
+                <button class="target-option" data-val="100+">100+</button>
+                <button class="target-option" data-val="250+">250+</button>
+                <button class="target-option" data-val="500+">500+</button>
+                <button class="target-option active" data-val="1000+">1000+</button>
+                <button class="target-option" data-val="5000+">5000+</button>
+                <button class="target-option" data-val="10000+">10000+</button>
+              </div>
+            </div>
+
+            <span class="strip-divider"></span>
+            <span class="active-tag-pill">排除 AI <svg class="icon-xs" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+          </div>
+        </header>
+
+        <!-- 主体区：左抽屉 + 右结果 -->
+        <div class="search-workspace">
+          <!-- 左侧高级筛选抽屉（卡片化分组） -->
+          <aside class="inspector-drawer collapsed" id="inspectorDrawer">
+            <!-- Booru 筛选内容 -->
+            <div id="inspectorBooru" style="display:flex; flex-direction:column; gap:10px;">
+              <div class="inspector-card">
+                <div class="inspector-card-head">
+                  <div class="inspector-title">排行与时间窗</div>
+                </div>
+                <div class="chip-flow">
+                  <button class="filter-chip active">默认（最新）</button>
+                  <button class="filter-chip">日榜</button>
+                  <button class="filter-chip">周榜</button>
+                  <button class="filter-chip">月榜</button>
+                </div>
+                <div>
+                  <div class="inspector-sub-label">统计周期</div>
+                  <div class="period-stepper">
+                    <button class="step-btn">← 上一期</button>
+                    <span class="period-value">2026-11</span>
+                    <button class="step-btn">下一期 →</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="inspector-card">
+                <div class="inspector-card-head">
+                  <div class="inspector-title">分级过滤</div>
+                </div>
+                <div class="flyout-r18-row" style="padding:0; height:auto;">
+                  <div class="toggle-switch on" id="drawerR18Switch"><div class="toggle-knob"></div></div>
+                  <div>
+                    <div class="flyout-r18-label">全年龄检索</div>
+                    <div class="flyout-r18-desc" style="margin-top:2px;">自动追加站方非成人过滤参数</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pixiv 筛选内容 -->
+            <div id="inspectorPixiv" class="hidden" style="display:flex; flex-direction:column; gap:10px;">
+              <div class="inspector-card">
+                <div class="inspector-card-head">
+                  <div class="inspector-title">标签匹配</div>
+                  <button class="flyout-link-btn" style="color:var(--accent);">重置</button>
+                </div>
+                <div class="chip-flow">
+                  <button class="filter-chip active">部分一致</button>
+                  <button class="filter-chip">完全一致</button>
+                </div>
+              </div>
+
+              <div class="inspector-card">
+                <div class="inspector-card-head">
+                  <div class="inspector-title">过滤属性</div>
+                </div>
+                <div>
+                  <div class="inspector-sub-label">生成来源</div>
+                  <div class="chip-flow">
+                    <button class="filter-chip">全部</button>
+                    <button class="filter-chip active">排除 AI</button>
+                  </div>
+                </div>
+                <div>
+                  <div class="inspector-sub-label">作品形式</div>
+                  <div class="chip-flow">
+                    <button class="filter-chip active">全部</button>
+                    <button class="filter-chip">插画</button>
+                    <button class="filter-chip">漫画</button>
+                  </div>
+                </div>
+                <div>
+                  <div class="inspector-sub-label">画幅比例</div>
+                  <div class="chip-flow">
+                    <button class="filter-chip active">不限</button>
+                    <button class="filter-chip">横图</button>
+                    <button class="filter-chip">竖图</button>
+                    <button class="filter-chip">方图</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="inspector-card">
+                <div class="inspector-card-head">
+                  <div class="inspector-title">发布时间区间</div>
+                </div>
+                <div class="chip-flow">
+                  <button class="filter-chip active">不限</button>
+                  <button class="filter-chip">1 周内</button>
+                  <button class="filter-chip">1 月内</button>
+                  <button class="filter-chip">1 年内</button>
+                </div>
+                <div class="date-inputs-row">
+                  <input class="date-field" type="text" placeholder="起始 yyyy-MM-dd" />
+                  <input class="date-field" type="text" placeholder="截至 yyyy-MM-dd" />
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <!-- 右侧主结果区 -->
+          <section class="results-stage">
+            <div class="results-meta-bar" id="resultsMeta">
+              <span>检索范围：聚合 6 站 · 按最新排序</span>
+              <span>已加载 24 条结果</span>
+            </div>
+
+            <!-- 1. 图墙视图 -->
+            <div class="wall-grid" id="resultWall"></div>
+
+            <!-- 2. 画师列表视图 -->
+            <div class="artist-list hidden" id="resultArtists"></div>
+
+            <!-- 3. 空白引导视图 -->
+            <div class="empty-guide hidden" id="resultEmpty">
+              <div class="empty-icon-circle">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              </div>
+              <div class="empty-title">输入标签或画师开始检索</div>
+              <div class="empty-desc">支持多标签空格组合、减号排除，或点击下方常用检索词快速直达</div>
+              <div class="empty-quick-tags">
+                <button class="filter-chip">touhou</button>
+                <button class="filter-chip">muchi_maro</button>
+                <button class="filter-chip">生徒会にも穴はある!</button>
+                <button class="filter-chip">blue_archive</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+<script>
+  const state = {
+    scene: 'top',      // 'top' | 'booru' | 'pixiv'
+    theme: 'dark',     // 'dark' | 'light'
+    flyoutOpen: true,
+    drawerOpen: false,
+    resultView: 'wall', // 'wall' | 'artist' | 'empty'
+    r18Safe: true,
+    topDomain: 'booru'
+  };
+
+  const histItems = [
+    { term: 'touhou', site: '聚合' },
+    { term: 'muchi_maro', site: 'yande.re' },
+    { term: 'loli', site: '聚合' },
+    { term: '令时婉夏KiriAlNa #151921220', site: 'Pixiv' },
+    { term: 'ふかぢあ #136545173', site: 'Pixiv' }
+  ];
+
+  const booruSuggests = [
+    { name: 'touhou', cn: '东方Project', cat: '版权', color: '#C084FC', count: '684,210', site: 'Gelbooru' },
+    { name: 'touhou_lostword', cn: '东方归言录', cat: '版权', color: '#C084FC', count: '14,820', site: 'yande.re' },
+    { name: 'komeiji_koishi', cn: '古明地恋', cat: '角色', color: '#78D6C0', count: '52,190', site: '聚合' },
+    { name: 'yakumo_yukari', cn: '八云紫', cat: '角色', color: '#78D6C0', count: '38,405', site: 'Konachan' }
+  ];
+
+  const pixivSuggests = [
+    { name: '生徒会にも穴はある!', cn: '学生会也有洞！', cat: '作品标签', color: '#4D9FFF', count: '8,412', site: 'Pixiv' },
+    { name: '陸奥こまろ', cn: '陆奥小圆', cat: '角色', color: '#78D6C0', count: '2,190', site: 'Pixiv' },
+    { name: '尾守つみきと奇日常。', cn: '尾守つみき', cat: '标签', color: '#F2B87C', count: '1,340', site: 'Pixiv' }
+  ];
+
+  const gradients = [
+    ['#1e3a5f', '#2b5876'], ['#3a1c71', '#d76d77'], ['#134e5e', '#71b280'],
+    ['#2b5876', '#4e4376'], ['#42275a', '#734b6d'], ['#1f4037', '#99f2c8'],
+    ['#373b44', '#4286f4'], ['#2c3e50', '#fd746c'], ['#0f2027', '#2c5364'],
+    ['#283048', '#859398']
+  ];
+
+  const cardTitles = [
+    'Scarlet Mist · 幻想郷の午後', '星屑と青空の境界線', '古明地姉妹の茶会',
+    '生徒会室の放課後', 'Winter Moonlight Sketch', 'Azure Reflection',
+    '紫苑の庭園にて', '夏祭りの帰り道', 'Night Neon Corridor', '水辺の微睡み'
+  ];
+
+  function renderWall() {
+    const grid = document.getElementById('resultWall');
+    grid.innerHTML = cardTitles.map((t, i) => {
+      const [c1, c2] = gradients[i % gradients.length];
+      const badge = state.scene === 'pixiv' ? `${(i + 2) * 3}P` : (i % 3 === 0 ? '4K' : 'PNG');
+      return `
+        <div class="art-card">
+          <div class="art-thumb">
+            <div class="art-thumb-fill" style="background:linear-gradient(145deg, ${c1}, ${c2});"></div>
+            <span class="art-badge">${badge}</span>
+          </div>
+          <div class="art-info">
+            <div class="art-title">${t}</div>
+            <div class="art-artist">
+              <span>@artist_${i + 101}</span>
+              <span>${1200 + i * 340}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderArtists() {
+    const list = document.getElementById('resultArtists');
+    const names = [
+      ['ふかぢあ', 'fukadia_art', '#3b82f6'],
+      ['令时婉夏 KiriAlNa', 'kirialna_09', '#8b5cf6'],
+      ['muchi_maro', 'muchi_maro', '#10b981'],
+      ['陸奥こまろ公式', 'komaro_sub', '#f59e0b']
+    ];
+    list.innerHTML = names.map(([name, handle, bg]) => `
+      <div class="artist-row-card">
+        <div class="artist-avatar" style="background:${bg};">${name[0]}</div>
+        <div class="artist-meta">
+          <div class="artist-name">${name}</div>
+          <div class="artist-handle">@${handle}</div>
+        </div>
+        <span class="artist-action">查看作品 →</span>
+      </div>
+    `).join('');
+  }
+
+  function renderTopFlyoutList() {
+    const q = document.getElementById('topInput').value.trim();
+    const list = document.getElementById('topFlyoutList');
+    const heading = document.getElementById('topListHeading');
+    const clearBtn = document.getElementById('topClearHistBtn');
+
+    if (q.length > 0) {
+      const items = state.topDomain === 'pixiv' ? pixivSuggests : booruSuggests;
+      heading.textContent = state.topDomain === 'pixiv'
+        ? '标签联想 · Pixiv'
+        : `标签联想 · ${document.getElementById('topScopeLabel').textContent}`;
+      clearBtn.classList.add('hidden');
+      list.innerHTML = items.map((s, idx) => `
+        <div class="flyout-row ${idx === 0 ? 'active' : ''}" data-fill="${s.name}">
+          <span class="cat-dot" style="background:${s.color}"></span>
+          <div class="flyout-row-text">
+            <span class="flyout-term">${s.name}</span>
+            <span class="flyout-sub">${s.cn} · ${s.cat}</span>
+          </div>
+          <span class="flyout-tag-meta">${s.count}</span>
+          <span class="flyout-site-pill">${s.site}</span>
+        </div>
+      `).join('');
+    } else {
+      heading.textContent = '最近搜索';
+      clearBtn.classList.remove('hidden');
+      const filtered = histItems.filter(it =>
+        state.topDomain === 'pixiv' ? it.site === 'Pixiv' : it.site !== 'Pixiv'
+      );
+      list.innerHTML = filtered.map((it) => `
+        <div class="flyout-row" data-fill="${it.term}">
+          <span class="flyout-row-icon"><svg class="icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span>
+          <div class="flyout-row-text"><span class="flyout-term">${it.term}</span></div>
+          <span class="flyout-site-pill">${it.site}</span>
+          <button class="flyout-row-del" title="删除"><svg class="icon-xs" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+      `).join('');
+    }
+  }
+
+  function renderMainSuggestList() {
+    const items = state.scene === 'pixiv' ? pixivSuggests : booruSuggests;
+    document.getElementById('mainSuggestHead').textContent =
+      state.scene === 'pixiv' ? '标签联想 · Pixiv AutoComplete' : '标签联想 · 聚合';
+    document.getElementById('mainSuggestList').innerHTML = items.map((s, idx) => `
+      <div class="flyout-row ${idx === 0 ? 'active' : ''}">
+        <span class="cat-dot" style="background:${s.color}"></span>
+        <div class="flyout-row-text">
+          <span class="flyout-term">${s.cn}</span>
+          <span class="flyout-sub">${s.name} · ${s.cat}</span>
+        </div>
+        <span class="flyout-tag-meta">${s.count}</span>
+        <span class="flyout-site-pill">${s.site}</span>
+      </div>
+    `).join('');
+  }
+
+  function syncUI() {
+    // 主题
+    document.documentElement.setAttribute('data-theme', state.theme);
+    document.body.classList.toggle('theme-light', state.theme === 'light');
+    document.querySelectorAll('#themeGroup .ctrl-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.theme === state.theme);
+    });
+
+    // 场景
+    document.querySelectorAll('#sceneGroup .ctrl-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.scene === state.scene);
+    });
+
+    const isTop = state.scene === 'top';
+    const isPixiv = state.scene === 'pixiv';
+
+    document.getElementById('stageTop').classList.toggle('hidden', !isTop);
+    document.getElementById('stageSearch').classList.toggle('hidden', isTop);
+    document.getElementById('navGallery').classList.toggle('active', isTop);
+    document.getElementById('navSearch').classList.toggle('active', !isTop);
+
+    // 搜索页内 Booru vs Pixiv
+    document.querySelectorAll('#modeSegment .seg-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.mode === state.scene);
+    });
+    document.getElementById('pixivTargetWrap').classList.toggle('hidden', !isPixiv);
+    document.getElementById('quickStripBooru').classList.toggle('hidden', isPixiv);
+    document.getElementById('quickStripPixiv').classList.toggle('hidden', !isPixiv);
+    document.getElementById('inspectorBooru').classList.toggle('hidden', isPixiv);
+    document.getElementById('inspectorPixiv').classList.toggle('hidden', !isPixiv);
+    document.getElementById('inspectorBadge').classList.toggle('hidden', !isPixiv);
+
+    const searchInput = document.getElementById('mainSearchInput');
+    if (isPixiv && searchInput.value === 'touhou') {
+      searchInput.value = '生徒会にも穴はある!';
+      searchInput.placeholder = '标签 / 日文原名 / 中文译名 / 画师…';
+    } else if (!isPixiv && searchInput.value === '生徒会にも穴はある!') {
+      searchInput.value = 'touhou';
+      searchInput.placeholder = '标签，空格分隔；减号开头是排除';
+    }
+
+    // 浮层与抽屉状态
+    document.getElementById('topFlyout').classList.toggle('open', isTop && state.flyoutOpen);
+    document.getElementById('topField').classList.toggle('focused', isTop && state.flyoutOpen);
+    document.getElementById('mainFlyout').classList.toggle('open', !isTop && state.flyoutOpen);
+    document.getElementById('mainSearchBox').classList.toggle('focused', !isTop && state.flyoutOpen);
+    document.getElementById('toggleFlyoutBtn').textContent = `浮层：${state.flyoutOpen ? '展开' : '收起'}`;
+    document.getElementById('toggleFlyoutBtn').classList.toggle('active', state.flyoutOpen);
+
+    document.getElementById('inspectorDrawer').classList.toggle('collapsed', !state.drawerOpen);
+    document.getElementById('inspectorToggleBtn').classList.toggle('open', state.drawerOpen);
+    document.getElementById('toggleDrawerBtn').textContent = `高级筛选：${state.drawerOpen ? '开' : '关'}`;
+    document.getElementById('toggleDrawerBtn').classList.toggle('active', state.drawerOpen);
+
+    // 结果区流切换
+    document.getElementById('resultWall').classList.toggle('hidden', state.resultView !== 'wall');
+    document.getElementById('resultArtists').classList.toggle('hidden', state.resultView !== 'artist');
+    document.getElementById('resultEmpty').classList.toggle('hidden', state.resultView !== 'empty');
+    document.getElementById('resultsMeta').classList.toggle('hidden', state.resultView === 'empty');
+    const viewLabels = { wall: '图墙', artist: '画师列表', empty: '空白引导' };
+    document.getElementById('toggleResultBtn').textContent = `结果流：${viewLabels[state.resultView]}`;
+
+    // R18 开关同步
+    ['topR18Switch', 'searchR18Switch', 'drawerR18Switch'].forEach(id => {
+      document.getElementById(id).classList.toggle('on', state.r18Safe);
+    });
+
+    renderWall();
+    renderArtists();
+    renderTopFlyoutList();
+    renderMainSuggestList();
+  }
+
+  // 事件绑定
+  document.querySelectorAll('#sceneGroup .ctrl-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.scene = btn.dataset.scene;
+      // 切换到搜索页默认收起浮层方便直接看清两行顶栏（可通过开关随时打开）
+      state.flyoutOpen = (state.scene === 'top');
+      syncUI();
+    });
+  });
+
+  document.querySelectorAll('#themeGroup .ctrl-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.theme = btn.dataset.theme;
+      syncUI();
+    });
+  });
+
+  document.getElementById('toggleFlyoutBtn').addEventListener('click', () => {
+    state.flyoutOpen = !state.flyoutOpen;
+    syncUI();
+  });
+
+  document.getElementById('toggleDrawerBtn').addEventListener('click', () => {
+    if (state.scene === 'top') state.scene = 'booru';
+    state.drawerOpen = !state.drawerOpen;
+    syncUI();
+  });
+
+  document.getElementById('toggleResultBtn').addEventListener('click', () => {
+    if (state.scene === 'top') state.scene = 'pixiv';
+    const order = ['wall', 'artist', 'empty'];
+    state.resultView = order[(order.indexOf(state.resultView) + 1) % order.length];
+    syncUI();
+  });
+
+  document.getElementById('inspectorToggleBtn').addEventListener('click', () => {
+    state.drawerOpen = !state.drawerOpen;
+    syncUI();
+  });
+
+  document.querySelectorAll('#modeSegment .seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.scene = btn.dataset.mode;
+      syncUI();
+    });
+  });
+
+  // 首页域切换
+  document.getElementById('topDomainBooru').addEventListener('click', () => {
+    state.topDomain = 'booru';
+    document.getElementById('topDomainBooru').classList.add('active');
+    document.getElementById('topDomainPixiv').classList.remove('active');
+    document.getElementById('topBooruControls').classList.remove('hidden');
+    document.getElementById('topScopeBtn').classList.remove('hidden');
+    document.getElementById('topInput').placeholder = '搜索标签';
+    renderTopFlyoutList();
+  });
+
+  document.getElementById('topDomainPixiv').addEventListener('click', () => {
+    state.topDomain = 'pixiv';
+    document.getElementById('topDomainPixiv').classList.add('active');
+    document.getElementById('topDomainBooru').classList.remove('active');
+    document.getElementById('topBooruControls').classList.add('hidden');
+    document.getElementById('topScopeBtn').classList.add('hidden');
+    document.getElementById('topInput').placeholder = '搜索作品';
+    renderTopFlyoutList();
+  });
+
+  // 首页站点芯片点击
+  document.querySelectorAll('#topSitesFlow .scope-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#topSitesFlow .scope-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      document.getElementById('topScopeLabel').textContent = chip.dataset.site;
+      renderTopFlyoutList();
+    });
+  });
+
+  // R18 开关点击同步
+  ['topR18Row', 'searchR18Pill', 'drawerR18Switch'].forEach(id => {
+    document.getElementById(id).addEventListener('click', () => {
+      state.r18Safe = !state.r18Safe;
+      syncUI();
+    });
+  });
+
+  // 顶栏输入触发实时联想演示
+  const topInput = document.getElementById('topInput');
+  const topClear = document.getElementById('topClearBtn');
+  topInput.addEventListener('focus', () => { state.flyoutOpen = true; syncUI(); });
+  topInput.addEventListener('input', () => {
+    topClear.classList.toggle('hidden', topInput.value.length === 0);
+    renderTopFlyoutList();
+  });
+  topClear.addEventListener('click', () => {
+    topInput.value = '';
+    topClear.classList.add('hidden');
+    renderTopFlyoutList();
+  });
+
+  // 主搜索框点击切换浮层
+  document.getElementById('mainSearchBox').addEventListener('click', (e) => {
+    if (e.target.closest('#mainClearBtn')) return;
+    state.flyoutOpen = true;
+    syncUI();
+  });
+
+  // Popover 交互
+  function wirePopover(btnId, popId, valId) {
+    const btn = document.getElementById(btnId);
+    const pop = document.getElementById(popId);
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const willOpen = !pop.classList.contains('open');
+      document.querySelectorAll('.target-popover').forEach(p => p.classList.remove('open'));
+      if (willOpen) pop.classList.add('open');
+    });
+    pop.querySelectorAll('.target-option:not(:disabled)').forEach(opt => {
+      opt.addEventListener('click', () => {
+        pop.querySelectorAll('.target-option').forEach(o => o.classList.remove('active'));
+        opt.classList.add('active');
+        if (valId && opt.dataset.val) {
+          document.getElementById(valId).textContent = opt.dataset.val;
+        } else if (opt.dataset.kind) {
+          document.getElementById('pixivTargetText').textContent = opt.textContent.trim();
+        }
+        pop.classList.remove('open');
+      });
+    });
+  }
+
+  wirePopover('pixivTargetBtn', 'pixivTargetPop');
+  wirePopover('booruRankBtn', 'booruRankPop', 'booruRankVal');
+  wirePopover('pixivOrderBtn', 'pixivOrderPop', 'pixivOrderVal');
+  wirePopover('pixivFavBtn', 'pixivFavPop', 'pixivFavVal');
+
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.target-popover').forEach(p => p.classList.remove('open'));
+  });
+
+  syncUI();
+</script>
+</body>
+</html>

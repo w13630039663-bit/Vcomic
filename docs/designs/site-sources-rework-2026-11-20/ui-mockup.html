@@ -1,0 +1,1066 @@
+<!doctype html>
+<html lang="zh-CN" data-zcode-design>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Venera 站点 · 站点墙重做方案稿</title>
+<style>
+:root {
+  --canvas: #08090b;
+  --app-bg: #131519;
+  --rail-bg: rgba(21, 23, 28, 0.78);
+  --rail-border: rgba(255, 255, 255, 0.10);
+  --card: linear-gradient(180deg, rgba(255, 255, 255, 0.062), rgba(255, 255, 255, 0.030));
+  --card-hover: linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.040));
+  --card-border: rgba(255, 255, 255, 0.07);
+  --card-border-hover: rgba(10, 132, 255, 0.38);
+  --line: rgba(255, 255, 255, 0.07);
+  --hover: rgba(255, 255, 255, 0.06);
+  --ink: rgba(255, 255, 255, 0.94);
+  --ink-2: rgba(255, 255, 255, 0.62);
+  --ink-3: rgba(255, 255, 255, 0.38);
+  --accent: #0A84FF;
+  --accent-soft: rgba(10, 132, 255, 0.14);
+  --accent-line: rgba(10, 132, 255, 0.55);
+  --green: #34D399;
+  --green-soft: rgba(52, 211, 153, 0.14);
+  --amber: #F5A524;
+  --chip-bg: rgba(255, 255, 255, 0.06);
+  --chip-border: rgba(255, 255, 255, 0.09);
+  --btn-bg: rgba(255, 255, 255, 0.07);
+  --btn-border: rgba(255, 255, 255, 0.12);
+  --drawer-bg: #1b1e24;
+  --drawer-border: rgba(255, 255, 255, 0.11);
+  --popup-bg: #202329;
+  --popup-border: rgba(255, 255, 255, 0.12);
+  --shadow-popup: 0 18px 40px rgba(0, 0, 0, 0.55);
+  --shadow-app: 0 40px 90px rgba(0, 0, 0, 0.6);
+  --shadow-drawer: -24px 0 60px rgba(0, 0, 0, 0.5);
+  --font: "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+body.light {
+  --canvas: #e7e9ee;
+  --app-bg: #f4f5f8;
+  --rail-bg: rgba(246, 247, 250, 0.86);
+  --rail-border: rgba(0, 0, 0, 0.08);
+  --card: #ffffff;
+  --card-hover: #ffffff;
+  --card-border: rgba(0, 0, 0, 0.08);
+  --card-border-hover: rgba(10, 99, 246, 0.42);
+  --line: rgba(0, 0, 0, 0.07);
+  --hover: rgba(0, 0, 0, 0.045);
+  --ink: rgba(0, 0, 0, 0.88);
+  --ink-2: rgba(0, 0, 0, 0.58);
+  --ink-3: rgba(0, 0, 0, 0.38);
+  --accent: #0A63F6;
+  --accent-soft: rgba(10, 99, 246, 0.10);
+  --accent-line: rgba(10, 99, 246, 0.55);
+  --green: #12915F;
+  --green-soft: rgba(18, 145, 95, 0.10);
+  --amber: #B26A00;
+  --chip-bg: rgba(0, 0, 0, 0.04);
+  --chip-border: rgba(0, 0, 0, 0.08);
+  --btn-bg: #ffffff;
+  --btn-border: rgba(0, 0, 0, 0.11);
+  --drawer-bg: #ffffff;
+  --drawer-border: rgba(0, 0, 0, 0.09);
+  --popup-bg: #ffffff;
+  --popup-border: rgba(0, 0, 0, 0.10);
+  --shadow-popup: 0 18px 40px rgba(20, 24, 32, 0.16);
+  --shadow-app: 0 30px 70px rgba(20, 24, 32, 0.16);
+  --shadow-drawer: -24px 0 60px rgba(20, 24, 32, 0.14);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+  transition: background 200ms var(--ease), color 200ms var(--ease);
+}
+button { font: inherit; color: inherit; border: 0; background: transparent; cursor: pointer; }
+svg { display: block; }
+
+/* ── 稿外工具条 ── */
+.preview-bar {
+  padding: 13px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.18);
+  background: rgba(18, 20, 24, 0.86);
+  color: rgba(255, 255, 255, 0.92);
+  flex-wrap: wrap;
+}
+.preview-bar h1 { margin: 0; font-size: 14px; font-weight: 600; }
+.preview-bar p { margin: 3px 0 0; font-size: 11.5px; color: rgba(255, 255, 255, 0.52); }
+.preview-actions { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.seg { display: flex; gap: 4px; padding: 3px; border-radius: 9px; background: rgba(255, 255, 255, 0.07); }
+.seg button {
+  padding: 5px 11px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.62);
+  transition: background 140ms var(--ease), color 140ms var(--ease);
+}
+.seg button:hover { background: rgba(255, 255, 255, 0.07); color: rgba(255, 255, 255, 0.9); }
+.seg button[aria-pressed="true"] { background: rgba(10, 132, 255, 0.9); color: #fff; }
+.seg-label { font-size: 11px; color: rgba(255, 255, 255, 0.38); margin-right: -8px; }
+
+/* ── 舞台 ── */
+.stage { flex: 1; padding: 24px 28px 32px; display: flex; justify-content: center; align-items: flex-start; }
+.app {
+  position: relative;
+  width: 100%;
+  max-width: 1340px;
+  height: 840px;
+  border-radius: 16px;
+  background: var(--app-bg);
+  border: 1px solid var(--rail-border);
+  box-shadow: var(--shadow-app);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: background 200ms var(--ease), border-color 200ms var(--ease);
+}
+
+/* 窗口标题条 */
+.titlebar {
+  height: 44px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--line);
+}
+.win-dots { display: flex; gap: 7px; margin-right: 8px; }
+.win-dots i { width: 11px; height: 11px; border-radius: 50%; background: rgba(255, 255, 255, 0.14); }
+body.light .win-dots i { background: rgba(0, 0, 0, 0.14); }
+.tb-back { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; color: var(--ink-2); }
+.tb-back:hover { background: var(--hover); color: var(--ink); }
+.tb-title { font-size: 12.5px; font-weight: 600; color: var(--ink-2); letter-spacing: 0.02em; }
+
+.body { flex: 1; display: flex; min-height: 0; }
+
+/* 玻璃轨 */
+.rail {
+  width: 66px;
+  flex: none;
+  border-right: 1px solid var(--rail-border);
+  background: var(--rail-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0;
+  gap: 6px;
+}
+.rail-item {
+  width: 40px; height: 40px;
+  border-radius: 11px;
+  display: grid; place-items: center;
+  color: var(--ink-3);
+  transition: background 140ms var(--ease), color 140ms var(--ease);
+}
+.rail-item:hover { background: var(--hover); color: var(--ink-2); }
+.rail-item.on { background: var(--accent-soft); color: var(--accent); }
+.rail-spacer { flex: 1; }
+
+/* ── 内容区 ── */
+.wall {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 22px 28px 32px;
+  scrollbar-width: thin;
+}
+
+.wall-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.wall-title { flex: 1; min-width: 0; }
+.wall-title h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+.wall-title p { margin: 6px 0 0; font-size: 11.5px; color: var(--ink-3); }
+.wall-tools { display: flex; align-items: center; gap: 8px; padding-top: 3px; }
+
+/* 搜索 */
+.search {
+  height: 32px;
+  width: 172px;
+  border-radius: 9px;
+  border: 1px solid var(--chip-border);
+  background: var(--chip-bg);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  color: var(--ink-3);
+}
+.search svg { flex: none; }
+.search input {
+  flex: 1; min-width: 0;
+  border: 0; outline: none; background: transparent;
+  font: inherit; font-size: 12px; color: var(--ink);
+}
+.search input::placeholder { color: var(--ink-3); }
+
+/* 三档 */
+.chips { display: flex; gap: 3px; padding: 3px; border-radius: 9px; background: var(--chip-bg); border: 1px solid var(--chip-border); }
+.chips button {
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  color: var(--ink-2);
+  transition: background 140ms var(--ease), color 140ms var(--ease);
+}
+.chips button:hover { color: var(--ink); }
+.chips button.on { background: var(--accent-soft); color: var(--accent); }
+
+/* 添加站点 */
+.add-wrap { position: relative; }
+.add-site {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: filter 140ms var(--ease);
+}
+.add-site:hover { filter: brightness(1.08); }
+.add-site:active { filter: brightness(0.94); }
+.popup {
+  position: absolute;
+  z-index: 40;
+  top: 38px; right: 0;
+  width: 220px;
+  padding: 5px;
+  border-radius: 11px;
+  background: var(--popup-bg);
+  border: 1px solid var(--popup-border);
+  box-shadow: var(--shadow-popup);
+  display: none;
+}
+.popup.open { display: block; }
+.popup button {
+  width: 100%;
+  height: 34px;
+  border-radius: 7px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12.5px;
+  color: var(--ink);
+  text-align: left;
+}
+.popup button:hover { background: var(--hover); }
+.popup button span { color: var(--ink-3); font-size: 11px; margin-left: auto; }
+
+/* ── 网格 ── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-auto-rows: 96px;
+  gap: 14px;
+}
+.card {
+  grid-column: span 4;
+  position: relative;
+  height: 100%;
+  border-radius: 16px;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  padding: 13px 15px 11px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  overflow: hidden;
+  transition: background 160ms var(--ease), border-color 160ms var(--ease), transform 160ms var(--ease);
+}
+body.light .card { box-shadow: 0 1px 3px rgba(20, 24, 32, 0.07); }
+.card:hover {
+  background: var(--card-hover);
+  border-color: var(--card-border-hover);
+  transform: translateY(-1px);
+}
+.card:active { transform: translateY(0); }
+
+/* 大卡：已开启的前三站，跨两行 */
+.card.hero {
+  grid-row: span 2;
+  padding: 18px 20px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.022));
+}
+body.light .card.hero { background: linear-gradient(160deg, #ffffff, #fafbfd); }
+.card.hero .card-top { flex-direction: column; align-items: flex-start; gap: 13px; }
+.card.hero .card-text-block { width: 100%; }
+.card.hero .more { position: absolute; top: 14px; right: 14px; opacity: 0.5; }
+.card.hero .site-icon { width: 52px; height: 52px; border-radius: 14px; font-size: 20px; }
+.card.hero .site-icon img { width: 38px; height: 38px; }
+.card.hero .card-name { font-size: 27px; letter-spacing: -0.025em; line-height: 1.1; }
+.card.hero .card-meta { margin-top: 7px; font-size: 11.5px; }
+.card.hero .card-go { font-size: 12.5px; }
+
+/* 添加站点卡：补满最后一行 */
+.card.add-card {
+  display: grid;
+  place-items: center;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: var(--ink-3);
+}
+.card.add-card:hover {
+  border-color: var(--accent-line);
+  color: var(--accent);
+  background: rgba(10, 132, 255, 0.04);
+  transform: none;
+}
+body.light .card.add-card { border-color: rgba(0, 0, 0, 0.15); background: transparent; box-shadow: none; }
+body.light .card.add-card:hover { background: rgba(10, 99, 246, 0.04); }
+.add-inner { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 550; }
+
+.card-top { display: flex; align-items: center; gap: 10px; }
+.site-icon {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--chip-bg);
+  border: 1px solid var(--card-border);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-2);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.site-icon img { width: 26px; height: 26px; object-fit: contain; }
+.card-text-block { flex: 1; min-width: 0; }
+.card-name {
+  flex: 1; min-width: 0;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.card-meta {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--ink-3);
+  white-space: nowrap; overflow: hidden;
+}
+.card-meta .badge {
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--green-soft);
+  color: var(--green);
+  font-size: 10px;
+  flex: none;
+}
+.card-bottom {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-go {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: var(--ink-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 140ms var(--ease), gap 140ms var(--ease);
+}
+.card:hover .card-go { color: var(--accent); gap: 7px; }
+.more {
+  width: 26px; height: 26px;
+  border-radius: 7px;
+  display: grid; place-items: center;
+  color: var(--ink-3);
+  opacity: 0.45;
+  transition: background 140ms var(--ease), color 140ms var(--ease), opacity 140ms var(--ease);
+}
+.card:hover .more { opacity: 1; }
+.more:hover { background: var(--hover); color: var(--ink); opacity: 1; }
+
+/* 幽灵卡(已关闭) */
+.card.ghost {
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.11);
+  cursor: default;
+}
+body.light .card.ghost { background: transparent; border-color: rgba(0, 0, 0, 0.14); box-shadow: none; }
+.card.ghost:hover {
+  background: rgba(255, 255, 255, 0.025);
+  border-color: rgba(255, 255, 255, 0.16);
+  transform: none;
+}
+body.light .card.ghost:hover { background: rgba(20, 24, 32, 0.028); border-color: rgba(0, 0, 0, 0.2); }
+.card.ghost .card-name { color: var(--ink-3); font-weight: 550; }
+.enable {
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 11.5px;
+  font-weight: 550;
+  color: var(--ink-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 140ms var(--ease), gap 140ms var(--ease);
+}
+.enable::after { content: "→"; }
+.card.ghost:hover .enable { color: var(--accent); gap: 7px; }
+
+.grid-sep {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 2px;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.grid-sep::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+/* 未启用：细索引带 */
+.idx-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+.idx-item {
+  height: 44px;
+  border-radius: 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.09);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  text-align: left;
+  transition: border-color 140ms var(--ease), color 140ms var(--ease), background 140ms var(--ease);
+}
+.idx-item:hover { border-color: var(--accent-line); color: var(--ink); background: rgba(255, 255, 255, 0.03); }
+body.light .idx-item { border-color: rgba(0, 0, 0, 0.12); }
+body.light .idx-item:hover { background: rgba(20, 24, 32, 0.03); }
+.idx-act { margin-left: auto; font-size: 11px; }
+.idx-item:hover .idx-act { color: var(--accent); }
+
+/* ── 抽屉 ── */
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.52);
+  display: none;
+  z-index: 20;
+}
+body.show-drawer .scrim { display: block; }
+
+.drawer {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 424px;
+  background: var(--drawer-bg);
+  border-left: 1px solid var(--drawer-border);
+  box-shadow: var(--shadow-drawer);
+  z-index: 30;
+  display: none;
+  flex-direction: column;
+}
+body.show-drawer .drawer { display: flex; }
+
+.drawer-head {
+  flex: none;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.drawer-id { flex: 1; min-width: 0; }
+.drawer-id h3 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.drawer-id .card-meta { margin-top: 5px; }
+.drawer-close {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  display: grid; place-items: center;
+  color: var(--ink-2);
+}
+.drawer-close:hover { background: var(--hover); color: var(--ink); }
+
+.drawer-scroll { flex: 1; overflow-y: auto; padding: 16px 20px 28px; scrollbar-width: thin; }
+.dcard {
+  border-radius: 14px;
+  border: 1px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 15px 16px;
+  margin-bottom: 12px;
+}
+body.light .dcard { background: #f7f8fa; }
+.dcard h4 {
+  margin: 0 0 11px;
+  display: flex; align-items: baseline; gap: 9px;
+  font-size: 13px; font-weight: 650;
+}
+.dcard h4 span { font-size: 10.5px; font-weight: 400; color: var(--ink-3); }
+.dcard p { margin: 0 0 11px; font-size: 12px; line-height: 1.6; color: var(--ink-2); }
+.dcard p b { color: var(--ink); font-weight: 600; }
+.dcard .foot { margin: 11px 0 0; font-size: 10.5px; line-height: 1.65; color: var(--ink-3); }
+
+.badge { height: 19px; padding: 0 7px; border-radius: 999px; display: inline-flex; align-items: center; font-size: 10.5px; background: var(--green-soft); color: var(--green); }
+.badge.muted { background: var(--chip-bg); color: var(--ink-3); }
+.dhead-badge { margin-left: auto; }
+
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn {
+  height: 31px; padding: 0 13px;
+  border-radius: 9px;
+  font-size: 12.5px; font-weight: 550;
+  transition: filter 140ms var(--ease), background 140ms var(--ease), border-color 140ms var(--ease);
+}
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost { background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--ink); }
+.btn.ghost:hover { border-color: var(--accent-line); }
+
+.setting {
+  display: flex; align-items: center; gap: 14px;
+  min-height: 40px; padding: 5px 0;
+  border-top: 1px solid var(--line);
+}
+.setting:first-of-type { border-top: 0; }
+.setting-label { width: 88px; flex: none; font-size: 12px; color: var(--ink-2); }
+.seg-inline { display: flex; gap: 3px; padding: 3px; border-radius: 8px; background: var(--chip-bg); border: 1px solid var(--chip-border); }
+.seg-inline button { height: 23px; padding: 0 11px; border-radius: 6px; font-size: 11.5px; color: var(--ink-2); }
+.seg-inline button:hover { color: var(--ink); }
+.seg-inline button.on { background: var(--accent-soft); color: var(--accent); }
+.select {
+  height: 29px; max-width: 236px;
+  padding: 0 9px;
+  border-radius: 8px;
+  border: 1px solid var(--chip-border);
+  background: var(--chip-bg);
+  font-size: 11.5px;
+  color: var(--ink);
+  display: inline-flex; align-items: center; gap: 7px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.select:hover { border-color: var(--accent-line); }
+.select svg { flex: none; color: var(--ink-3); margin-left: auto; }
+
+.switch {
+  width: 44px; height: 26px;
+  border-radius: 999px;
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-border);
+  position: relative;
+  flex: none;
+  transition: background 160ms var(--ease), border-color 160ms var(--ease);
+}
+.switch i {
+  position: absolute; top: 2px; left: 2px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.82);
+  transition: transform 160ms var(--ease), background 160ms var(--ease);
+}
+body.light .switch i { background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22); }
+.switch[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+.switch[aria-checked="true"] i { transform: translateX(18px); background: #fff; }
+
+@media (max-width: 1120px) {
+  .search { width: 132px; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+  .drawer { width: 390px; }
+}
+</style>
+</head>
+<body>
+
+<div class="preview-bar">
+  <div>
+    <h1>Venera · 站点墙（原「源管理」）整页重做</h1>
+    <p>站点名单取自 2026-11-20 真窗截图;计数、登录态与设置项为演示。</p>
+  </div>
+  <div class="preview-actions">
+    <span class="seg-label">主题</span>
+    <div class="seg" id="seg-theme">
+      <button data-theme="dark" aria-pressed="true">深色</button>
+      <button data-theme="light" aria-pressed="false">浅色</button>
+    </div>
+    <span class="seg-label">演示</span>
+    <div class="seg" id="seg-drawer">
+      <button data-drawer="closed" aria-pressed="true">正常</button>
+      <button data-drawer="open" aria-pressed="false">打开抽屉</button>
+    </div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="app">
+
+    <div class="titlebar">
+      <div class="win-dots"><i></i><i></i><i></i></div>
+      <button class="tb-back" aria-label="返回">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg>
+      </button>
+      <span class="tb-title">站点</span>
+    </div>
+
+    <div class="body">
+      <nav class="rail">
+        <button class="rail-item" aria-label="首页">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5 10 3l7 5.5V16a1 1 0 0 1-1 1h-4v-4.5H8V17H4a1 1 0 0 1-1-1z"/></svg>
+        </button>
+        <button class="rail-item" aria-label="图库">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="3" y="3" width="6" height="6" rx="1.6"/><rect x="11" y="3" width="6" height="6" rx="1.6"/><rect x="3" y="11" width="6" height="6" rx="1.6"/><rect x="11" y="11" width="6" height="6" rx="1.6"/></svg>
+        </button>
+        <button class="rail-item on" aria-label="站点">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7"/><path d="M3 10h14M10 3c1.9 2 3 4.4 3 7s-1.1 5-3 7c-1.9-2-3-4.4-3-7s1.1-5 3-7z"/></svg>
+        </button>
+        <button class="rail-item" aria-label="收藏">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="m10 3.4 2 4.1 4.5.6-3.3 3.2.8 4.5-4-2.1-4 2.1.8-4.5L3.5 8.1l4.5-.6z"/></svg>
+        </button>
+        <div class="rail-spacer"></div>
+        <button class="rail-item" aria-label="设置">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="2.6"/><path d="M10 3v1.6M10 15.4V17M3 10h1.6M15.4 10H17M5.1 5.1l1.1 1.1M13.8 13.8l1.1 1.1M14.9 5.1l-1.1 1.1M6.2 13.8l-1.1 1.1"/></svg>
+        </button>
+      </nav>
+
+      <main class="wall">
+        <header class="wall-head">
+          <div class="wall-title">
+            <h2>站点</h2>
+            <p>8 个已开启 · 26 个未启用</p>
+          </div>
+          <div class="wall-tools">
+            <div class="search">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="7.2" cy="7.2" r="4.2"/><path d="m10.4 10.4 2.6 2.6"/></svg>
+              <input type="text" placeholder="搜站点" aria-label="搜索站点">
+            </div>
+            <div class="chips">
+              <button class="on">全部</button>
+              <button>已开启</button>
+              <button>未启用</button>
+            </div>
+            <div class="add-wrap">
+              <button class="add-site" id="add-site">
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 2.5v9M2.5 7h9"/></svg>
+                添加站点
+              </button>
+              <div class="popup" id="add-popup">
+                <button>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5v11M2.5 8h11"/></svg>
+                  在线站点<span>从列表里装</span>
+                </button>
+                <button>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10.5V2.5M4.8 5.6 8 2.4l3.2 3.2M2.5 11.5v1.2a.8.8 0 0 0 .8.8h9.4a.8.8 0 0 0 .8-.8v-1.2"/></svg>
+                  导入站点脚本<span>.js</span>
+                </button>
+                <button>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3"/></svg>
+                  检查更新<span>对账 34 个</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div class="grid">
+
+          <article class="card hero" data-site="包子漫画">
+            
+            <div class="card-top">
+              <div style="flex:1;min-width:0">
+                <div class="card-name">包子漫画</div>
+                <div class="card-meta">内置站点 · 4 项设置</div>
+              </div>
+              <button class="more" aria-label="包子漫画的设置">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.6" cy="8" r="1.25"/><circle cx="8" cy="8" r="1.25"/><circle cx="12.4" cy="8" r="1.25"/></svg>
+              </button>
+            </div>
+            <div class="card-bottom">
+              <span class="card-go">浏览 <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h7M6.5 3l3 3-3 3"/></svg></span>
+            </div>
+          </article>
+
+          <article class="card hero" data-site="ehentai">
+            
+            <div class="card-top">
+              <div style="flex:1;min-width:0">
+                <div class="card-name">ehentai</div>
+                <div class="card-meta"><span class="badge">已登录</span>内置站点</div>
+              </div>
+              <button class="more" aria-label="ehentai 的设置">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.6" cy="8" r="1.25"/><circle cx="8" cy="8" r="1.25"/><circle cx="12.4" cy="8" r="1.25"/></svg>
+              </button>
+            </div>
+            <div class="card-bottom">
+              <span class="card-go">浏览 <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h7M6.5 3l3 3-3 3"/></svg></span>
+            </div>
+          </article>
+
+          <article class="card hero" data-site="禁漫天堂">
+            
+            <div class="card-top">
+              <div style="flex:1;min-width:0">
+                <div class="card-name">禁漫天堂</div>
+                <div class="card-meta"><span class="badge">已登录</span>内置站点 · 2 项设置</div>
+              </div>
+              <button class="more" aria-label="禁漫天堂的设置">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.6" cy="8" r="1.25"/><circle cx="8" cy="8" r="1.25"/><circle cx="12.4" cy="8" r="1.25"/></svg>
+              </button>
+            </div>
+            <div class="card-bottom">
+              <span class="card-go">浏览 <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h7M6.5 3l3 3-3 3"/></svg></span>
+            </div>
+          </article>
+
+          <article class="card">
+            
+            <div class="card-top">
+              <div style="flex:1;min-width:0">
+                <div class="card-name">CCC追漫台</div>
+                <div class="card-meta">内置站点</div>
+              </div>
+              <button class="more" aria-label="CCC追漫台的设置">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.6" cy="8" r="1.25"/><circle cx="8" cy="8" r="1.25"/><circle cx="12.4" cy="8" r="1.25"/></svg>
+              </button>
+            </div>
+            <div class="card-bottom">
+              <span class="card-go">浏览 <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h7M6.5 3l3 3-3 3"/></svg></span>
+            </div>
+          </article>
+
+          <article class="card">
+            
+            <div class="card-top">
+              <div style="flex:1;min-width:0">
+                <div class="card-name">カドコミ</div>
+                <div class="card-meta">内置站点</div>
+              </div>
+              <button class="more" aria-label="カドコミ的设置">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.6" cy="8" r="1.25"/><circle cx="8" cy="8" r="1.25"/><circle cx="12.4" cy="8" r="1.25"/></svg>
+              </button>
+            </div>
+            <div class="card-bottom">
+              <span class="card-go">浏览 <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h7M6.5 3l3 3-3 3"/></svg></span>
+            </div>
+          </article>
+
+          <article class="card">
+            
+            <div class="card-top">
+              <div style="flex:1;min-width:0">
+                <div class="card-name">comick</div>
+                <div class="card-meta">内置站点</div>
+              </div>
+              <button class="more" aria-label="comick 的设置">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.6" cy="8" r="1.25"/><circle cx="8" cy="8" r="1.25"/><circle cx="12.4" cy="8" r="1.25"/></svg>
+              </button>
+            </div>
+            <div class="card-bottom">
+              <span class="card-go">浏览 <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h7M6.5 3l3 3-3 3"/></svg></span>
+            </div>
+          </article>
+
+          <article class="card">
+            
+            <div class="card-top">
+              <div style="flex:1;min-width:0">
+                <div class="card-name">拷贝漫画</div>
+                <div class="card-meta">内置站点</div>
+              </div>
+              <button class="more" aria-label="拷贝漫画的设置">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.6" cy="8" r="1.25"/><circle cx="8" cy="8" r="1.25"/><circle cx="12.4" cy="8" r="1.25"/></svg>
+              </button>
+            </div>
+            <div class="card-bottom">
+              <span class="card-go">浏览 <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h7M6.5 3l3 3-3 3"/></svg></span>
+            </div>
+          </article>
+
+          <article class="card">
+            
+            <div class="card-top">
+              <div style="flex:1;min-width:0">
+                <div class="card-name">Gelbooru</div>
+                <div class="card-meta">内置站点</div>
+              </div>
+              <button class="more" aria-label="Gelbooru 的设置">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.6" cy="8" r="1.25"/><circle cx="8" cy="8" r="1.25"/><circle cx="12.4" cy="8" r="1.25"/></svg>
+              </button>
+            </div>
+            <div class="card-bottom">
+              <span class="card-go">浏览 <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h7M6.5 3l3 3-3 3"/></svg></span>
+            </div>
+          </article>
+
+          <article class="card add-card" id="add-card">
+            <div class="add-inner">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 2.5v9M2.5 7h9"/></svg>
+              添加站点
+            </div>
+          </article>
+
+        </div>
+
+        <div class="grid-sep">未启用 26 个</div>
+
+        <div class="idx-grid">
+          <button class="idx-item"><span>GoDa漫画</span><span class="idx-act">启用</span></button>
+          <button class="idx-item"><span>H-Comic</span><span class="idx-act">启用</span></button>
+          <button class="idx-item"><span>hitomi.la</span><span class="idx-act">启用</span></button>
+          <button class="idx-item"><span>热辣漫画</span><span class="idx-act">启用</span></button>
+          <button class="idx-item"><span>爱看漫</span><span class="idx-act">启用</span></button>
+          <button class="idx-item"><span>jcomic.net</span><span class="idx-act">启用</span></button>
+          <button class="idx-item"><span>Kavita</span><span class="idx-act">启用</span></button>
+          <button class="idx-item"><span>Komga</span><span class="idx-act">启用</span></button>
+          <button class="idx-item"><span>Lanraragi</span><span class="idx-act">启用</span></button>
+          <button class="idx-item"><span>mh18</span><span class="idx-act">启用</span></button>
+        </div>
+
+      </main>
+
+      <div class="scrim" id="scrim"></div>
+
+      <aside class="drawer" id="drawer" aria-label="站点设置">
+        <div class="drawer-head">
+          <div class="drawer-id">
+            <h3>包子漫画</h3>
+            <div class="card-meta">
+              <span class="badge muted">内置站点</span>
+              <span>v1.1.6</span>
+              <span>bzmgcn.com</span>
+            </div>
+          </div>
+          <button class="drawer-close" id="drawer-close" aria-label="关闭">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="m4 4 8 8M12 4l-8 8"/></svg>
+          </button>
+        </div>
+
+        <div class="drawer-scroll">
+          <div class="dcard" style="display:flex;align-items:center;gap:12px;">
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600">在站点列表中显示</div>
+              <div style="margin-top:3px;font-size:11px;color:var(--ink-3)">关闭后，探索与搜索里不再出现这个站点。</div>
+            </div>
+            <button class="switch" aria-checked="true" aria-label="启用这个站点"><i></i></button>
+          </div>
+
+          <div class="dcard">
+            <h4>账号<span class="badge muted dhead-badge">未登录</span></h4>
+            <p>登录后同步收藏、追更与阅读记录。</p>
+            <div class="btn-row">
+              <button class="btn primary">登录</button>
+            </div>
+          </div>
+
+          <div class="dcard">
+            <h4>站点设置<span>由站点脚本提供</span></h4>
+            <div class="setting">
+              <div class="setting-label">简繁切换</div>
+              <div class="seg-inline">
+                <button class="on">简中</button>
+                <button>繁中</button>
+              </div>
+            </div>
+            <div class="setting">
+              <div class="setting-label">主域名</div>
+              <button class="select">bzmgcn.com
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 4.5 3 3 3-3"/></svg>
+              </button>
+            </div>
+            <div class="setting">
+              <div class="setting-label">图片域名</div>
+              <button class="select">as-rsa1-us1a.baozicdn.com
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 4.5 3 3 3-3"/></svg>
+              </button>
+            </div>
+            <div class="setting">
+              <div class="setting-label">图片质量</div>
+              <button class="select">w640
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 4.5 3 3 3-3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="dcard">
+            <h4>脚本<span>v1.1.6 · 内置</span></h4>
+            <div class="btn-row">
+              <button class="btn ghost">编辑脚本</button>
+              <button class="btn ghost">恢复内置脚本</button>
+            </div>
+            <p class="foot">脚本随应用版本更新;你对脚本的修改只保存在本机，可以随时恢复。</p>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var body = document.body;
+
+  document.getElementById('seg-theme').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    Array.prototype.forEach.call(this.children, function (x) {
+      x.setAttribute('aria-pressed', String(x === b));
+    });
+    body.classList.toggle('light', b.dataset.theme === 'light');
+  });
+
+  var segDrawer = document.getElementById('seg-drawer');
+  function setDrawer(open) {
+    body.classList.toggle('show-drawer', open);
+    Array.prototype.forEach.call(segDrawer.children, function (x) {
+      x.setAttribute('aria-pressed', String((x.dataset.drawer === 'open') === open));
+    });
+  }
+  segDrawer.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    setDrawer(b.dataset.drawer === 'open');
+  });
+  document.getElementById('drawer-close').addEventListener('click', function () { setDrawer(false); });
+  document.getElementById('scrim').addEventListener('click', function () { setDrawer(false); });
+  if (location.hash === '#drawer') setDrawer(true);
+
+  // 加站点下拉
+  var addBtn = document.getElementById('add-site');
+  var popup = document.getElementById('add-popup');
+  addBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    popup.classList.toggle('open');
+  });
+  document.addEventListener('click', function () { popup.classList.remove('open'); });
+
+  var addCard = document.getElementById('add-card');
+  if (addCard) {
+    addCard.addEventListener('click', function (e) {
+      e.stopPropagation();
+      popup.classList.add('open');
+    });
+  }
+
+  // 卡片「⋯」开抽屉(卡片本身=浏览,演示里只闪一下 aria)
+  document.querySelectorAll('.more').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setDrawer(true);
+    });
+  });
+
+  // 幽灵卡启用
+  document.querySelectorAll('.enable').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var card = btn.closest('.card');
+      card.classList.remove('ghost');
+      card.querySelector('.card-meta').textContent = '内置站点';
+      btn.outerHTML = '<span class="card-go">浏览 <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6h7M6.5 3l3 3-3 3"/></svg></span>';
+    });
+  });
+
+  // 三档
+  var chips = document.querySelector('.chips');
+  chips.addEventListener('click', function (e) {
+    var c = e.target.closest('button');
+    if (!c) return;
+    Array.prototype.forEach.call(chips.children, function (x) {
+      x.classList.toggle('on', x === c);
+    });
+    var mode = c.textContent.trim();
+    var gridEl = document.querySelector('.grid');
+    var idxEl = document.querySelector('.idx-grid');
+    var sepEl = document.querySelector('.grid-sep');
+    var showActive = mode !== '未启用';
+    var showIdle = mode !== '已开启';
+    if (gridEl) gridEl.style.display = showActive ? '' : 'none';
+    if (idxEl) idxEl.style.display = showIdle ? '' : 'none';
+    if (sepEl) sepEl.style.display = showIdle ? '' : 'none';
+  });
+
+  document.querySelectorAll('.idx-item').forEach(function (it) {
+    it.addEventListener('click', function () { it.remove(); });
+  });
+
+  // 站点图标：抓得到的用真图标，抓不到的用站名首字（方案稿演示逻辑）
+  var ICON_SRC = {
+    '包子漫画': 'assets/icons/baozi.ico',
+    'ehentai': 'assets/icons/ehentai.png',
+    'CCC追漫台': 'assets/icons/ccc.png',
+    '禁漫天堂': 'assets/icons/jm.ico',
+    'comick': 'assets/icons/comick.ico',
+    '拷贝漫画': 'assets/icons/copy_manga.ico',
+    'Gelbooru': 'assets/icons/gelbooru.ico',
+    'カドコミ': 'assets/icons/comic_walker.png',
+    'GoDa漫画': 'assets/icons/goda.ico',
+    'H-Comic': 'assets/icons/hcomic.ico',
+    'hitomi.la': 'assets/icons/hitomi.png',
+    '热辣漫画': 'assets/icons/hot_manga.ico',
+    'mh18': 'assets/icons/mh18.ico'
+  };
+  document.querySelectorAll('.card').forEach(function (card) {
+    var nameEl = card.querySelector('.card-name');
+    if (!nameEl) return;
+    var name = nameEl.textContent.trim();
+    var icon = document.createElement('span');
+    icon.className = 'site-icon';
+    var src = ICON_SRC[name];
+    if (src) {
+      icon.innerHTML = '<img src="' + src + '" alt="">';
+    } else {
+      var ch = name.charAt(0);
+      icon.textContent = /[A-Za-z]/.test(ch) ? name.slice(0, 2) : ch;
+    }
+    var top = card.querySelector('.card-top');
+    top.insertBefore(icon, top.firstChild);
+    var block = top.querySelector('div');
+    if (block) block.className = 'card-text-block';
+  });
+})();
+</script>
+</body>
+</html>

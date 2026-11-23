@@ -1,0 +1,5500 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VComic — 漫画与图库（Windows 桌面版）</title>
+  <meta name="description" content="VComic（漫画与图库）是 Windows 桌面端应用：内置 34 个漫画源，支持 Pixiv 与多个图库站，提供双页阅读、离线下载与阅读统计。" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="VComic — 一个窗口看漫画与图库（Windows 桌面版）" />
+  <meta property="og:description" content="Kotlin + Compose Multiplatform 原生 Windows 桌面应用。内置 34 个漫画源，接入 Pixiv 与多个图库站，支持双页阅读、缺页补齐与阅读统计。" />
+  <meta property="og:image" content="assets/screenshots/home-dark.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="VComic — 漫画与图库（Windows 桌面版）" />
+  <meta name="twitter:description" content="内置 34 个漫画源，接入 Pixiv 与图库站，支持双页阅读、缺页补齐与离线本地阅读。" />
+  <meta name="twitter:image" content="assets/screenshots/home-dark.jpg" />
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="apple-touch-icon" href="assets/vcomic-256.png" />
+  <script>
+    /* 同步读取主题，避免深色模式刷新首帧白屏闪烁 */
+    (function () {
+      try {
+        var t = window.localStorage.getItem('venera-site-theme');
+        if (t === 'dark' || t === 'light') {
+          document.documentElement.setAttribute('data-theme', t);
+        }
+      } catch (_) {}
+    })();
+  </script>
+  <style>
+    /* =========================================================
+       设计令牌（严格遵循 better-ui 精确值：同心圆角、纯黑白描边、双主题阴影）
+       ========================================================= */
+    :root {
+      --font-sans: "Inter", "SF Pro Display", "PingFang SC", "Segoe UI Variable", "Microsoft YaHei UI", system-ui, -apple-system, sans-serif;
+      --font-mono: "JetBrains Mono", "Cascadia Code", "SF Mono", Consolas, monospace;
+
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+      --ease-spring: cubic-bezier(0.34, 1.36, 0.64, 1);
+
+      /* 同心圆几何系统：outer = inner + padding + border(1px) */
+      --radius-inner: 14px;
+      --radius-outer: 23px; /* 14 + 8 + 1 */
+      --radius-sm-inner: 9px;
+      --radius-sm-outer: 14px; /* 9 + 4 + 1 */
+    }
+
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #070708;
+      --bg-elevated: #0e0e11;
+      --bg-surface: #141418;
+      --bg-surface-2: #1b1b21;
+      --bg-glass: rgba(14, 14, 18, 0.72);
+      --fg: #f5f5f7;
+      --fg-muted: #a1a1aa;
+      --fg-subtle: #71717a;
+      --fg-faint: #52525b;
+      --divider: oklch(1 0 0 / 0.08);
+      --divider-strong: oklch(1 0 0 / 0.14);
+      --accent-bg: #f5f5f7;
+      --accent-fg: #09090b;
+      --accent-bg-hover: #ffffff;
+      --chip-bg: oklch(1 0 0 / 0.06);
+      --chip-bg-hover: oklch(1 0 0 / 0.11);
+      --status-green: #34d399;
+      --status-amber: #fbbf24;
+      --status-red: #f87171;
+      --status-blue: #60a5fa;
+
+      /* better-ui 深色模式标准阴影环 */
+      --shadow-border: 0 0 0 1px oklch(1 0 0 / 0.08);
+      --shadow-border-hover: 0 0 0 1px oklch(1 0 0 / 0.15);
+      --shadow-window: 0 0 0 1px oklch(1 0 0 / 0.1), 0 32px 80px -20px rgba(0, 0, 0, 0.85);
+      --image-outline: oklch(1 0 0 / 0.1);
+    }
+
+    :root[data-theme="light"] {
+      color-scheme: light;
+      /* 纸白画廊：底色取漫画纸的暖白，卡片保持纯白以拉开层次 */
+      --bg: #faf9f6;
+      --bg-elevated: #ffffff;
+      --bg-surface: #f2f0ea;
+      --bg-surface-2: #e8e5dd;
+      --bg-glass: rgba(250, 249, 246, 0.82);
+      --fg: #141310;
+      --fg-muted: #55524b;
+      --fg-subtle: #736f66;
+      --fg-faint: #a5a096;
+      --divider: oklch(0 0 0 / 0.09);
+      --divider-strong: oklch(0 0 0 / 0.16);
+      --accent-bg: #141310;
+      --accent-fg: #ffffff;
+      --accent-bg-hover: #2b2925;
+      --chip-bg: oklch(0 0 0 / 0.05);
+      --chip-bg-hover: oklch(0 0 0 / 0.09);
+      --status-green: #059669;
+      --status-amber: #d97706;
+      --status-red: #dc2626;
+      --status-blue: #2563eb;
+
+      /* 纸白底与纯白卡片色差小，靠描边和浅阴影分出层次 */
+      --shadow-border:
+        0px 0px 0px 1px oklch(0 0 0 / 0.09),
+        0px 1px 2px -1px oklch(0 0 0 / 0.07),
+        0px 2px 6px 0px oklch(0 0 0 / 0.05);
+      --shadow-border-hover:
+        0px 0px 0px 1px oklch(0 0 0 / 0.13),
+        0px 2px 4px -1px oklch(0 0 0 / 0.09),
+        0px 8px 18px -4px oklch(0 0 0 / 0.07);
+      --shadow-window:
+        0px 0px 0px 1px oklch(0 0 0 / 0.08),
+        0px 24px 64px -16px rgba(15, 23, 42, 0.16);
+      --image-outline: oklch(0 0 0 / 0.1);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.55;
+      overflow-x: hidden;
+      transition: background-color 220ms var(--ease-out), color 220ms var(--ease-out);
+    }
+
+    button, a {
+      color: inherit;
+      font: inherit;
+      text-decoration: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--fg);
+      outline-offset: 2px;
+    }
+
+    /* 顶部极细滚动进度条 */
+    .scroll-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 2px;
+      width: 100%;
+      background: var(--fg);
+      transform-origin: left center;
+      transform: scaleX(0);
+      z-index: 95;
+      pointer-events: none;
+      opacity: 0.72;
+    }
+
+    button {
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    img {
+      display: block;
+      max-width: 100%;
+    }
+
+    /* better-ui 内容图纯黑白内嵌描边 */
+    .content-img {
+      outline: 1px solid var(--image-outline);
+      outline-offset: -1px;
+    }
+
+    /* 统一 SVG 图标规范：currentColor + 固定描边粗细 */
+    .icon {
+      display: inline-block;
+      flex-shrink: 0;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .icon path, .icon rect, .icon circle, .icon line, .icon polyline, .icon polygon {
+      vector-effect: non-scaling-stroke;
+    }
+    .icon-regular { stroke-width: 1.5px; }
+    .icon-medium { stroke-width: 2px; }
+
+    .container {
+      width: 100%;
+      max-width: 1180px;
+      margin-inline: auto;
+      padding-inline: 24px;
+    }
+
+    .container-narrow {
+      width: 100%;
+      max-width: 820px;
+      margin-inline: auto;
+      padding-inline: 24px;
+    }
+
+    /* =========================================================
+       顶部导航（滚动后吸顶滑出主按钮）
+       ========================================================= */
+    .nav {
+      position: fixed;
+      inset-block-start: 0;
+      inset-inline: 0;
+      z-index: 80;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      background: transparent;
+      border-bottom: 1px solid transparent;
+      transition: background-color 220ms var(--ease-out), border-color 220ms var(--ease-out), backdrop-filter 220ms var(--ease-out);
+    }
+
+    .nav.is-scrolled {
+      background: var(--bg-glass);
+      backdrop-filter: blur(18px) saturate(140%);
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
+      border-bottom-color: var(--divider);
+    }
+
+    .nav-inner {
+      width: 100%;
+      max-width: 1180px;
+      margin-inline: auto;
+      padding-inline: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-mark {
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+      overflow: hidden;
+      background: var(--bg-elevated);
+      box-shadow: 0 0 0 1px var(--divider-strong);
+      display: grid;
+      place-items: center;
+    }
+
+    .brand-mark img {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      font-size: 13.5px;
+      color: var(--fg-muted);
+    }
+
+    .nav-links a {
+      position: relative;
+      transition: color 150ms ease;
+    }
+
+    .nav-links a.is-current {
+      color: var(--fg);
+      font-weight: 500;
+    }
+
+    .nav-links a.is-current::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -6px;
+      height: 1.5px;
+      border-radius: 999px;
+      background: var(--fg);
+    }
+
+    .nav-menu-btn {
+      display: none;
+    }
+
+    .mobile-drawer {
+      position: fixed;
+      top: 60px;
+      inset-inline: 16px;
+      z-index: 79;
+      padding: 12px;
+      border-radius: 16px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(20px) saturate(150%);
+      -webkit-backdrop-filter: blur(20px) saturate(150%);
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-window);
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      transform-origin: top center;
+    }
+
+    .mobile-drawer.is-open {
+      display: flex;
+      animation: fade-slide 180ms var(--ease-out);
+    }
+
+    .mobile-drawer a {
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      color: var(--fg-muted);
+      transition: background-color 140ms ease, color 140ms ease;
+    }
+
+    .mobile-drawer a.is-current {
+      color: var(--fg);
+      background: var(--chip-bg);
+      font-weight: 500;
+    }
+
+    .mobile-drawer-cta {
+      margin-top: 6px;
+      width: 100%;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      color: var(--fg-muted);
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-border);
+      background: var(--bg-elevated);
+      transition: color 150ms ease, box-shadow 150ms ease, transform 140ms var(--ease-out);
+    }
+
+    .nav-download {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.96);
+      pointer-events: none;
+      transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+    }
+
+    .nav.is-scrolled .nav-download {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    /* 光学对齐按钮：带右侧图标时图标侧少 2px 内边距 */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 40px;
+      padding-inline: 18px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      transition: background-color 150ms ease, box-shadow 150ms ease, transform 130ms var(--ease-out), color 150ms ease;
+    }
+
+    .btn-sm {
+      height: 34px;
+      padding-inline: 14px;
+      font-size: 13px;
+    }
+
+    .btn-icon-end {
+      padding-inline-start: 18px;
+      padding-inline-end: 16px;
+    }
+
+    .btn-icon-start {
+      padding-inline-start: 16px;
+      padding-inline-end: 18px;
+    }
+
+    .btn-primary {
+      background: var(--accent-bg);
+      color: var(--accent-fg);
+      border: 1px solid transparent;
+    }
+
+    .btn-secondary {
+      background: var(--bg-elevated);
+      color: var(--fg);
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-border);
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    /* =========================================================
+       Hero 首屏 + 桌面窗口预览
+       ========================================================= */
+    .hero {
+      position: relative;
+      padding-top: 108px;
+      padding-bottom: 72px;
+      overflow: hidden;
+    }
+
+    /* 极克制的细网格与顶部柔光层次，双主题自适应 */
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(60% 42% at 50% 0%, oklch(0.65 0.03 250 / 0.12) 0%, transparent 72%),
+        linear-gradient(to right, var(--divider) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--divider) 1px, transparent 1px);
+      background-size: 100% 100%, 44px 44px, 44px 44px;
+      mask-image: radial-gradient(78% 68% at 50% 18%, #000 18%, transparent 86%);
+      -webkit-mask-image: radial-gradient(78% 68% at 50% 18%, #000 18%, transparent 86%);
+      opacity: 0.72;
+    }
+
+    .hero > .container {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* 首屏全宽站源大背屏（铺在标题与桌面窗口之后） */
+    .hero-source-backdrop {
+      position: absolute;
+      inset: 40px 0 0 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-evenly;
+      gap: 16px;
+      opacity: 0.36;
+      mask-image: radial-gradient(115% 100% at 50% 50%, #000 58%, transparent 98%);
+      -webkit-mask-image: radial-gradient(115% 100% at 50% 50%, #000 58%, transparent 98%);
+    }
+
+    :root[data-theme="dark"] .hero-source-backdrop {
+      opacity: 0.26;
+    }
+
+    .hero-source-backdrop .source-track {
+      animation-duration: 62s;
+    }
+
+    .hero-source-backdrop .source-marquee-row.is-reverse .source-track {
+      animation-duration: 70s;
+    }
+
+    .hero-source-backdrop .source-chip {
+      height: 40px;
+      padding: 0 15px 0 9px;
+      font-size: 13px;
+      background: var(--bg-elevated);
+    }
+
+    .hero-source-backdrop .source-chip-icon,
+    .hero-source-backdrop .source-chip-mono {
+      width: 22px;
+      height: 22px;
+    }
+
+    .hero-head {
+      text-align: center;
+      max-width: 720px;
+      margin-inline: auto;
+      margin-bottom: 44px;
+    }
+
+    .release-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 5px 14px 5px 10px;
+      border-radius: 999px;
+      background: var(--bg-elevated);
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-border);
+      font-size: 12.5px;
+      color: var(--fg-muted);
+      margin-bottom: 24px;
+      transition: box-shadow 150ms ease, color 150ms ease;
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--status-green);
+      box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55);
+      animation: pulse-ring 2.4s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+    }
+
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55); }
+      70% { box-shadow: 0 0 0 6px rgba(52, 211, 153, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+    }
+
+    .hero-title {
+      font-size: clamp(42px, 6.2vw, 72px);
+      font-weight: 600;
+      letter-spacing: -0.045em;
+      line-height: 1.04;
+      margin-bottom: 18px;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(16px, 2vw, 19px);
+      color: var(--fg-muted);
+      line-height: 1.6;
+      max-width: 580px;
+      margin-inline: auto;
+      margin-bottom: 28px;
+      font-weight: 400;
+    }
+
+    .hero-cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    /* 拟真桌面窗口外壳（同心圆角：padding 8px + border 1px + inner 14px = outer 23px） */
+    .app-window-frame {
+      padding: 8px;
+      border-radius: var(--radius-outer);
+      background: var(--bg-elevated);
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-window);
+    }
+
+    .app-window {
+      border-radius: var(--radius-inner);
+      background: var(--bg-surface);
+      border: 1px solid var(--divider);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app-titlebar {
+      height: 40px;
+      padding-inline: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--divider);
+      background: var(--bg-elevated);
+      font-size: 12px;
+      color: var(--fg-subtle);
+      user-select: none;
+    }
+
+    .app-titlebar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .win-dots {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .win-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--divider-strong);
+    }
+
+    .app-breadcrumb {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: var(--fg-muted);
+      padding: 3px 9px;
+      border-radius: 6px;
+      background: var(--chip-bg);
+    }
+
+    .app-titlebar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      color: var(--fg-muted);
+    }
+
+    .app-body {
+      display: flex;
+      min-height: 530px;
+      position: relative;
+      background: var(--bg);
+    }
+
+    /* 可调宽度的活侧边栏（仿 x.ai/bot 左侧活列表 + 实时状态流） */
+    .app-sidebar {
+      width: 268px;
+      min-width: 210px;
+      max-width: 340px;
+      flex-shrink: 0;
+      background: var(--bg-elevated);
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sidebar-search {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 34px;
+      padding-inline: 10px;
+      border-radius: 9px;
+      background: var(--bg-surface);
+      border: 1px solid var(--divider);
+      font-size: 12.5px;
+      color: var(--fg-subtle);
+      margin-bottom: 8px;
+      text-align: left;
+      transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease;
+    }
+
+    .sidebar-search span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sidebar-search kbd {
+      margin-left: auto;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: var(--chip-bg);
+      color: var(--fg-subtle);
+    }
+
+    .sidebar-section-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--fg-faint);
+      padding: 6px 10px 4px;
+      letter-spacing: 0.02em;
+    }
+
+    .sidebar-item {
+      width: 100%;
+      text-align: left;
+      padding: 10px;
+      border-radius: 10px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      border: 1px solid transparent;
+      transition: background-color 160ms ease, border-color 160ms ease;
+      position: relative;
+    }
+
+    .sidebar-item.is-active {
+      background: var(--bg-surface-2);
+      border-color: var(--divider-strong);
+    }
+
+    .sidebar-item-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--chip-bg);
+      color: var(--fg-muted);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+      transition: background-color 160ms ease, color 160ms ease;
+    }
+
+    .sidebar-item.is-active .sidebar-item-icon {
+      background: var(--accent-bg);
+      color: var(--accent-fg);
+    }
+
+    .sidebar-item-text {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .sidebar-item-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+
+    .sidebar-item-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--fg);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sidebar-item-meta {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--fg-faint);
+      flex-shrink: 0;
+    }
+
+    .sidebar-item-status {
+      font-size: 11.5px;
+      color: var(--fg-subtle);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 10px;
+      border-radius: 10px;
+      background: var(--bg-surface);
+      border: 1px solid var(--divider);
+      font-size: 11.5px;
+      color: var(--fg-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .sidebar-footer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .mini-progress-track {
+      height: 4px;
+      border-radius: 999px;
+      background: var(--divider-strong);
+      overflow: hidden;
+    }
+
+    .mini-progress-fill {
+      height: 100%;
+      width: 68%;
+      border-radius: 999px;
+      background: var(--fg);
+      transition: width 600ms var(--ease-out);
+    }
+
+    /* 可拖拽分隔条 */
+    .resize-handle {
+      width: 5px;
+      flex-shrink: 0;
+      background: transparent;
+      border-left: 1px solid var(--divider);
+      cursor: col-resize;
+      position: relative;
+      transition: background-color 150ms ease;
+    }
+
+    .resize-handle::after {
+      content: "";
+      position: absolute;
+      inset-block: 44%;
+      left: 1px;
+      width: 2px;
+      border-radius: 2px;
+      background: var(--divider-strong);
+      opacity: 0;
+      transition: opacity 150ms ease;
+    }
+
+    .resize-handle.is-dragging {
+      background: var(--divider-strong);
+    }
+
+    /* 主预览视口 */
+    .app-stage {
+      flex: 1;
+      min-width: 0;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .stage-media-wrap {
+      position: relative;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    .stage-canvas {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      max-height: 498px;
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--bg-surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stage-shot {
+      width: 100%;
+      height: 100%;
+      max-height: 498px;
+      object-fit: contain;
+      object-position: center;
+      background: var(--bg-surface);
+      border-radius: 10px;
+      transition: opacity 280ms var(--ease-out), transform 320ms var(--ease-out);
+      cursor: zoom-in;
+      user-select: none;
+    }
+
+    .stage-shot.is-swapping {
+      opacity: 0.15;
+      transform: scale(0.992);
+    }
+
+    /* 首屏首页明暗皮肤分屏对比层 */
+    .compare-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 200ms ease;
+    }
+
+    .compare-overlay.is-hidden {
+      opacity: 0;
+      pointer-events: none !important;
+      visibility: hidden;
+    }
+
+    .compare-light-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      border-radius: 10px;
+      clip-path: inset(0 calc(100% - var(--split, 38%)) 0 0);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .compare-divider {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: var(--split, 38%);
+      width: 2px;
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25), 0 0 14px rgba(0, 0, 0, 0.35);
+      transform: translateX(-50%);
+      pointer-events: auto;
+      cursor: ew-resize;
+      touch-action: none;
+    }
+
+    .compare-handle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: var(--bg-elevated);
+      color: var(--fg);
+      border: 1px solid var(--divider-strong);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.32);
+      display: grid;
+      place-items: center;
+      pointer-events: auto;
+      cursor: ew-resize;
+      transition: transform 150ms var(--ease-out);
+    }
+
+    .compare-divider.is-dragging .compare-handle {
+      transform: translate(-50%, -50%) scale(1.08);
+    }
+
+    .compare-badge {
+      position: absolute;
+      top: 12px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      background: rgba(14, 14, 18, 0.72);
+      color: #f5f5f7;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      pointer-events: none;
+    }
+
+    .compare-badge.is-left { left: 12px; }
+    .compare-badge.is-right { right: 12px; }
+
+    /* 悬浮动态状态胶囊（体现“活 UI”） */
+    .stage-toast {
+      position: absolute;
+      left: 28px;
+      bottom: 26px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      border-radius: 12px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(16px) saturate(140%);
+      -webkit-backdrop-filter: blur(16px) saturate(140%);
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-border), 0 12px 28px -8px rgba(0, 0, 0, 0.45);
+      font-size: 12.5px;
+      color: var(--fg);
+      max-width: calc(100% - 140px);
+      transition: transform 280ms var(--ease-out), opacity 240ms ease;
+    }
+
+    .stage-toast-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: var(--accent-bg);
+      color: var(--accent-fg);
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+
+    .stage-autoplay-btn {
+      position: absolute;
+      right: 28px;
+      bottom: 26px;
+      height: 34px;
+      padding-inline: 12px;
+      border-radius: 999px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-border);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--fg-muted);
+    }
+
+    /* =========================================================
+       通用章节标题与节奏
+       ========================================================= */
+    .section {
+      padding-block: 88px;
+    }
+
+    .section-head {
+      max-width: 640px;
+      margin-bottom: 44px;
+    }
+
+    .section-head.is-center {
+      margin-inline: auto;
+      text-align: center;
+    }
+
+    .eyebrow {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--fg-subtle);
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .section-title {
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 600;
+      letter-spacing: -0.035em;
+      line-height: 1.12;
+      margin-bottom: 14px;
+    }
+
+    .section-desc {
+      font-size: 16px;
+      color: var(--fg-muted);
+      line-height: 1.6;
+    }
+
+    /* =========================================================
+       6 张功能演示卡片（不对称 12 列网格）
+       ========================================================= */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .bento-card {
+      grid-column: span 6;
+      padding: 8px;
+      border-radius: var(--radius-outer);
+      background: var(--bg-elevated);
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-border);
+      display: flex;
+      flex-direction: column;
+      transition: box-shadow 180ms var(--ease-out);
+    }
+
+    .bento-card.span-7 { grid-column: span 7; }
+    .bento-card.span-5 { grid-column: span 5; }
+    .bento-card.span-12 { grid-column: span 12; }
+
+    .bento-copy {
+      padding: 18px 18px 16px;
+    }
+
+    .bento-title {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .bento-desc {
+      font-size: 13.5px;
+      color: var(--fg-muted);
+      line-height: 1.55;
+    }
+
+    /* 内嵌动态剧场画布：圆角 14px，与外层 23px 完美同心 */
+    .bento-figure {
+      position: relative;
+      height: 296px;
+      border-radius: var(--radius-inner);
+      background: var(--bg-surface);
+      border: 1px solid var(--divider);
+      overflow: hidden;
+      margin-top: auto;
+    }
+
+    /* ---------- 演示 1：图库站与 Pixiv 切换 ---------- */
+    .demo-gallery {
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .demo-gallery-bar {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px;
+      border-radius: 999px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(18px) saturate(160%);
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-border), 0 8px 24px -6px rgba(0, 0, 0, 0.35);
+    }
+
+    .seg-pill {
+      position: relative;
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--fg-muted);
+      z-index: 1;
+      transition: color 200ms ease;
+    }
+
+    .seg-pill.is-active {
+      color: var(--accent-fg);
+    }
+
+    .seg-indicator {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      height: calc(100% - 8px);
+      border-radius: 999px;
+      background: var(--accent-bg);
+      transition: transform 320ms var(--ease-out), width 320ms var(--ease-out);
+      z-index: 0;
+    }
+
+    .demo-masonry {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      padding: 14px;
+      transition: opacity 260ms ease, transform 420ms var(--ease-out);
+    }
+
+    .masonry-col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      animation: masonry-drift 16s linear infinite;
+    }
+
+    .masonry-col:nth-child(2) { animation-duration: 21s; animation-direction: reverse; }
+    .masonry-col:nth-child(3) { animation-duration: 18s; }
+    .masonry-col:nth-child(4) { animation-duration: 23s; animation-direction: reverse; }
+
+    @keyframes masonry-drift {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-76px); }
+      100% { transform: translateY(0); }
+    }
+
+    .masonry-tile {
+      border-radius: 9px;
+      overflow: hidden;
+      background: var(--bg-surface-2);
+      position: relative;
+    }
+
+    .masonry-tile img {
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      object-fit: cover;
+    }
+
+    .masonry-tile.is-tall img {
+      aspect-ratio: 3 / 4.6;
+    }
+
+    .masonry-tag {
+      position: absolute;
+      left: 6px;
+      bottom: 6px;
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: rgba(9, 9, 11, 0.72);
+      color: #f5f5f7;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      backdrop-filter: blur(8px);
+    }
+
+    /* ---------- 演示 2：来源识别与跳转 ---------- */
+    .demo-sniffer {
+      height: 100%;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .sniff-card {
+      padding: 12px;
+      border-radius: 11px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--divider);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sniff-thumb {
+      width: 52px;
+      height: 66px;
+      border-radius: 7px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .sniff-meta {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .sniff-url {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--fg-subtle);
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sniff-title {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .sniff-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .tiny-pill {
+      font-size: 10.5px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--chip-bg);
+      color: var(--fg-muted);
+    }
+
+    .sniff-connector {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-inline: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--fg-subtle);
+    }
+
+    .sniff-line {
+      flex: 1;
+      height: 1px;
+      background: var(--divider-strong);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sniff-line::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -40%;
+      width: 40%;
+      height: 100%;
+      background: var(--fg);
+      animation: scan-beam 2.4s var(--ease-out) infinite;
+    }
+
+    @keyframes scan-beam {
+      0% { left: -40%; }
+      100% { left: 110%; }
+    }
+
+    .sniff-action-pill {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 11px 14px;
+      border-radius: 11px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--divider-strong);
+      font-size: 12.5px;
+      text-align: left;
+      transition: transform 240ms var(--ease-out), background-color 240ms ease, color 240ms ease, border-color 240ms ease;
+    }
+
+    .sniff-action-pill.is-triggered {
+      background: var(--accent-bg);
+      color: var(--accent-fg);
+      border-color: transparent;
+      transform: translateY(-2px);
+    }
+
+    .sniff-result-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: var(--fg-muted);
+      padding: 8px 12px;
+      border-radius: 9px;
+      background: var(--chip-bg);
+      opacity: 0.45;
+      transform: translateY(4px);
+      transition: opacity 280ms ease, transform 280ms var(--ease-out);
+    }
+
+    .sniff-result-bar.is-ready {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ---------- 演示 3：双页阅读与画面调节 ---------- */
+    .demo-reader {
+      height: 100%;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: #0b0b0e;
+      color: #f5f5f7;
+      transition: filter 400ms ease;
+    }
+
+    .demo-reader.mode-warm {
+      filter: sepia(0.24) brightness(0.96);
+    }
+
+    .demo-reader.mode-contrast {
+      filter: contrast(1.12);
+    }
+
+    .reader-top-hud {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: rgba(245, 245, 247, 0.72);
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(24, 24, 29, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .reader-spread {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding-block: 10px;
+      perspective: 900px;
+    }
+
+    .reader-page {
+      width: 44%;
+      height: 178px;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #18181d;
+      outline: 1px solid oklch(1 0 0 / 0.1);
+      outline-offset: -1px;
+      transition: transform 420ms var(--ease-out), opacity 320ms ease;
+    }
+
+    .reader-page img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .reader-spread.is-turning .reader-page:first-child {
+      transform: rotateY(14deg) scale(0.97);
+      opacity: 0.72;
+    }
+
+    .reader-spread.is-turning .reader-page:last-child {
+      transform: rotateY(-14deg) scale(0.97);
+      opacity: 0.72;
+    }
+
+    .reader-bottom-hud {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: rgba(245, 245, 247, 0.76);
+    }
+
+    .reader-hud-pills {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .reader-hud-btn {
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 10.5px;
+      color: rgba(245, 245, 247, 0.68);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid transparent;
+      transition: background-color 140ms ease, color 140ms ease;
+    }
+
+    .reader-hud-btn.is-active {
+      background: #f5f5f7;
+      color: #09090b;
+      font-weight: 500;
+    }
+
+    .reader-step-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: rgba(255, 255, 255, 0.1);
+      color: #f5f5f7;
+      flex-shrink: 0;
+      transition: background-color 140ms ease, transform 120ms ease;
+    }
+
+    .reader-step-btn:active {
+      transform: scale(0.92);
+    }
+
+    .reader-slider-track {
+      flex: 1;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.14);
+      overflow: hidden;
+    }
+
+    .reader-slider-fill {
+      height: 100%;
+      width: 32%;
+      background: #f5f5f7;
+      border-radius: 999px;
+      transition: width 460ms var(--ease-out);
+    }
+
+    /* ---------- 演示 4：下载队列与缺页补齐 ---------- */
+    .demo-queue {
+      height: 100%;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .queue-row {
+      padding: 12px 14px;
+      border-radius: 11px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--divider);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: border-color 220ms ease;
+    }
+
+    .queue-row.is-highlight {
+      border-color: var(--divider-strong);
+    }
+
+    .queue-row-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 12.5px;
+    }
+
+    .queue-name {
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .queue-badge {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: var(--chip-bg);
+      color: var(--fg-muted);
+    }
+
+    .queue-badge.is-ok { color: var(--status-green); }
+    .queue-badge.is-warn { color: var(--status-amber); }
+
+    .queue-bar {
+      height: 5px;
+      border-radius: 999px;
+      background: var(--bg-surface-2);
+      overflow: hidden;
+    }
+
+    .queue-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--fg);
+      transition: width 520ms var(--ease-out), background-color 240ms ease;
+    }
+
+    .queue-bar-fill.is-ok { background: var(--status-green); }
+    .queue-bar-fill.is-warn { background: var(--status-amber); }
+
+    .queue-sub {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--fg-subtle);
+    }
+
+    .repair-chip {
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-family: var(--font-sans);
+      font-weight: 500;
+      background: var(--accent-bg);
+      color: var(--accent-fg);
+      transition: opacity 200ms ease, transform 200ms var(--ease-out);
+    }
+
+    /* ---------- 演示 5：内容分级 ---------- */
+    .demo-privacy {
+      height: 100%;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .privacy-tabs {
+      display: inline-flex;
+      align-self: flex-start;
+      padding: 3px;
+      border-radius: 999px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--divider);
+      gap: 2px;
+    }
+
+    .privacy-tab {
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      color: var(--fg-muted);
+      transition: background-color 180ms ease, color 180ms ease;
+    }
+
+    .privacy-tab.is-active {
+      background: var(--accent-bg);
+      color: var(--accent-fg);
+      font-weight: 500;
+    }
+
+    .privacy-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .privacy-card {
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+      background: var(--bg-elevated);
+      border: 1px solid var(--divider);
+      transition: opacity 280ms ease, transform 280ms var(--ease-out);
+    }
+
+    .privacy-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: filter 340ms var(--ease-out), transform 340ms var(--ease-out), opacity 280ms ease;
+    }
+
+    .privacy-card.is-masked img {
+      filter: blur(14px) brightness(0.65);
+      transform: scale(1.12);
+    }
+
+    .privacy-card.is-hidden {
+      opacity: 0.24;
+      transform: scale(0.95);
+    }
+
+    .privacy-card.is-hidden img {
+      opacity: 0;
+    }
+
+    .privacy-overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 500;
+      color: #f5f5f7;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 260ms ease;
+      text-align: center;
+      padding: 8px;
+    }
+
+    .privacy-card.is-masked .privacy-overlay,
+    .privacy-card.is-hidden .privacy-overlay {
+      opacity: 1;
+    }
+
+    .privacy-card.is-hidden .privacy-overlay {
+      color: var(--fg-subtle);
+    }
+
+    /* ---------- 演示 6：侧栏小猫桌宠互动 ---------- */
+    .demo-mascot {
+      height: 100%;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: #141418;
+      color: #f5f5f7;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mascot-top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      z-index: 2;
+    }
+
+    .mascot-pose-pills {
+      display: inline-flex;
+      padding: 3px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      gap: 2px;
+    }
+
+    .mascot-pose-btn {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      color: rgba(245, 245, 247, 0.68);
+      transition: background-color 150ms ease, color 150ms ease;
+    }
+
+    .mascot-pose-btn.is-active {
+      background: #f5f5f7;
+      color: #09090b;
+      font-weight: 500;
+    }
+
+    .mascot-stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      position: relative;
+    }
+
+    .mascot-bubble {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 12px;
+      background: #2b2b31;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.36);
+      font-size: 12px;
+      color: #ececf0;
+      max-width: 92%;
+      transition: transform 200ms var(--ease-spring), opacity 180ms ease;
+    }
+
+    .mascot-bubble.is-pop {
+      transform: translateY(-2px) scale(1.03);
+    }
+
+    .mascot-bubble-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #89a8f8;
+      flex-shrink: 0;
+      transition: background-color 200ms ease;
+    }
+
+    .mascot-pet-btn {
+      width: 112px;
+      height: 112px;
+      border-radius: 22px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: transform 180ms var(--ease-spring);
+      position: relative;
+    }
+
+    .mascot-pet-btn:active {
+      transform: scale(0.92, 1.06);
+    }
+
+    .mascot-pet-svg {
+      width: 104px;
+      height: 104px;
+      overflow: visible;
+    }
+
+    .mascot-hint {
+      text-align: center;
+      font-size: 11px;
+      color: rgba(245, 245, 247, 0.48);
+      font-family: var(--font-mono);
+    }
+
+    /* =========================================================
+       实拍截图切换区
+       ========================================================= */
+    /* ---------- Android 双端区 ---------- */
+    .android-band {
+      border-radius: var(--radius-outer);
+      background: var(--bg-elevated);
+      box-shadow: var(--shadow-border);
+      padding: 8px;
+    }
+
+    .android-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+      gap: 36px;
+      align-items: center;
+      padding: 34px 30px;
+      border-radius: var(--radius-inner);
+      background: var(--bg-surface);
+    }
+
+    .android-band .section-title {
+      margin-top: 12px;
+      font-size: clamp(24px, 2.6vw, 32px);
+    }
+
+    .android-band .section-desc { max-width: 46ch; }
+
+    .android-feats {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin: 20px 0 24px;
+    }
+
+    .android-feats li {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .android-feats li > svg {
+      flex: 0 0 auto;
+      margin-top: 3px;
+      color: var(--fg-muted);
+    }
+
+    .android-feats b {
+      display: block;
+      font-size: 14.5px;
+      margin-bottom: 3px;
+    }
+
+    .android-feats p {
+      font-size: 13.5px;
+      color: var(--fg-muted);
+      line-height: 1.65;
+      margin: 0;
+    }
+
+    .phones {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 20px;
+    }
+
+    .phone {
+      width: min(190px, 32vw);
+      flex: 0 0 auto;
+      border-radius: 30px;
+      background: #000;
+      border: 6px solid #2a2e38;
+      overflow: hidden;
+      box-shadow: 0 22px 48px rgba(0, 0, 0, 0.26);
+      transition: transform 180ms var(--ease-out), box-shadow 180ms ease;
+      cursor: zoom-in;
+    }
+
+    .android-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .android-pair-pills {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .android-pair-pill {
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--fg-muted);
+      background: var(--bg-elevated);
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-border);
+      transition: background-color 150ms ease, color 150ms ease;
+    }
+
+    .android-pair-pill[aria-pressed="true"] {
+      background: var(--accent-bg);
+      color: var(--accent-fg);
+      box-shadow: none;
+    }
+
+    .android-tab-bar {
+      display: inline-flex;
+      flex-wrap: wrap;
+      padding: 3px;
+      border-radius: 999px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--divider);
+      gap: 2px;
+      margin-top: 18px;
+    }
+
+    .android-tab-btn {
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--fg-muted);
+      transition: background-color 150ms ease, color 150ms ease;
+    }
+
+    .android-tab-btn[aria-pressed="true"] {
+      background: var(--accent-bg);
+      color: var(--accent-fg);
+    }
+
+    .android-apk-meta {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--divider);
+      font-size: 12px;
+      color: var(--fg-muted);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 10px;
+    }
+
+    .android-apk-meta code {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 5px;
+      background: var(--chip-bg);
+      color: var(--fg);
+    }
+
+    .phones-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .phones-caption {
+      font-size: 12px;
+      color: var(--fg-subtle);
+      text-align: center;
+    }
+
+    .phone img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .phone.tilt-l { transform: rotate(-4deg) translateY(20px); }
+    .phone.tilt-r { transform: rotate(3deg); }
+
+    @media (hover: hover) {
+      .phone:hover { transform: rotate(0deg) translateY(4px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .phone, .phone:hover, .phone.tilt-l, .phone.tilt-r { transform: none; }
+    }
+
+    @media (max-width: 900px) {
+      .android-grid { grid-template-columns: 1fr; gap: 28px; padding: 26px 20px; }
+    }
+
+    .showcase-pills {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 30px;
+    }
+
+    .scene-pill {
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--fg-muted);
+      background: var(--bg-elevated);
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-border);
+      transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 120ms ease;
+    }
+
+    .scene-pill[aria-pressed="true"] {
+      background: var(--accent-bg);
+      color: var(--accent-fg);
+      box-shadow: none;
+    }
+
+    .showcase-shell {
+      padding: 8px;
+      border-radius: var(--radius-outer);
+      background: var(--bg-elevated);
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-border);
+    }
+
+    .showcase-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(260px, 0.65fr);
+      gap: 8px;
+      border-radius: var(--radius-inner);
+      overflow: hidden;
+    }
+
+    .showcase-media {
+      position: relative;
+      border-radius: var(--radius-inner);
+      overflow: hidden;
+      background: var(--bg-surface);
+      aspect-ratio: 16 / 10;
+    }
+
+    .showcase-media img {
+      width: 100%;
+      height: 100%;
+      /* 截图按原比例完整显示，不裁掉底部工具条 */
+      object-fit: contain;
+      object-position: center;
+      cursor: zoom-in;
+      transition: opacity 220ms ease;
+    }
+
+    .showcase-info {
+      padding: 24px 22px;
+      border-radius: var(--radius-inner);
+      background: var(--bg-surface);
+      border: 1px solid var(--divider);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .showcase-tag {
+      display: inline-flex;
+      align-self: flex-start;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 6px;
+      background: var(--chip-bg);
+      color: var(--fg-muted);
+      margin-bottom: 10px;
+    }
+
+    .showcase-title {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      margin-bottom: 10px;
+    }
+
+    .showcase-desc {
+      font-size: 14px;
+      color: var(--fg-muted);
+      line-height: 1.65;
+    }
+
+    .showcase-specs {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-top: 16px;
+      border-top: 1px solid var(--divider);
+    }
+
+    .showcase-specs li {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      font-size: 13px;
+      color: var(--fg-muted);
+    }
+
+    .showcase-specs li svg {
+      margin-top: 2px;
+      color: var(--fg);
+    }
+
+    /* =========================================================
+       架构与技术双模切换（仿 x.ai/bot Pricing 二级切换卡片结构）
+       ========================================================= */
+    .mode-switch-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 32px;
+    }
+
+    .mode-switch {
+      display: inline-flex;
+      padding: 4px;
+      border-radius: 999px;
+      background: var(--bg-elevated);
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-border);
+      gap: 4px;
+    }
+
+    .mode-btn {
+      padding: 7px 18px;
+      border-radius: 999px;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--fg-muted);
+      transition: background-color 160ms ease, color 160ms ease;
+    }
+
+    .mode-btn[aria-pressed="true"] {
+      background: var(--accent-bg);
+      color: var(--accent-fg);
+    }
+
+    /* ---------- 技术区补充：源图标、运行要求、按键 ---------- */
+    .source-strip {
+      margin-top: 32px;
+      padding: 18px 20px;
+      border-radius: var(--radius-inner);
+      background: var(--bg-surface);
+      border: 1px solid var(--divider);
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .source-strip-label {
+      flex: 0 0 auto;
+      font-size: 12.5px;
+      color: var(--fg-subtle);
+    }
+
+    .source-icons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .source-icons img {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      object-fit: contain;
+      filter: grayscale(1);
+      opacity: 0.55;
+      transition: opacity 160ms ease, filter 160ms ease;
+    }
+
+    @media (hover: hover) {
+      .source-icons img:hover {
+        filter: none;
+        opacity: 1;
+      }
+    }
+
+    .spec-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .meta-block {
+      padding: 22px 24px;
+      border-radius: var(--radius-inner);
+      background: var(--bg-surface);
+      border: 1px solid var(--divider);
+    }
+
+    .meta-block h4 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--fg-muted);
+      letter-spacing: 0.04em;
+      margin-bottom: 14px;
+    }
+
+    .meta-block dl {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .meta-block dl > div {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      font-size: 13.5px;
+    }
+
+    .meta-block dt {
+      flex: 0 0 104px;
+      color: var(--fg-subtle);
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    .meta-block dd {
+      color: var(--fg-muted);
+      margin: 0;
+    }
+
+    @media (max-width: 900px) {
+      .spec-meta { grid-template-columns: 1fr; }
+    }
+
+    /* 技术区内容已加密，收掉与下载区之间多余的留白 */
+    #architecture { padding-bottom: 56px; }
+    #download { padding-top: 56px; }
+
+    .spec-cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .spec-card {
+      padding: 24px;
+      border-radius: 18px;
+      background: var(--bg-elevated);
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-border);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: box-shadow 160ms ease;
+    }
+
+    .spec-metric {
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+    }
+
+    .spec-label {
+      font-size: 14.5px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .spec-text {
+      font-size: 13.5px;
+      color: var(--fg-muted);
+      line-height: 1.6;
+    }
+
+    /* =========================================================
+       内置 34 个漫画源 + 图库站：双行反向流光徽章墙
+       ========================================================= */
+    .source-wall {
+      margin-top: 0;
+      padding: 20px 0 18px;
+      border-radius: var(--radius-outer);
+      background: var(--bg-elevated);
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-border);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .source-wall-head {
+      padding-inline: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--fg-muted);
+    }
+
+    .source-wall-legend {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      color: var(--fg-subtle);
+    }
+
+    .source-default-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--status-green);
+      flex-shrink: 0;
+    }
+
+    .source-marquee-row {
+      position: relative;
+      overflow: hidden;
+      mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+      -webkit-mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+    }
+
+    .source-track {
+      display: flex;
+      width: max-content;
+      gap: 10px;
+      padding-block: 2px;
+      animation: marquee-left 48s linear infinite;
+    }
+
+    .source-marquee-row.is-reverse .source-track {
+      animation: marquee-right 54s linear infinite;
+    }
+
+    @media (hover: hover) {
+      .source-marquee-row:hover .source-track {
+        animation-play-state: paused;
+      }
+    }
+
+    @keyframes marquee-left {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    @keyframes marquee-right {
+      from { transform: translateX(-50%); }
+      to { transform: translateX(0); }
+    }
+
+    .source-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 36px;
+      padding: 0 13px 0 8px;
+      border-radius: 999px;
+      background: var(--bg-surface);
+      border: 1px solid var(--divider);
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--fg);
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 150ms var(--ease-out);
+    }
+
+    .source-chip.is-selected {
+      background: var(--accent-bg);
+      color: var(--accent-fg);
+      border-color: transparent;
+    }
+
+    .source-chip-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      object-fit: cover;
+      background: var(--bg-elevated);
+      flex-shrink: 0;
+    }
+
+    .source-chip-mono {
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      background: var(--chip-bg);
+      color: var(--fg-muted);
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .source-chip.is-selected .source-chip-mono {
+      background: rgba(128, 128, 128, 0.25);
+      color: var(--accent-fg);
+    }
+
+    .source-detail-bar {
+      margin-inline: 22px;
+      padding: 9px 14px;
+      border-radius: 10px;
+      background: var(--bg-surface);
+      border: 1px solid var(--divider);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--fg-muted);
+    }
+
+    .source-detail-key {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--fg-subtle);
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: var(--chip-bg);
+    }
+
+    /* =========================================================
+       下载区 + 可展开构建指令
+       ========================================================= */
+    /* ---------- 下载区：双卡 ---------- */
+    .download-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+      gap: 16px;
+    }
+
+    .download-card {
+      padding: 34px 32px;
+      border-radius: var(--radius-outer);
+      background: var(--bg-elevated);
+      box-shadow: var(--shadow-border);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .download-card .section-title {
+      font-size: clamp(26px, 3vw, 34px);
+      margin-bottom: 0;
+    }
+
+    .download-card h3 {
+      font-size: 19px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .download-card p {
+      font-size: 13.5px;
+      color: var(--fg-muted);
+      line-height: 1.7;
+      max-width: 46ch;
+    }
+
+    .download-points {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: auto;
+      font-size: 13px;
+      color: var(--fg-muted);
+    }
+
+    .download-points li::before {
+      content: "·";
+      margin-right: 8px;
+      color: var(--fg-subtle);
+    }
+
+    .inline-code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--fg);
+      background: var(--chip-bg);
+      border-radius: 4px;
+      padding: 1px 5px;
+    }
+
+    .download-card .code-row { width: 100%; }
+
+    @media (max-width: 900px) {
+      .download-grid { grid-template-columns: 1fr; }
+    }
+
+    .download-box {
+      padding: 44px 32px;
+      border-radius: var(--radius-outer);
+      background: var(--bg-elevated);
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-border);
+      text-align: center;
+    }
+
+    .download-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .more-downloads {
+      max-width: 620px;
+      margin: 22px auto 0;
+      text-align: left;
+      padding: 18px;
+      border-radius: 14px;
+      background: var(--bg-surface);
+      border: 1px solid var(--divider);
+      display: none;
+    }
+
+    .more-downloads.is-open {
+      display: block;
+      animation: fade-slide 220ms var(--ease-out);
+    }
+
+    @keyframes fade-slide {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .code-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 9px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--divider);
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--fg);
+      margin-top: 10px;
+      overflow-x: auto;
+    }
+
+    .copy-btn {
+      flex-shrink: 0;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      background: var(--chip-bg);
+      color: var(--fg-muted);
+      transition: background-color 150ms ease, color 150ms ease;
+    }
+
+    /* =========================================================
+       FAQ 手风琴（首项默认展开）
+       ========================================================= */
+    .faq-list {
+      border-top: 1px solid var(--divider);
+    }
+
+    .faq-item {
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .faq-trigger {
+      width: 100%;
+      padding-block: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      text-align: left;
+      font-size: 15.5px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+
+    .faq-chevron {
+      color: var(--fg-subtle);
+      transition: transform 220ms var(--ease-out);
+    }
+
+    .faq-item.is-open .faq-chevron {
+      transform: rotate(180deg);
+    }
+
+    .faq-panel {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 240ms var(--ease-out);
+    }
+
+    .faq-item.is-open .faq-panel {
+      grid-template-rows: 1fr;
+    }
+
+    .faq-panel-inner {
+      overflow: hidden;
+    }
+
+    .faq-answer {
+      padding-bottom: 20px;
+      font-size: 14px;
+      color: var(--fg-muted);
+      line-height: 1.7;
+      max-width: 720px;
+    }
+
+    /* =========================================================
+       页脚（多列极简 + 右下明暗切换按钮）
+       ========================================================= */
+    .footer {
+      border-top: 1px solid var(--divider);
+      padding-top: 56px;
+      padding-bottom: 44px;
+      font-size: 13.5px;
+      color: var(--fg-muted);
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.5fr repeat(3, minmax(0, 1fr));
+      gap: 32px;
+      margin-bottom: 44px;
+    }
+
+    .footer-col-title {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--fg);
+      margin-bottom: 14px;
+    }
+
+    .footer-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .footer-bottom {
+      padding-top: 24px;
+      border-top: 1px solid var(--divider);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 12.5px;
+      color: var(--fg-subtle);
+    }
+
+    .theme-switch-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 34px;
+      padding-inline: 12px 14px;
+      border-radius: 999px;
+      background: var(--bg-elevated);
+      border: 1px solid transparent;
+      box-shadow: var(--shadow-border);
+      font-size: 12.5px;
+      color: var(--fg-muted);
+      transition: color 150ms ease, box-shadow 150ms ease;
+    }
+
+    /* =========================================================
+       高清截图画廊灯箱（左右切图 + 1:1 放大 + 触屏滑动）
+       ========================================================= */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 120;
+      background: rgba(5, 5, 7, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+      overscroll-behavior: contain;
+    }
+
+    .lightbox.is-open {
+      display: flex;
+      animation: fade-in 160ms var(--ease-out);
+    }
+
+    @keyframes fade-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .lightbox-inner {
+      position: relative;
+      max-width: 1120px;
+      width: 100%;
+      max-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .lightbox-stage {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-width: 100%;
+      max-height: calc(92vh - 56px);
+      overflow: auto;
+      border-radius: 12px;
+    }
+
+    .lightbox-img {
+      max-width: 100%;
+      max-height: calc(92vh - 56px);
+      border-radius: 12px;
+      outline: 1px solid oklch(1 0 0 / 0.14);
+      outline-offset: -1px;
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.7);
+      cursor: zoom-in;
+      transition: opacity 160ms ease, transform 220ms var(--ease-out);
+    }
+
+    .lightbox-img.is-zoomed {
+      max-width: none;
+      max-height: none;
+      width: auto;
+      height: auto;
+      cursor: zoom-out;
+    }
+
+    .lightbox-nav {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      background: rgba(24, 24, 29, 0.82);
+      color: #f5f5f7;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      display: grid;
+      place-items: center;
+      z-index: 122;
+      transition: background-color 150ms ease, transform 150ms var(--ease-out), opacity 150ms ease;
+    }
+
+    .lightbox-nav:hover {
+      background: rgba(45, 45, 54, 0.96);
+    }
+
+    .lightbox-nav.is-prev { left: 20px; }
+    .lightbox-nav.is-next { right: 20px; }
+    .lightbox-nav[hidden] { display: none; }
+
+    .lightbox-bar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      color: #f5f5f7;
+      font-size: 13px;
+    }
+
+    .lightbox-counter {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: rgba(245, 245, 247, 0.65);
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* =========================================================
+       Ctrl+K 快捷命令面板
+       ========================================================= */
+    .cmdk-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 130;
+      background: rgba(5, 5, 7, 0.56);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      padding: min(14vh, 110px) 16px 24px;
+      overscroll-behavior: contain;
+    }
+
+    .cmdk-backdrop.is-open {
+      display: flex;
+      animation: fade-in 140ms var(--ease-out);
+    }
+
+    .cmdk-modal {
+      width: 100%;
+      max-width: 540px;
+      border-radius: 18px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--divider-strong);
+      box-shadow: var(--shadow-window);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .cmdk-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .cmdk-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--fg);
+      font: inherit;
+      font-size: 14.5px;
+    }
+
+    .cmdk-input::placeholder {
+      color: var(--fg-subtle);
+    }
+
+    .cmdk-list {
+      max-height: 320px;
+      overflow-y: auto;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .cmdk-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      text-align: left;
+      font-size: 13.5px;
+      color: var(--fg-muted);
+      transition: background-color 120ms ease, color 120ms ease;
+    }
+
+    .cmdk-item.is-selected,
+    .cmdk-item:hover {
+      background: var(--chip-bg);
+      color: var(--fg);
+    }
+
+    .cmdk-item-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--fg-subtle);
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: var(--bg-surface);
+      flex-shrink: 0;
+    }
+
+    /* =========================================================
+       全站卡片统一动效：单色径向光晕 + 悬停微浮起 + 错落入场 + 小猫呼吸
+       ========================================================= */
+    .bento-card,
+    .spec-card,
+    .android-band,
+    .download-box,
+    .showcase-shell,
+    .source-wall {
+      position: relative;
+      transition: box-shadow 220ms var(--ease-out), transform 220ms var(--ease-out);
+    }
+
+    .bento-card::before,
+    .spec-card::before,
+    .android-band::before,
+    .download-box::before,
+    .showcase-shell::before,
+    .source-wall::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 260ms var(--ease-out);
+      background: radial-gradient(
+        420px circle at var(--mx, 50%) var(--my, 50%),
+        rgba(20, 19, 16, 0.045),
+        transparent 68%
+      );
+      z-index: 2;
+    }
+
+    :root[data-theme="dark"] .bento-card::before,
+    :root[data-theme="dark"] .spec-card::before,
+    :root[data-theme="dark"] .android-band::before,
+    :root[data-theme="dark"] .download-box::before,
+    :root[data-theme="dark"] .showcase-shell::before,
+    :root[data-theme="dark"] .source-wall::before {
+      background: radial-gradient(
+        420px circle at var(--mx, 50%) var(--my, 50%),
+        rgba(255, 255, 255, 0.065),
+        transparent 68%
+      );
+    }
+
+    /* 错落入场节奏（同排卡片错开 80ms） */
+    .bento-card.reveal:nth-child(even) {
+      transition-delay: 80ms;
+    }
+
+    .spec-card.is-stagger {
+      animation: card-swap-in 340ms var(--ease-out) backwards;
+    }
+    .spec-card.is-stagger:nth-child(2) { animation-delay: 65ms; }
+    .spec-card.is-stagger:nth-child(3) { animation-delay: 130ms; }
+
+    .android-feats.is-swapping li {
+      animation: card-swap-in 300ms var(--ease-out) backwards;
+    }
+    .android-feats.is-swapping li:nth-child(2) { animation-delay: 55ms; }
+    .android-feats.is-swapping li:nth-child(3) { animation-delay: 110ms; }
+
+    .phone img {
+      transition: opacity 200ms var(--ease-out), transform 220ms var(--ease-out);
+    }
+    .phone.is-swapping img {
+      opacity: 0.15;
+      transform: scale(0.97);
+    }
+
+    @keyframes card-swap-in {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* 侧栏小猫桌宠：极轻呼吸起伏 */
+    @keyframes mascot-breathe {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-2px); }
+    }
+    #demoMascotBody {
+      animation: mascot-breathe 4.4s ease-in-out infinite;
+      transform-origin: 60px 80px;
+    }
+
+    /* =========================================================
+       better-ui 规范：悬停效果仅在支持悬停的指针设备上生效
+       ========================================================= */
+    @media (hover: hover) {
+      .nav-links a:hover { color: var(--fg); }
+      .icon-btn:hover { color: var(--fg); box-shadow: var(--shadow-border-hover); }
+      .btn-primary:hover { background: var(--accent-bg-hover); }
+      .btn-secondary:hover { box-shadow: var(--shadow-border-hover); }
+      .release-pill:hover { box-shadow: var(--shadow-border-hover); color: var(--fg); }
+      .sidebar-item:not(.is-active):hover { background: var(--chip-bg); }
+      .resize-handle:hover { background: var(--divider); }
+      .resize-handle:hover::after { opacity: 1; }
+      .bento-card:hover,
+      .spec-card:hover,
+      .android-band:hover,
+      .download-box:hover,
+      .showcase-shell:hover {
+        box-shadow: var(--shadow-border-hover);
+        transform: translateY(-2px);
+      }
+      .bento-card:hover::before,
+      .spec-card:hover::before,
+      .android-band:hover::before,
+      .download-box:hover::before,
+      .showcase-shell:hover::before {
+        opacity: 1;
+      }
+      .scene-pill:not([aria-pressed="true"]):hover { color: var(--fg); box-shadow: var(--shadow-border-hover); }
+      .copy-btn:hover { background: var(--chip-bg-hover); color: var(--fg); }
+      .theme-switch-pill:hover { color: var(--fg); box-shadow: var(--shadow-border-hover); }
+      .footer-links a:hover { color: var(--fg); }
+    }
+
+    /* =========================================================
+       滚动入场微动效 + 无障碍减弱动效支持
+       ========================================================= */
+    .reveal {
+      opacity: 0;
+      transform: translateY(14px);
+      transition: opacity 520ms var(--ease-out), transform 520ms var(--ease-out);
+    }
+
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (hover: hover) {
+      .bento-card.reveal.is-visible:hover,
+      .spec-card.reveal.is-visible:hover,
+      .android-band.reveal.is-visible:hover,
+      .download-box.reveal.is-visible:hover,
+      .showcase-shell.reveal.is-visible:hover {
+        transform: translateY(-2px);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+      }
+      .reveal { opacity: 1; transform: none; }
+      .source-track { flex-wrap: wrap; width: auto; justify-content: center; padding-inline: 18px; }
+    }
+
+    /* =========================================================
+       响应式适配
+       ========================================================= */
+    @media (max-width: 960px) {
+      .app-body { flex-direction: column; min-height: auto; }
+      .app-sidebar { width: 100% !important; max-width: none; flex-direction: row; overflow-x: auto; padding: 10px; }
+      .sidebar-search, .sidebar-section-label, .sidebar-footer, .resize-handle { display: none; }
+      .sidebar-item { min-width: 170px; flex-shrink: 0; }
+      .bento-card, .bento-card.span-7, .bento-card.span-5 { grid-column: span 12; }
+      .showcase-grid { grid-template-columns: 1fr; }
+      .spec-cards { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .nav-menu-btn { display: grid; }
+      .hero { padding-top: 90px; }
+      .stage-toast { display: none; }
+      .demo-masonry { grid-template-columns: repeat(2, 1fr); }
+      .masonry-col:nth-child(3), .masonry-col:nth-child(4) { display: none; }
+      .privacy-grid { grid-template-columns: repeat(2, 1fr); }
+      .bento-figure { height: 276px; }
+      .lightbox { padding: 14px; }
+      .lightbox-nav { width: 36px; height: 36px; }
+      .lightbox-nav.is-prev { left: 10px; }
+      .lightbox-nav.is-next { right: 10px; }
+      .footer-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
+
+  <!-- 顶部极简导航 -->
+  <header class="nav" id="siteNav">
+    <div class="nav-inner">
+      <a href="#top" class="brand" aria-label="VComic 首页">
+        <span class="brand-mark" aria-hidden="true">
+          <img src="assets/vcomic-64.png" alt="" />
+        </span>
+        <span>VComic</span>
+      </a>
+
+      <nav class="nav-links" aria-label="主导航">
+        <a href="#features" data-nav-sec="features">功能</a>
+        <a href="#showcase" data-nav-sec="showcase">界面截图</a>
+        <a href="#android" data-nav-sec="android">Android</a>
+        <a href="#architecture" data-nav-sec="architecture">技术说明</a>
+        <a href="#faq" data-nav-sec="faq">常见问题</a>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="icon-btn" id="navThemeBtn" type="button" aria-label="切换明暗主题" title="切换明暗主题">
+          <svg class="icon icon-regular" width="16" height="16" viewBox="0 0 24 24" id="navThemeIcon">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+          </svg>
+        </button>
+        <a href="#download" class="btn btn-primary btn-sm btn-icon-end nav-download">
+          <span>下载桌面版</span>
+          <svg class="icon icon-medium" width="14" height="14" viewBox="0 0 24 24">
+            <path d="M12 4v12" />
+            <path d="M7 11l5 5 5-5" />
+            <path d="M5 20h14" />
+          </svg>
+        </a>
+        <button class="icon-btn nav-menu-btn" id="navMenuBtn" type="button" aria-label="展开导航菜单" aria-expanded="false" aria-controls="mobileDrawer">
+          <svg class="icon icon-regular" width="16" height="16" viewBox="0 0 24 24" id="navMenuIcon">
+            <path d="M4 7h16M4 12h16M4 17h16" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 手机端毛玻璃下拉导航抽屉 -->
+  <nav class="mobile-drawer" id="mobileDrawer" aria-label="移动端导航">
+    <a href="#features" data-nav-sec="features">功能演示</a>
+    <a href="#showcase" data-nav-sec="showcase">界面截图</a>
+    <a href="#android" data-nav-sec="android">Android 主线</a>
+    <a href="#architecture" data-nav-sec="architecture">技术说明</a>
+    <a href="#faq" data-nav-sec="faq">常见问题</a>
+    <a href="#download" class="btn btn-primary btn-sm mobile-drawer-cta">下载 Windows 版</a>
+  </nav>
+
+  <main id="top">
+    <!-- 首屏 Hero + 桌面窗口预览 -->
+    <section class="hero">
+      <!-- 全宽站源大背屏 -->
+      <div class="hero-source-backdrop" id="heroSourceBackdrop" aria-hidden="true">
+        <div class="source-marquee-row"><div class="source-track" data-backdrop-row="0"></div></div>
+        <div class="source-marquee-row is-reverse"><div class="source-track" data-backdrop-row="1"></div></div>
+        <div class="source-marquee-row"><div class="source-track" data-backdrop-row="2"></div></div>
+        <div class="source-marquee-row is-reverse"><div class="source-track" data-backdrop-row="3"></div></div>
+        <div class="source-marquee-row"><div class="source-track" data-backdrop-row="4"></div></div>
+        <div class="source-marquee-row is-reverse"><div class="source-track" data-backdrop-row="5"></div></div>
+        <div class="source-marquee-row"><div class="source-track" data-backdrop-row="6"></div></div>
+      </div>
+      <div class="container">
+        <div class="hero-head">
+          <a href="#architecture" class="release-pill">
+            <span class="pulse-dot" aria-hidden="true"></span>
+            <span>Windows 桌面版 · 内置 34 个漫画源</span>
+            <svg class="icon icon-regular" width="13" height="13" viewBox="0 0 24 24">
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </a>
+          <h1 class="hero-title">一个窗口看漫画与图库</h1>
+          <p class="hero-subtitle">
+            漫画、图库、阅读器放在同一个 Windows 应用里。内置 34 个漫画源，接 Pixiv 与多个图库站，支持双页阅读、离线下载和阅读进度记录。
+          </p>
+          <div class="hero-cta">
+            <a href="#download" class="btn btn-primary btn-icon-start">
+              <svg class="icon icon-medium" width="16" height="16" viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="13" rx="2" />
+                <path d="M8 21h8M12 17v4" />
+              </svg>
+              <span>下载 Windows 版</span>
+            </a>
+            <a href="#showcase" class="btn btn-secondary btn-icon-end">
+              <span>看界面截图</span>
+              <svg class="icon icon-regular" width="15" height="15" viewBox="0 0 24 24">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- 桌面窗口预览（可切换、可拖拽分隔条、随主题实时换图） -->
+        <div class="app-window-frame">
+          <div class="app-window" id="heroAppWindow">
+            <div class="app-titlebar">
+              <div class="app-titlebar-left">
+                <div class="win-dots" aria-hidden="true">
+                  <span class="win-dot"></span>
+                  <span class="win-dot"></span>
+                  <span class="win-dot"></span>
+                </div>
+                <div class="app-breadcrumb" id="heroBreadcrumb">
+                  <span>VComic</span>
+                  <span>/</span>
+                  <span id="heroRouteLabel">首页 · 继续阅读与每日热门</span>
+                </div>
+              </div>
+              <div class="app-titlebar-right">
+                <span class="live-badge">
+                  <span class="pulse-dot" aria-hidden="true"></span>
+                  <span id="heroEngineStatus">34 个源已启用</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="app-body">
+              <aside class="app-sidebar" id="heroSidebar" aria-label="桌面模块演示列表">
+                <button class="sidebar-search" id="heroSearchBtn" type="button" aria-label="打开快捷跳转面板 (Ctrl+K)">
+                  <svg class="icon icon-regular" width="13" height="13" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="M20 20l-3.5-3.5" />
+                  </svg>
+                  <span>搜索漫画、标签或作品</span>
+                  <kbd>Ctrl K</kbd>
+                </button>
+
+                <div class="sidebar-section-label">当前页面</div>
+
+                <button class="sidebar-item is-active" type="button" data-hero-tab="home">
+                  <span class="sidebar-item-icon">
+                    <svg class="icon icon-medium" width="14" height="14" viewBox="0 0 24 24">
+                      <path d="M3 10.5L12 3l9 7.5" />
+                      <path d="M5 9.5V20h14V9.5" />
+                    </svg>
+                  </span>
+                  <span class="sidebar-item-text">
+                    <span class="sidebar-item-top">
+                      <span class="sidebar-item-name">首页</span>
+                      <span class="sidebar-item-meta">深色</span>
+                    </span>
+                    <span class="sidebar-item-status" data-live-status="home">继续阅读、每日热门与推荐已载入</span>
+                  </span>
+                </button>
+
+                <button class="sidebar-item" type="button" data-hero-tab="gallery">
+                  <span class="sidebar-item-icon">
+                    <svg class="icon icon-medium" width="14" height="14" viewBox="0 0 24 24">
+                      <rect x="3" y="3" width="7" height="9" rx="1.5" />
+                      <rect x="14" y="3" width="7" height="5" rx="1.5" />
+                      <rect x="14" y="12" width="7" height="9" rx="1.5" />
+                      <rect x="3" y="16" width="7" height="5" rx="1.5" />
+                    </svg>
+                  </span>
+                  <span class="sidebar-item-text">
+                    <span class="sidebar-item-top">
+                      <span class="sidebar-item-name">画廊</span>
+                      <span class="sidebar-item-meta">Pixiv · 图库站</span>
+                    </span>
+                    <span class="sidebar-item-status" data-live-status="gallery">图库站与 Pixiv 可切换</span>
+                  </span>
+                </button>
+
+                <button class="sidebar-item" type="button" data-hero-tab="reader">
+                  <span class="sidebar-item-icon">
+                    <svg class="icon icon-medium" width="14" height="14" viewBox="0 0 24 24">
+                      <path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2z" />
+                      <path d="M22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z" />
+                    </svg>
+                  </span>
+                  <span class="sidebar-item-text">
+                    <span class="sidebar-item-top">
+                      <span class="sidebar-item-name">阅读器</span>
+                      <span class="sidebar-item-meta">双页</span>
+                    </span>
+                    <span class="sidebar-item-status" data-live-status="reader">双页对开，直接读取本机文件</span>
+                  </span>
+                </button>
+
+                <button class="sidebar-item" type="button" data-hero-tab="detail">
+                  <span class="sidebar-item-icon">
+                    <svg class="icon icon-medium" width="14" height="14" viewBox="0 0 24 24">
+                      <path d="M4 5h16M4 12h10M4 19h14" />
+                    </svg>
+                  </span>
+                  <span class="sidebar-item-text">
+                    <span class="sidebar-item-top">
+                      <span class="sidebar-item-name">漫画详情</span>
+                      <span class="sidebar-item-meta">42 话</span>
+                    </span>
+                    <span class="sidebar-item-status" data-live-status="detail">支持整本下载与缺页补齐</span>
+                  </span>
+                </button>
+
+                <button class="sidebar-item" type="button" data-hero-tab="stats">
+                  <span class="sidebar-item-icon">
+                    <svg class="icon icon-medium" width="14" height="14" viewBox="0 0 24 24">
+                      <path d="M5 19V11M12 19V5M19 19v-7" />
+                    </svg>
+                  </span>
+                  <span class="sidebar-item-text">
+                    <span class="sidebar-item-top">
+                      <span class="sidebar-item-name">阅读统计</span>
+                      <span class="sidebar-item-meta">7 日</span>
+                    </span>
+                    <span class="sidebar-item-status" data-live-status="stats">本周读了 318 页，连续 6 天</span>
+                  </span>
+                </button>
+
+                <div class="sidebar-footer">
+                  <div class="sidebar-footer-row">
+                    <span>下载队列</span>
+                    <span id="sidebarPumpText" style="font-family: var(--font-mono);">24 / 30 页</span>
+                  </div>
+                  <div class="mini-progress-track">
+                    <div class="mini-progress-fill" id="sidebarPumpBar"></div>
+                  </div>
+                </div>
+              </aside>
+
+              <!-- 真实可拖拽分隔条 -->
+              <div class="resize-handle" id="heroResizeHandle" role="separator" aria-orientation="vertical" aria-label="拖拽调整侧边栏宽度" title="左右拖拽调整侧边栏宽度"></div>
+
+              <!-- 主屏幕演示区 -->
+              <div class="app-stage">
+                <div class="stage-media-wrap">
+                  <div class="stage-canvas" id="heroStageCanvas">
+                    <img
+                      id="heroStageImg"
+                      class="stage-shot content-img"
+                      src="assets/screenshots/home-dark.jpg"
+                      alt="VComic 首页截图"
+                    />
+                    <div class="compare-overlay" id="heroCompareOverlay">
+                      <img
+                        class="compare-light-img content-img"
+                        id="heroCompareLightImg"
+                        src="assets/screenshots/home-light.jpg"
+                        alt="VComic 浅色主题对比"
+                      />
+                      <span class="compare-badge is-left">浅色主题</span>
+                      <span class="compare-badge is-right">深色主题</span>
+                      <div
+                        class="compare-divider"
+                        id="heroCompareDivider"
+                        role="slider"
+                        tabindex="0"
+                        aria-label="左右拖动对比深色与浅色主题"
+                        aria-valuemin="5"
+                        aria-valuemax="95"
+                        aria-valuenow="38"
+                      >
+                        <div class="compare-handle" aria-hidden="true">
+                          <svg class="icon icon-medium" width="15" height="15" viewBox="0 0 24 24">
+                            <path d="M9 7l-5 5 5 5M15 7l5 5-5 5" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="stage-toast" id="heroStageToast">
+                    <span class="stage-toast-tag" id="heroToastTag">界面</span>
+                    <span id="heroToastText">首页：继续阅读、每日热门、推荐漫画与本周阅读统计</span>
+                  </div>
+
+                  <button class="stage-autoplay-btn" id="heroAutoplayBtn" type="button" aria-pressed="true">
+                    <svg class="icon icon-regular" width="13" height="13" viewBox="0 0 24 24" id="heroAutoplayIcon">
+                      <rect x="6" y="5" width="4" height="14" rx="1" />
+                      <rect x="14" y="5" width="4" height="14" rx="1" />
+                    </svg>
+                    <span id="heroAutoplayLabel">自动轮播</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 张功能演示卡片 -->
+    <section class="section" id="features">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">功能</span>
+          <h2 class="section-title">六个功能，都能上手试</h2>
+          <p class="section-desc">
+            不用读参数表。下面六块演示的就是这些功能在应用里的真实状态，每一块都能点着玩。
+          </p>
+        </div>
+
+        <div class="bento-grid">
+          <!-- 卡片 1：宽卡 — 图库站与 Pixiv 切换 -->
+          <article class="bento-card span-7 reveal">
+            <div class="bento-copy">
+              <h3 class="bento-title">
+                <span>漫画与图库，两个模式</span>
+                <span class="tiny-pill">Pixiv · 图库站</span>
+              </h3>
+              <p class="bento-desc">顶栏可以切换图库站和 Pixiv，主墙能选瀑布流或等宽网格两种排法。看完大图返回时，原来滚到哪就还在哪。</p>
+            </div>
+            <div class="bento-figure">
+              <div class="demo-gallery" id="demoGallery">
+                <div class="demo-gallery-bar" role="tablist" aria-label="画廊切换演示">
+                  <div class="seg-indicator" id="gallerySegIndicator"></div>
+                  <button class="seg-pill is-active" type="button" data-gal-mode="booru">图库站</button>
+                  <button class="seg-pill" type="button" data-gal-mode="pixiv">Pixiv 原生</button>
+                </div>
+                <div class="demo-masonry" id="demoMasonry">
+                  <div class="masonry-col">
+                    <div class="masonry-tile is-tall"><img class="content-img" src="assets/covers/c1.jpg" alt="" /><span class="masonry-tag" data-gal-tag>yande.re</span></div>
+                    <div class="masonry-tile"><img class="content-img" src="assets/covers/c5.jpg" alt="" /><span class="masonry-tag" data-gal-tag>safebooru</span></div>
+                  </div>
+                  <div class="masonry-col">
+                    <div class="masonry-tile"><img class="content-img" src="assets/covers/c2.jpg" alt="" /><span class="masonry-tag" data-gal-tag>gelbooru</span></div>
+                    <div class="masonry-tile is-tall"><img class="content-img" src="assets/covers/c6.jpg" alt="" /><span class="masonry-tag" data-gal-tag>yande.re</span></div>
+                  </div>
+                  <div class="masonry-col">
+                    <div class="masonry-tile is-tall"><img class="content-img" src="assets/covers/c3.jpg" alt="" /><span class="masonry-tag" data-gal-tag>safebooru</span></div>
+                    <div class="masonry-tile"><img class="content-img" src="assets/covers/c7.jpg" alt="" /><span class="masonry-tag" data-gal-tag>gelbooru</span></div>
+                  </div>
+                  <div class="masonry-col">
+                    <div class="masonry-tile"><img class="content-img" src="assets/covers/c4.jpg" alt="" /><span class="masonry-tag" data-gal-tag>yande.re</span></div>
+                    <div class="masonry-tile is-tall"><img class="content-img" src="assets/covers/c8.jpg" alt="" /><span class="masonry-tag" data-gal-tag>safebooru</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- 卡片 2：窄卡 — 以图搜图 -->
+          <article class="bento-card span-5 reveal">
+            <div class="bento-copy">
+              <h3 class="bento-title">
+                <span>以图搜图找原作</span>
+                <span class="tiny-pill">SauceNAO · ascii2d</span>
+              </h3>
+              <p class="bento-desc">拿一张图片发起反搜，SauceNAO 和 ascii2d 会一起给结果。命中本站图库的条目可以直接打开大图页。</p>
+            </div>
+            <div class="bento-figure">
+              <div class="demo-sniffer">
+                <div class="sniff-card">
+                  <img class="sniff-thumb content-img" src="assets/covers/c4.jpg" alt="图库作品缩略图" />
+                  <div class="sniff-meta">
+                    <div class="sniff-url">saucenao.com · 相似度 87%</div>
+                    <div class="sniff-title">星夜与回廊 · 高清原图</div>
+                    <div class="sniff-pills">
+                      <span class="tiny-pill">SauceNAO</span>
+                      <span class="tiny-pill">ascii2d</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sniff-connector">
+                  <span>反搜结果</span>
+                  <span class="sniff-line" aria-hidden="true"></span>
+                  <span id="sniffStateText">找到 3 条来源</span>
+                </div>
+
+                <button class="sniff-action-pill" id="sniffActionPill" type="button" title="点击重新发起以图搜图">
+                  <span style="display:inline-flex;align-items:center;gap:8px;font-weight:500;">
+                    <svg class="icon icon-medium" width="14" height="14" viewBox="0 0 24 24">
+                      <path d="M7 17L17 7M9 7h8v8" />
+                    </svg>
+                    <span id="sniffBtnLabel">点此发起反搜</span>
+                  </span>
+                  <span style="font-family:var(--font-mono);font-size:11px;opacity:0.8;">#11849203</span>
+                </button>
+
+                <div class="sniff-result-bar" id="sniffResultBar">
+                  <span>3 条结果，含本站图库条目</span>
+                  <span style="font-family:var(--font-mono);color:var(--status-green);">0.9s</span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- 卡片 3：窄卡 — 双页阅读器与画面调节 -->
+          <article class="bento-card span-5 reveal">
+            <div class="bento-copy">
+              <h3 class="bento-title">
+                <span>阅读器：四种翻页方式</span>
+                <span class="tiny-pill">← / → 键位</span>
+              </h3>
+              <p class="bento-desc">条漫连续、双页对开、日漫右开、美漫左开四档可切。能调亮度、对比度与色温，也能设自动翻页和放大镜，下次打开接着上次那一页。</p>
+            </div>
+            <div class="bento-figure">
+              <div class="demo-reader" id="demoReader">
+                <div class="reader-top-hud">
+                  <span>第 14 话 · 双页</span>
+                  <div class="reader-hud-pills" role="tablist" aria-label="画面滤镜切换">
+                    <button class="reader-hud-btn is-active" type="button" data-reader-mode="0">标准</button>
+                    <button class="reader-hud-btn" type="button" data-reader-mode="1">微暖</button>
+                    <button class="reader-hud-btn" type="button" data-reader-mode="2">锐化</button>
+                  </div>
+                </div>
+                <div class="reader-spread" id="readerSpread">
+                  <div class="reader-page"><img id="readerImgL" src="assets/covers/c2.jpg" alt="" /></div>
+                  <div class="reader-page"><img id="readerImgR" src="assets/covers/c3.jpg" alt="" /></div>
+                </div>
+                <div class="reader-bottom-hud">
+                  <button class="reader-step-btn" id="readerPrevBtn" type="button" aria-label="上一页">
+                    <svg class="icon icon-medium" width="12" height="12" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6" /></svg>
+                  </button>
+                  <span id="readerPageLabel">12 / 36</span>
+                  <div class="reader-slider-track">
+                    <div class="reader-slider-fill" id="readerSliderFill"></div>
+                  </div>
+                  <button class="reader-step-btn" id="readerNextBtn" type="button" aria-label="下一页">
+                    <svg class="icon icon-medium" width="12" height="12" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" /></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- 卡片 4：宽卡 — 下载队列与缺页补齐 -->
+          <article class="bento-card span-7 reveal">
+            <div class="bento-copy">
+              <h3 class="bento-title">
+                <span>下载队列与缺页补齐</span>
+                <span class="tiny-pill">写入前查图片格式</span>
+              </h3>
+              <p class="bento-desc">章节可以排队下载，随时暂停、继续或单条移除。每张图写入前会检查是不是有效图片，被站点拦截的错误页不会存进磁盘；少页了可以单独补。</p>
+            </div>
+            <div class="bento-figure">
+              <div class="demo-queue">
+                <div class="queue-row">
+                  <div class="queue-row-top">
+                    <span class="queue-name">异界旅记 · 第 08 话</span>
+                    <span class="queue-badge is-ok">已下全 · 32/32</span>
+                  </div>
+                  <div class="queue-bar"><div class="queue-bar-fill is-ok" style="width:100%;"></div></div>
+                  <div class="queue-sub">
+                    <span>每页都确认是有效图片</span>
+                    <span>离线可读</span>
+                  </div>
+                </div>
+
+                <div class="queue-row is-highlight" id="repairQueueRow">
+                  <div class="queue-row-top">
+                    <span class="queue-name">暮色物语 · 第 19 话</span>
+                    <span class="queue-badge is-warn" id="repairBadge">缺 2 页 · 28/30</span>
+                  </div>
+                  <div class="queue-bar"><div class="queue-bar-fill is-warn" id="repairBar" style="width:92%;"></div></div>
+                  <div class="queue-sub">
+                    <span id="repairLog">拦下 2 个错误页，没有写进磁盘</span>
+                    <button class="repair-chip" id="repairBtn" type="button">补齐缺页</button>
+                  </div>
+                </div>
+
+                <div class="queue-row">
+                  <div class="queue-row-top">
+                    <span class="queue-name">极夜星图 · 第 03 话</span>
+                    <span class="queue-badge" id="activeQueueBadge">正在写入 · 14/26</span>
+                  </div>
+                  <div class="queue-bar"><div class="queue-bar-fill" id="activeQueueBar" style="width:54%;"></div></div>
+                  <div class="queue-sub">
+                    <span>8 线程下载，随时可停</span>
+                    <span id="activeQueueSpeed">4.8 MB/s</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- 卡片 5：宽卡 — 内容分级 -->
+          <article class="bento-card span-7 reveal">
+            <div class="bento-copy">
+              <h3 class="bento-title">
+                <span>内容分级：不处理、打码、隐藏</span>
+                <span class="tiny-pill">全应用生效</span>
+              </h3>
+              <p class="bento-desc">三级可选：正常显示、只给封面打码、完全隐藏。也能按关键词、画师或 AI 标记单独屏蔽，在公共场合翻看更放心。</p>
+            </div>
+            <div class="bento-figure">
+              <div class="demo-privacy">
+                <div class="privacy-tabs" role="tablist" aria-label="遮罩档位演示">
+                  <button class="privacy-tab" type="button" data-mask-mode="clear">无过滤</button>
+                  <button class="privacy-tab is-active" type="button" data-mask-mode="blur">封面打码</button>
+                  <button class="privacy-tab" type="button" data-mask-mode="hide">彻底隐藏</button>
+                </div>
+                <div class="privacy-grid" id="privacyGrid">
+                  <div class="privacy-card">
+                    <img class="content-img" src="assets/covers/c1.jpg" alt="" />
+                    <div class="privacy-overlay">正常显示</div>
+                  </div>
+                  <div class="privacy-card is-masked" data-sensitive="true" data-blur-text="封面打码" data-hide-text="按分级已隐藏">
+                    <img class="content-img" src="assets/covers/c6.jpg" alt="" />
+                    <div class="privacy-overlay">封面打码</div>
+                  </div>
+                  <div class="privacy-card">
+                    <img class="content-img" src="assets/covers/c5.jpg" alt="" />
+                    <div class="privacy-overlay">正常显示</div>
+                  </div>
+                  <div class="privacy-card is-masked" data-sensitive="true" data-blur-text="按关键词隐藏" data-hide-text="按 AI 标记隐藏">
+                    <img class="content-img" src="assets/covers/c8.jpg" alt="" />
+                    <div class="privacy-overlay">按关键词隐藏</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- 卡片 6：窄卡 — 侧栏小猫桌宠互动 -->
+          <article class="bento-card span-5 reveal">
+            <div class="bento-copy">
+              <h3 class="bento-title">
+                <span>侧栏桌宠：会呼吸，也会打盹</span>
+                <span class="tiny-pill">点一下有反应</span>
+              </h3>
+              <p class="bento-desc">侧栏左下角有只小猫：平时呼吸、眨眼、低头看书，长时间没操作会趴下打盹，鼠标移动时会看过去。点一下能唤醒它或让它眨个眼。</p>
+            </div>
+            <div class="bento-figure">
+              <div class="demo-mascot" id="demoMascot">
+                <div class="mascot-top-bar">
+                  <div class="mascot-pose-pills" role="tablist" aria-label="桌宠状态切换">
+                    <button class="mascot-pose-btn is-active" type="button" data-mascot-pose="idle">待机</button>
+                    <button class="mascot-pose-btn" type="button" data-mascot-pose="working">看书</button>
+                    <button class="mascot-pose-btn" type="button" data-mascot-pose="favorite">跟随</button>
+                    <button class="mascot-pose-btn" type="button" data-mascot-pose="doze">打盹</button>
+                  </div>
+                </div>
+
+                <div class="mascot-stage">
+                  <div class="mascot-bubble" id="mascotBubble" role="status" aria-live="polite">
+                    <span class="mascot-bubble-dot" id="mascotBubbleDot" aria-hidden="true"></span>
+                    <span id="mascotBubbleText">慢慢挑，我在这儿陪你</span>
+                  </div>
+
+                  <button class="mascot-pet-btn" id="mascotPetBtn" type="button" aria-label="摸摸 VComic 侧栏小猫桌宠">
+                    <svg class="mascot-pet-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <defs>
+                        <mask id="demo-wing-notch" maskUnits="userSpaceOnUse" x="-20" y="-20" width="160" height="160">
+                          <rect x="-20" y="-20" width="160" height="160" fill="#FFFFFF" />
+                          <line x1="60" y1="86" x2="60" y2="98.5" stroke="#000000" stroke-width="3.4" stroke-linecap="round" />
+                        </mask>
+                      </defs>
+                      <g id="demoMascotBody">
+                        <!-- 浅蓝书页底座 -->
+                        <g mask="url(#demo-wing-notch)">
+                          <g id="demoMascotLeftWing"><path d="M 59 87 Q 37 71 15 80.5" stroke="#C6D6FB" stroke-width="15.2" stroke-linecap="round" fill="none" /></g>
+                          <g id="demoMascotRightWing"><path d="M 61 87 Q 83 71 105 80.5" stroke="#C6D6FB" stroke-width="15.2" stroke-linecap="round" fill="none" /></g>
+                        </g>
+                        <!-- V 形主体与双耳 -->
+                        <g id="demoMascotLeftArm"><path d="M 60 74 L 36 28" stroke="#E8EDF7" stroke-width="17.5" stroke-linecap="round" fill="none" /></g>
+                        <g id="demoMascotRightArm"><path d="M 60 74 L 84 28" stroke="#E8EDF7" stroke-width="17.5" stroke-linecap="round" fill="none" /></g>
+                        <path d="M 45 55 L 75 55 L 74 79 Q 60 89 46 79 Z" fill="#E8EDF7" />
+                        <!-- 双眼：胶囊 / 弯月笑弧 -->
+                        <rect id="demoEyeL" x="51.8" y="61" width="4.5" height="10.6" rx="2.25" ry="2.25" fill="#18181D" />
+                        <rect id="demoEyeR" x="63.7" y="61" width="4.5" height="10.6" rx="2.25" ry="2.25" fill="#18181D" />
+                        <path id="demoArcL" d="M 50.4 68.2 Q 54.0 61.6 57.6 68.2" stroke="#18181D" stroke-width="2.8" stroke-linecap="round" fill="none" opacity="0" />
+                        <path id="demoArcR" d="M 62.4 68.2 Q 66.0 61.6 69.6 68.2" stroke="#18181D" stroke-width="2.8" stroke-linecap="round" fill="none" opacity="0" />
+                      </g>
+                      <!-- 收藏红心 -->
+                      <path id="demoMascotHeart" d="M 96 42 C 96 39 92 38 90.5 40.5 C 89 38 85 39 85 42 C 85 45.5 90.5 49 90.5 49 C 90.5 49 96 45.5 96 42 Z" fill="#F87171" opacity="0" />
+                      <!-- 搬运星光 -->
+                      <g id="demoMascotSparkles" opacity="0">
+                        <circle cx="23" cy="36" r="2.6" fill="#FBBF24" />
+                        <circle cx="100" cy="42" r="2.2" fill="#FBBF24" />
+                        <circle cx="95" cy="24" r="1.9" fill="#FBBF24" />
+                      </g>
+                    </svg>
+                  </button>
+                </div>
+
+                <div class="mascot-hint">点小猫：唤醒或眨眼 · 上方切换状态</div>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 实拍截图切换 -->
+    <section class="section" id="showcase">
+      <div class="container">
+        <div class="section-head is-center reveal">
+          <span class="eyebrow">界面截图</span>
+          <h2 class="section-title">六个界面，点开就能看</h2>
+          <p class="section-desc">下面切换页面查看实际截图，点图片可以放大。</p>
+        </div>
+
+        <div class="showcase-pills reveal" role="tablist" aria-label="应用界面切换">
+          <button class="scene-pill" type="button" aria-pressed="true" data-scene="gallery-detail">图库作品</button>
+          <button class="scene-pill" type="button" aria-pressed="false" data-scene="artist">画师主页</button>
+          <button class="scene-pill" type="button" aria-pressed="false" data-scene="search">图库搜索</button>
+          <button class="scene-pill" type="button" aria-pressed="false" data-scene="manga-search">漫画搜索</button>
+          <button class="scene-pill" type="button" aria-pressed="false" data-scene="history">阅读历史</button>
+          <button class="scene-pill" type="button" aria-pressed="false" data-scene="sources">站点管理</button>
+        </div>
+
+        <div class="showcase-shell reveal">
+          <div class="showcase-grid">
+            <div class="showcase-media">
+              <img
+                id="showcaseImg"
+                class="content-img"
+                src="assets/screenshots/gallery-detail.jpg"
+                alt="图库作品截图"
+              />
+            </div>
+            <div class="showcase-info">
+              <div>
+                <span class="showcase-tag" id="showcaseTag">GALLERY · DETAIL</span>
+                <h3 class="showcase-title" id="showcaseTitle">图库作品</h3>
+                <p class="showcase-desc" id="showcaseDesc">
+                  点开作品看大图、标签、画师和来源站，可以切三档清晰度，也能把图片存到本地。
+                </p>
+              </div>
+              <ul class="showcase-specs" id="showcaseSpecs">
+                <li>
+                  <svg class="icon icon-medium" width="15" height="15" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" /></svg>
+                  <span>预览图、大图、原图三档清晰度</span>
+                </li>
+                <li>
+                  <svg class="icon icon-medium" width="15" height="15" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" /></svg>
+                  <span>点标签直接搜同标签作品</span>
+                </li>
+                <li>
+                  <svg class="icon icon-medium" width="15" height="15" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" /></svg>
+                  <span>画师名可以跳到他在 Pixiv 的主页</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Android 主线（同框展示） -->
+    <section class="section" id="android">
+      <div class="container">
+        <div class="android-band reveal">
+          <div class="android-grid">
+            <div>
+              <span class="eyebrow">Android 主线 · Kotlin + Jetpack Compose</span>
+              <h2 class="section-title">手机端也在：venera-miuix</h2>
+              <p class="section-desc">
+                Kotlin + Jetpack Compose 写的 Android 主线，支持 Android 11 及以上。和桌面端共用数据层与 JS 漫画源协议，进度各自存在本机。
+              </p>
+
+              <div class="android-tab-bar" role="tablist" aria-label="Android 特性分类">
+                <button class="android-tab-btn" type="button" aria-pressed="true" data-android-tab="ui">设计语言</button>
+                <button class="android-tab-btn" type="button" aria-pressed="false" data-android-tab="reader">阅读与防窥</button>
+                <button class="android-tab-btn" type="button" aria-pressed="false" data-android-tab="network">追更与网络</button>
+              </div>
+
+              <ul class="android-feats" id="androidFeatList">
+                <li>
+                  <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x="5.5" y="1.5" width="7" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 14.5h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                  <div>
+                    <b>Miuix + Material 3 双风格切换</b>
+                    <p>Miuix 那套底栏与色板，也能切回 Material 3，用壁纸动态取色。</p>
+                  </div>
+                </li>
+                <li>
+                  <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 4.5h12M3 9h12M3 13.5h8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                  <div>
+                    <b>画廊与 Pixiv 原生生态</b>
+                    <p>支持 yande.re、Gelbooru、Safebooru 与 Pixiv 榜单、画师主页、SauceNAO 搜图；水彩效果是 Beta，默认关闭。</p>
+                  </div>
+                </li>
+                <li>
+                  <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M7 11.5a3.5 3.5 0 0 0 5-5l-3-3a3.5 3.5 0 0 0-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M11 6.5a3.5 3.5 0 0 0-5 5l3 3a3.5 3.5 0 0 0 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                  <div>
+                    <b>同一套 JS 源脚本生态</b>
+                    <p>兼容 ComicSource 插件协议，可以导入外部源脚本。</p>
+                  </div>
+                </li>
+              </ul>
+
+              <div class="android-controls">
+                <div class="android-pair-pills" role="tablist" aria-label="手机截图组别切换">
+                  <button class="android-pair-pill" type="button" aria-pressed="true" data-android-pair="0">画廊 &amp; 统计</button>
+                  <button class="android-pair-pill" type="button" aria-pressed="false" data-android-pair="1">详情 &amp; 搜图</button>
+                </div>
+                <a class="btn btn-primary btn-icon-start" href="https://github.com/w13630039663-bit/venera-miuix/releases" target="_blank" rel="noopener noreferrer">
+                  <svg class="icon icon-medium" width="16" height="16" viewBox="0 0 24 24">
+                    <path d="M12 4v12M7 11l5 5 5-5M5 20h14" />
+                  </svg>
+                  <span>下载 Android APK</span>
+                </a>
+                <a class="btn btn-secondary btn-icon-end" href="https://github.com/w13630039663-bit/venera-miuix" target="_blank" rel="noopener noreferrer">
+                  <span>GitHub 仓库</span>
+                  <svg class="icon icon-regular" width="14" height="14" viewBox="0 0 24 24">
+                    <path d="M7 17L17 7M9 7h8v8" />
+                  </svg>
+                </a>
+              </div>
+
+              <div class="android-apk-meta">
+                <span>安装包架构：</span>
+                <code>arm64-v8a</code><span>现代手机推荐</span>
+                <code>universal</code><span>全架构通用</span>
+                <code>armeabi-v7a</code>
+                <code>x86_64</code>
+              </div>
+            </div>
+            <div class="phones-wrap">
+              <div class="phones">
+                <div class="phone tilt-l" data-android-slot="0" role="button" tabindex="0" aria-label="放大查看 Android 左侧截图">
+                  <img id="androidImgL" src="assets/android/gallery.jpg" alt="Android 版画廊：瀑布流封面墙" loading="lazy" />
+                </div>
+                <div class="phone tilt-r" data-android-slot="1" role="button" tabindex="0" aria-label="放大查看 Android 右侧截图">
+                  <img id="androidImgR" src="assets/android/stats.jpg" alt="Android 版阅读统计：时长、页数与趋势" loading="lazy" />
+                </div>
+              </div>
+              <p class="phones-caption">点手机画面可放大浏览全部 4 张实拍截图</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 技术说明（二级切换卡片） -->
+    <section class="section" id="architecture">
+      <div class="container">
+        <div class="section-head is-center reveal">
+          <span class="eyebrow">技术说明</span>
+          <h2 class="section-title">Kotlin + Compose，不是网页套壳</h2>
+          <p class="section-desc">桌面端用 Kotlin 和 Compose Multiplatform 编写，没有 Electron，也没有 Flutter。</p>
+        </div>
+
+        <div class="mode-switch-wrap reveal">
+          <div class="mode-switch" role="tablist" aria-label="技术分类切换">
+            <button class="mode-btn" type="button" aria-pressed="true" data-arch-mode="engine">漫画源与架构</button>
+            <button class="mode-btn" type="button" aria-pressed="false" data-arch-mode="offline">下载与隐私</button>
+          </div>
+        </div>
+
+        <div class="spec-cards reveal" id="specCards">
+          <div class="spec-card">
+            <div class="spec-metric">34 个</div>
+            <div class="spec-label">内置漫画源</div>
+            <p class="spec-text">随包附带 34 个 JavaScript 漫画源，兼容 ComicSource 插件协议；可以逐个启停、改脚本、填账号。</p>
+          </div>
+          <div class="spec-card">
+            <div class="spec-metric">Kotlin</div>
+            <div class="spec-label">Compose Multiplatform</div>
+            <p class="spec-text">不是网页套壳。滚动和切页会保留状态，从详情返回列表不会跳回顶部。</p>
+          </div>
+          <div class="spec-card">
+            <div class="spec-metric">两套</div>
+            <div class="spec-label">收藏分开存</div>
+            <p class="spec-text">Pixiv 云端书签走官方接口；本地漫画和图库收藏各存一套，可以整包备份与还原。</p>
+          </div>
+        </div>
+
+        <div class="source-strip reveal">
+          <span class="source-strip-label">随包附带 34 个漫画源，下面是其中一部分</span>
+          <div class="source-icons">
+            <img src="assets/sources/baozi.png" alt="" loading="lazy" />
+            <img src="assets/sources/ccc.png" alt="" loading="lazy" />
+            <img src="assets/sources/comick.png" alt="" loading="lazy" />
+            <img src="assets/sources/comic_walker.png" alt="" loading="lazy" />
+            <img src="assets/sources/copy_manga.png" alt="" loading="lazy" />
+            <img src="assets/sources/ehentai.png" alt="" loading="lazy" />
+            <img src="assets/sources/gelbooru.png" alt="" loading="lazy" />
+            <img src="assets/sources/goda.png" alt="" loading="lazy" />
+            <img src="assets/sources/hcomic.png" alt="" loading="lazy" />
+            <img src="assets/sources/hitomi.png" alt="" loading="lazy" />
+            <img src="assets/sources/hot_manga.png" alt="" loading="lazy" />
+            <img src="assets/sources/jm.png" alt="" loading="lazy" />
+            <img src="assets/sources/komga.png" alt="" loading="lazy" />
+            <img src="assets/sources/komiic.png" alt="" loading="lazy" />
+            <img src="assets/sources/lanraragi.png" alt="" loading="lazy" />
+            <img src="assets/sources/manga_dex.png" alt="" loading="lazy" />
+            <img src="assets/sources/manhuaren.png" alt="" loading="lazy" />
+            <img src="assets/sources/manwaba.png" alt="" loading="lazy" />
+            <img src="assets/sources/mh18.png" alt="" loading="lazy" />
+            <img src="assets/sources/mxs.png" alt="" loading="lazy" />
+            <img src="assets/sources/nhentai.png" alt="" loading="lazy" />
+            <img src="assets/sources/picacg.png" alt="" loading="lazy" />
+            <img src="assets/sources/shonen_jump_plus.png" alt="" loading="lazy" />
+            <img src="assets/sources/wnacg.png" alt="" loading="lazy" />
+            <img src="assets/sources/ykmh.png" alt="" loading="lazy" />
+            <img src="assets/sources/zaimanhua.png" alt="" loading="lazy" />
+          </div>
+        </div>
+
+        <div class="spec-meta reveal">
+          <div class="meta-block">
+            <h4>运行要求</h4>
+            <dl>
+              <div><dt>系统</dt><dd>Windows 10 / 11，64 位</dd></div>
+              <div><dt>视频</dt><dd>图库视频要本机装 VLC，可选</dd></div>
+              <div><dt>过盾</dt><dd>用系统自带的 WebView2</dd></div>
+              <div><dt>数据</dt><dd>都存在本机，可整包备份</dd></div>
+            </dl>
+          </div>
+          <div class="meta-block">
+            <h4>阅读器常用按键</h4>
+            <dl>
+              <div><dt>← / →</dt><dd>翻页</dd></div>
+              <div><dt>PageUp / PageDown</dt><dd>翻章</dd></div>
+              <div><dt>空格</dt><dd>翻页</dd></div>
+              <div><dt>Home / End</dt><dd>跳到开头 / 结尾</dd></div>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 下载与快速运行 -->
+    <section class="section" id="download">
+      <div class="container">
+        <div class="download-grid reveal">
+          <div class="download-card is-primary">
+            <span class="eyebrow">开源免费 · GPL-3.0</span>
+            <h2 class="section-title">下载 VComic</h2>
+            <p class="section-desc">Windows 10 / 11，64 位。装 MSI 或安装器，也可以解压即用。</p>
+            <a href="https://github.com/w13630039663-bit/venera-miuix/releases" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-icon-start">
+              <svg class="icon icon-medium" width="16" height="16" viewBox="0 0 24 24">
+                <path d="M12 4v12M7 11l5 5 5-5M5 20h14" />
+              </svg>
+              <span>前往 Releases 下载</span>
+            </a>
+            <ul class="download-points">
+              <li>MSI / 安装器 / 免安装包，三种都出</li>
+              <li>内置 34 个漫画源，首次启动即可用</li>
+              <li>数据存在本机，可整包备份与还原</li>
+            </ul>
+          </div>
+
+          <div class="download-card">
+            <span class="eyebrow">从源码运行</span>
+            <h3>本地构建</h3>
+            <p>需要 JDK 25（<code class="inline-code">:desktop</code>）和 JDK 21（<code class="inline-code">:engine-probe</code>），在仓库的 <code class="inline-code">desktop/</code> 目录执行：</p>
+            <div class="code-row">
+              <code id="buildCmd">.\gradlew.bat :desktop:app</code>
+              <button class="copy-btn" type="button" data-copy="buildCmd">复制</button>
+            </div>
+            <div class="code-row">
+              <code id="packageCmd">.\gradlew.bat :desktop:createDistributable</code>
+              <button class="copy-btn" type="button" data-copy="packageCmd">复制</button>
+            </div>
+            <div class="code-row">
+              <code id="msiCmd">.\gradlew.bat :desktop:packageMsi</code>
+              <button class="copy-btn" type="button" data-copy="msiCmd">复制</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 常见问题 FAQ -->
+    <section class="section" id="faq">
+      <div class="container-narrow">
+        <div class="section-head reveal">
+          <span class="eyebrow">FAQ</span>
+          <h2 class="section-title">常见问题</h2>
+        </div>
+
+        <div class="faq-list reveal" id="faqList">
+          <div class="faq-item is-open">
+            <button class="faq-trigger" type="button" aria-expanded="true">
+              <span>支持哪些漫画源和图库站？</span>
+              <svg class="icon icon-regular faq-chevron" width="18" height="18" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
+            </button>
+            <div class="faq-panel">
+              <div class="faq-panel-inner">
+                <p class="faq-answer">内置 34 个漫画源脚本，默认启用包子漫画、拷贝漫画、禁漫天堂和 MangaDex 四个，其余在「站点」里可以随时打开。图库支持 Pixiv，以及 yande.re、Gelbooru、Safebooru 等站点。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-trigger" type="button" aria-expanded="false">
+              <span>34 个源，为什么默认只开了 4 个？</span>
+              <svg class="icon icon-regular faq-chevron" width="18" height="18" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
+            </button>
+            <div class="faq-panel">
+              <div class="faq-panel-inner">
+                <p class="faq-answer">装好就能直接用的是包子漫画、拷贝漫画、禁漫天堂和 MangaDex。其余源在「站点」页面一个个打开就行；需要登录的源，顺手把账号和 Cookie 填上，搜索时才会出结果。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-trigger" type="button" aria-expanded="false">
+              <span>下载中断，或者被站点拦截了怎么办？</span>
+              <svg class="icon icon-regular faq-chevron" width="18" height="18" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
+            </button>
+            <div class="faq-panel">
+              <div class="faq-panel-inner">
+                <p class="faq-answer">每张图写入前都会检查是不是有效图片，站点返回的错误页面不会存进磁盘。到「本机已下载」里点「补齐」，只重新下载缺的页，已经下好的不会动。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-trigger" type="button" aria-expanded="false">
+              <span>在图库看到喜欢的画，怎么找 Pixiv 原图和画师？</span>
+              <svg class="icon icon-regular faq-chevron" width="18" height="18" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
+            </button>
+            <div class="faq-panel">
+              <div class="faq-panel-inner">
+                <p class="faq-answer">在图库作品或画师主页上，画师名可以直接跳到他在 Pixiv 的主页。想找原图，可以拿一张图发起 SauceNAO 或 ascii2d 反搜，命中本站图库的条目能直接打开大图页。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-trigger" type="button" aria-expanded="false">
+              <span>没网能看已经下载好的漫画吗？</span>
+              <svg class="icon icon-regular faq-chevron" width="18" height="18" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
+            </button>
+            <div class="faq-panel">
+              <div class="faq-panel-inner">
+                <p class="faq-answer">可以。完整下载的章节直接从本地磁盘读取，不需要联网；只下了一部分的章节会先读本地，缺的页再联网补。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-trigger" type="button" aria-expanded="false">
+              <span>阅读器有哪些快捷键？</span>
+              <svg class="icon icon-regular faq-chevron" width="18" height="18" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
+            </button>
+            <div class="faq-panel">
+              <div class="faq-panel-inner">
+                <p class="faq-answer">方向键 ← / → 翻页，PageUp / PageDown 翻章，Home / End 跳到开头和结尾，空格也能翻页。支持双页对开和条漫连续两种阅读方式，切换后仍会记住进度。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-trigger" type="button" aria-expanded="false">
+              <span>图库里的视频或动图放不出来？</span>
+              <svg class="icon icon-regular faq-chevron" width="18" height="18" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
+            </button>
+            <div class="faq-panel">
+              <div class="faq-panel-inner">
+                <p class="faq-answer">视频交给本机 VLC 解码，需要装 VLC，不装只影响视频播放。Ugoira 动图是应用内直接播的，不需要额外装东西。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-trigger" type="button" aria-expanded="false">
+              <span>图库站一直弹验证窗口，或者打开是空的？</span>
+              <svg class="icon icon-regular faq-chevron" width="18" height="18" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
+            </button>
+            <div class="faq-panel">
+              <div class="faq-panel-inner">
+                <p class="faq-answer">这些站走 Cloudflare 验证，应用会用系统自带的 WebView2 开一个窗口，点过验证就好。一直过不去多半是网络或代理问题，可以在设置里配 HTTP / SOCKS5 代理。另外 Gelbooru 这类站需要填账号，没登录会返回空结果。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-trigger" type="button" aria-expanded="false">
+              <span>数据存在哪？升级或换电脑会丢吗？</span>
+              <svg class="icon icon-regular faq-chevron" width="18" height="18" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
+            </button>
+            <div class="faq-panel">
+              <div class="faq-panel-inner">
+                <p class="faq-answer">都在 <code class="inline-code">%LOCALAPPDATA%\venera\</code> 下：数据库在 <code class="inline-code">db\</code>，日志在 <code class="inline-code">logs\</code>。程序和你的数据分开放，覆盖安装或升级只换程序，不碰这个目录。换电脑时在「备份与还原」里导出整包，新机器导入即可。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-trigger" type="button" aria-expanded="false">
+              <span>Mica / Acrylic 材质没生效？</span>
+              <svg class="icon icon-regular faq-chevron" width="18" height="18" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
+            </button>
+            <div class="faq-panel">
+              <div class="faq-panel-inner">
+                <p class="faq-answer">这两种是 Windows 11 的系统窗口效果，Windows 10 上会退回普通窗口背景。Windows 11 下可以在设置里切换 Mica、Acrylic 或实底材质。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 极简多列页脚 + 明暗模式一键切换 -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="brand" style="margin-bottom:12px;">
+            <span class="brand-mark" aria-hidden="true">
+              <img src="assets/vcomic-64.png" alt="" />
+            </span>
+            <span>VComic</span>
+          </div>
+          <p style="font-size:13px;line-height:1.65;max-width:280px;">
+            Windows 桌面端的漫画阅读与图库浏览软件。开源，免费。
+          </p>
+        </div>
+
+        <div>
+          <div class="footer-col-title">产品导航</div>
+          <ul class="footer-links">
+            <li><a href="#top">应用预览</a></li>
+            <li><a href="#features">功能</a></li>
+            <li><a href="#showcase">界面截图</a></li>
+            <li><a href="#architecture">技术说明</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="footer-col-title">核心功能</div>
+          <ul class="footer-links">
+            <li><a href="#features">Pixiv 与图库站</a></li>
+            <li><a href="#features">双页阅读器</a></li>
+            <li><a href="#features">下载与缺页补齐</a></li>
+            <li><a href="#features">内容分级</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="footer-col-title">开源与支持</div>
+          <ul class="footer-links">
+            <li><a href="#download">Windows 下载</a></li>
+            <li><a href="#android">Android APK</a></li>
+            <li><a href="#download">从源码运行</a></li>
+            <li><a href="#faq">常见问题</a></li>
+            <li><a href="https://github.com/w13630039663-bit/venera-miuix" target="_blank" rel="noopener noreferrer">GitHub 仓库</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <span>VComic · 基于 GPL-3.0 协议开源，仅供学习与个人本地阅读使用</span>
+        <button class="theme-switch-pill" id="footerThemeBtn" type="button">
+          <svg class="icon icon-regular" width="14" height="14" viewBox="0 0 24 24" id="footerThemeIcon">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+          </svg>
+          <span id="footerThemeLabel">切换浅色模式</span>
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 高清截图画廊灯箱 -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="截图放大预览">
+    <button class="lightbox-nav is-prev" id="lightboxPrev" type="button" aria-label="上一张截图">
+      <svg class="icon icon-medium" width="18" height="18" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6" /></svg>
+    </button>
+    <div class="lightbox-inner">
+      <div class="lightbox-stage" id="lightboxStage">
+        <img class="lightbox-img" id="lightboxImg" src="" alt="放大预览" />
+      </div>
+      <div class="lightbox-bar">
+        <span class="lightbox-counter" id="lightboxCounter">1 / 1</span>
+        <span id="lightboxCaption"></span>
+        <button class="btn btn-secondary btn-sm" id="lightboxZoomBtn" type="button">1:1 放大</button>
+        <button class="btn btn-secondary btn-sm" id="lightboxClose" type="button">关闭 (ESC)</button>
+      </div>
+    </div>
+    <button class="lightbox-nav is-next" id="lightboxNext" type="button" aria-label="下一张截图">
+      <svg class="icon icon-medium" width="18" height="18" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" /></svg>
+    </button>
+  </div>
+
+  <!-- Ctrl+K 快捷命令面板 -->
+  <div class="cmdk-backdrop" id="cmdkBackdrop" role="dialog" aria-modal="true" aria-label="快捷跳转与命令面板">
+    <div class="cmdk-modal">
+      <div class="cmdk-head">
+        <svg class="icon icon-regular" width="16" height="16" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="7" />
+          <path d="M20 20l-3.5-3.5" />
+        </svg>
+        <input class="cmdk-input" id="cmdkInput" type="text" placeholder="输入页面名称、功能或命令（例如：阅读器、Android、主题）…" autocomplete="off" />
+        <button class="copy-btn" id="cmdkCloseBtn" type="button">ESC</button>
+      </div>
+      <div class="cmdk-list" id="cmdkList" role="listbox" aria-label="快捷指令列表"></div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const root = document.documentElement;
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      /* 自动演示统一调度：滚出视口或鼠标悬停就暂停；用户接管后 kill 不再自启 */
+      function autoLoop(el, tick, ms) {
+        const state = { timer: null, stopped: false, visible: true, hovered: false };
+        const start = () => {
+          if (state.stopped || !state.visible || state.hovered || state.timer) return;
+          state.timer = setInterval(tick, ms);
+        };
+        const stop = () => {
+          if (state.timer) {
+            clearInterval(state.timer);
+            state.timer = null;
+          }
+        };
+        const kill = () => {
+          state.stopped = true;
+          stop();
+        };
+        const resume = () => {
+          state.stopped = false;
+          start();
+        };
+        if (el) {
+          el.addEventListener('pointerenter', () => {
+            state.hovered = true;
+            stop();
+          });
+          el.addEventListener('pointerleave', () => {
+            state.hovered = false;
+            start();
+          });
+        }
+        if (el && 'IntersectionObserver' in window) {
+          state.visible = false;
+          new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+              state.visible = entry.isIntersecting;
+              if (state.visible) start();
+              else stop();
+            });
+          }, { threshold: 0.12 }).observe(el);
+        } else {
+          start();
+        }
+        return { start, stop, kill, resume };
+      }
+
+      /* =========================================================
+         1. 导航吸顶滚动联动 + 顶部进度条 + 章节高亮 + 手机抽屉
+         ========================================================= */
+      const siteNav = document.getElementById('siteNav');
+      const scrollProgress = document.getElementById('scrollProgress');
+      const navMenuBtn = document.getElementById('navMenuBtn');
+      const navMenuIcon = document.getElementById('navMenuIcon');
+      const mobileDrawer = document.getElementById('mobileDrawer');
+      const menuOpenSvg = '<path d="M4 7h16M4 12h16M4 17h16"/>';
+      const menuCloseSvg = '<path d="M6 6l12 12M18 6l-12 12"/>';
+
+      function setDrawerOpen(open) {
+        mobileDrawer.classList.toggle('is-open', open);
+        navMenuBtn.setAttribute('aria-expanded', String(open));
+        navMenuIcon.innerHTML = open ? menuCloseSvg : menuOpenSvg;
+      }
+
+      navMenuBtn.addEventListener('click', () => {
+        setDrawerOpen(!mobileDrawer.classList.contains('is-open'));
+      });
+
+      mobileDrawer.querySelectorAll('a').forEach((link) => {
+        link.addEventListener('click', () => setDrawerOpen(false));
+      });
+
+      const syncNav = () => {
+        siteNav.classList.toggle('is-scrolled', window.scrollY > 48);
+        const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+        const ratio = Math.min(1, Math.max(0, window.scrollY / maxScroll));
+        scrollProgress.style.transform = `scaleX(${ratio.toFixed(4)})`;
+      };
+      window.addEventListener('scroll', syncNav, { passive: true });
+      syncNav();
+
+      if ('IntersectionObserver' in window) {
+        const navTargets = document.querySelectorAll('section[id]');
+        const navLinksAll = document.querySelectorAll('[data-nav-sec]');
+        new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            const id = entry.target.id;
+            navLinksAll.forEach((a) => {
+              a.classList.toggle('is-current', a.dataset.navSec === id);
+            });
+          });
+        }, { rootMargin: '-32% 0px -56% 0px', threshold: 0.01 }).observe(document.getElementById('features'));
+        navTargets.forEach((sec) => {
+          if (sec.id !== 'features') {
+            new IntersectionObserver((entries) => {
+              entries.forEach((entry) => {
+                if (!entry.isIntersecting) return;
+                const id = entry.target.id;
+                navLinksAll.forEach((a) => {
+                  a.classList.toggle('is-current', a.dataset.navSec === id);
+                });
+              });
+            }, { rootMargin: '-32% 0px -56% 0px', threshold: 0.01 }).observe(sec);
+          }
+        });
+      }
+
+      /* =========================================================
+         2. 全局明暗模式切换（同时联动首屏首页截图）
+         ========================================================= */
+      const navThemeBtn = document.getElementById('navThemeBtn');
+      const footerThemeBtn = document.getElementById('footerThemeBtn');
+      const footerThemeLabel = document.getElementById('footerThemeLabel');
+      const navThemeIcon = document.getElementById('navThemeIcon');
+      const footerThemeIcon = document.getElementById('footerThemeIcon');
+
+      const sunSvg = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>';
+      const moonSvg = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+
+      function getHomeShot() {
+        return 'assets/screenshots/home-dark.jpg';
+      }
+
+      function applyTheme(theme) {
+        root.setAttribute('data-theme', theme);
+        const isDark = theme === 'dark';
+        footerThemeLabel.textContent = isDark ? '切换浅色模式' : '切换深色模式';
+        navThemeIcon.innerHTML = isDark ? sunSvg : moonSvg;
+        footerThemeIcon.innerHTML = isDark ? sunSvg : moonSvg;
+        if (currentHeroKey === 'home') {
+          heroStageImg.src = getHomeShot();
+        }
+      }
+
+      function toggleTheme() {
+        const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        applyTheme(next);
+        try {
+          window.localStorage.setItem('venera-site-theme', next);
+        } catch (_) {}
+      }
+
+      navThemeBtn.addEventListener('click', toggleTheme);
+      footerThemeBtn.addEventListener('click', toggleTheme);
+
+      /* =========================================================
+         3. 首屏桌面窗口：模块切换 + 状态文案 + 可拖拽分隔条
+         ========================================================= */
+      const heroModules = {
+        home: {
+          route: '首页 · 继续阅读与每日热门',
+          engine: '34 个源已启用',
+          tag: '首页',
+          toast: '首页：继续阅读、每日热门、推荐漫画与本周阅读统计',
+          img: () => getHomeShot()
+        },
+        gallery: {
+          route: '画廊 · Pixiv 与图库站',
+          engine: '瀑布流已载入',
+          tag: '画廊',
+          toast: 'Pixiv 与 yande.re、Gelbooru、Safebooru 可随时切换',
+          img: () => 'assets/screenshots/gallery-home.jpg'
+        },
+        reader: {
+          route: '阅读器 · 双页对开',
+          engine: '读取本机文件',
+          tag: '阅读',
+          toast: '支持 ← / → 翻页、双页与条漫模式，已下载章节离线可读',
+          img: () => 'assets/screenshots/manga-reader.jpg'
+        },
+        detail: {
+          route: '漫画详情 · 章节与下载',
+          engine: '支持整本下载',
+          tag: '详情',
+          toast: '封面、简介、标签和章节在一页，章节可直接加入下载队列',
+          img: () => 'assets/screenshots/manga-detail.jpg'
+        },
+        stats: {
+          route: '阅读统计 · 近 7 天',
+          engine: '本机数据库计算',
+          tag: '统计',
+          toast: '阅读时长、页数、活跃天数与最常读的作品',
+          img: () => 'assets/screenshots/reading-stats.jpg'
+        }
+      };
+
+      const heroOrder = ['home', 'gallery', 'reader', 'detail', 'stats'];
+      let currentHeroKey = 'home';
+      let heroAutoplay = !prefersReduced;
+
+      const heroTabs = document.querySelectorAll('[data-hero-tab]');
+      const heroStageImg = document.getElementById('heroStageImg');
+      const heroStageCanvas = document.getElementById('heroStageCanvas');
+      const heroCompareOverlay = document.getElementById('heroCompareOverlay');
+      const heroCompareDivider = document.getElementById('heroCompareDivider');
+      const heroRouteLabel = document.getElementById('heroRouteLabel');
+      const heroEngineStatus = document.getElementById('heroEngineStatus');
+      const heroToastTag = document.getElementById('heroToastTag');
+      const heroToastText = document.getElementById('heroToastText');
+      const heroAutoplayBtn = document.getElementById('heroAutoplayBtn');
+      const heroAutoplayLabel = document.getElementById('heroAutoplayLabel');
+      const heroAutoplayIcon = document.getElementById('heroAutoplayIcon');
+
+      function setCompareSplit(pct) {
+        const clamped = Math.min(95, Math.max(5, pct));
+        heroStageCanvas.style.setProperty('--split', `${clamped.toFixed(1)}%`);
+        heroCompareDivider.setAttribute('aria-valuenow', String(Math.round(clamped)));
+      }
+      setCompareSplit(38);
+
+      let isDraggingCompare = false;
+      let justDraggedCompare = false;
+
+      heroCompareDivider.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        isDraggingCompare = true;
+        heroCompareDivider.classList.add('is-dragging');
+        heroCompareDivider.setPointerCapture(e.pointerId);
+        setHeroAutoplay(false);
+      });
+
+      heroCompareDivider.addEventListener('pointermove', (e) => {
+        if (!isDraggingCompare) return;
+        const rect = heroStageCanvas.getBoundingClientRect();
+        if (rect.width <= 0) return;
+        const pct = ((e.clientX - rect.left) / rect.width) * 100;
+        setCompareSplit(pct);
+      });
+
+      const endCompareDrag = () => {
+        if (!isDraggingCompare) return;
+        isDraggingCompare = false;
+        justDraggedCompare = true;
+        heroCompareDivider.classList.remove('is-dragging');
+        setTimeout(() => { justDraggedCompare = false; }, 120);
+      };
+      heroCompareDivider.addEventListener('pointerup', endCompareDrag);
+      heroCompareDivider.addEventListener('pointercancel', endCompareDrag);
+
+      heroCompareDivider.addEventListener('keydown', (e) => {
+        const cur = Number(heroCompareDivider.getAttribute('aria-valuenow') || 38);
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          setHeroAutoplay(false);
+          setCompareSplit(cur - 5);
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          setHeroAutoplay(false);
+          setCompareSplit(cur + 5);
+        }
+      });
+
+      function selectHeroTab(key, fromUser) {
+        const mod = heroModules[key];
+        if (!mod) return;
+        currentHeroKey = key;
+
+        heroTabs.forEach((btn) => {
+          btn.classList.toggle('is-active', btn.dataset.heroTab === key);
+        });
+
+        heroCompareOverlay.classList.toggle('is-hidden', key !== 'home');
+
+        heroRouteLabel.textContent = mod.route;
+        heroEngineStatus.textContent = mod.engine;
+        heroToastTag.textContent = mod.tag;
+        heroToastText.textContent = mod.toast;
+
+        const nextSrc = mod.img();
+        if (heroStageImg.getAttribute('src') !== nextSrc) {
+          heroStageImg.classList.add('is-swapping');
+          setTimeout(() => {
+            heroStageImg.src = nextSrc;
+            heroStageImg.alt = mod.route;
+            heroStageImg.classList.remove('is-swapping');
+          }, 130);
+        }
+
+        if (fromUser) {
+          setHeroAutoplay(false);
+        }
+      }
+
+      heroTabs.forEach((btn) => {
+        btn.addEventListener('click', () => selectHeroTab(btn.dataset.heroTab, true));
+      });
+
+      const heroLoop = autoLoop(
+        document.getElementById('heroAppWindow'),
+        () => {
+          const idx = heroOrder.indexOf(currentHeroKey);
+          selectHeroTab(heroOrder[(idx + 1) % heroOrder.length], false);
+        },
+        4600
+      );
+
+      const pauseIcon = '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>';
+      const playIcon = '<polygon points="7,5 19,12 7,19" style="transform:translateX(1px)"/>';
+
+      function setHeroAutoplay(on) {
+        heroAutoplay = on;
+        heroAutoplayBtn.setAttribute('aria-pressed', String(on));
+        heroAutoplayLabel.textContent = on ? '自动轮播' : '已暂停';
+        heroAutoplayIcon.innerHTML = on ? pauseIcon : playIcon;
+        if (on) heroLoop.resume();
+        else heroLoop.kill();
+      }
+
+      heroAutoplayBtn.addEventListener('click', () => setHeroAutoplay(!heroAutoplay));
+      setHeroAutoplay(!prefersReduced);
+
+      /* 侧边栏后台泵动态跳数 */
+      const sidebarPumpText = document.getElementById('sidebarPumpText');
+      const sidebarPumpBar = document.getElementById('sidebarPumpBar');
+      let pumpPage = 24;
+      if (!prefersReduced) {
+        autoLoop(document.getElementById('heroSidebar'), () => {
+          pumpPage = pumpPage >= 30 ? 12 : pumpPage + 1;
+          sidebarPumpText.textContent = pumpPage === 30 ? '30 / 30 已齐' : `${pumpPage} / 30 页`;
+          sidebarPumpBar.style.width = `${Math.round((pumpPage / 30) * 100)}%`;
+        }, 1400);
+      }
+
+      /* 真实可拖拽分隔条（调整侧边栏宽度） */
+      const resizeHandle = document.getElementById('heroResizeHandle');
+      const heroSidebar = document.getElementById('heroSidebar');
+      let isResizing = false;
+
+      resizeHandle.addEventListener('pointerdown', (e) => {
+        isResizing = true;
+        resizeHandle.classList.add('is-dragging');
+        resizeHandle.setPointerCapture(e.pointerId);
+        document.body.style.userSelect = 'none';
+      });
+
+      resizeHandle.addEventListener('pointermove', (e) => {
+        if (!isResizing) return;
+        const winRect = document.getElementById('heroAppWindow').getBoundingClientRect();
+        const nextW = Math.min(340, Math.max(210, e.clientX - winRect.left));
+        heroSidebar.style.width = `${nextW}px`;
+      });
+
+      const endResize = () => {
+        if (!isResizing) return;
+        isResizing = false;
+        resizeHandle.classList.remove('is-dragging');
+        document.body.style.userSelect = '';
+      };
+      resizeHandle.addEventListener('pointerup', endResize);
+      resizeHandle.addEventListener('pointercancel', endResize);
+
+      /* =========================================================
+         4. 演示 1：图库站与 Pixiv 分段切换（自循环 + 可手动点）
+         ========================================================= */
+      const galButtons = document.querySelectorAll('[data-gal-mode]');
+      const galIndicator = document.getElementById('gallerySegIndicator');
+      const galTags = document.querySelectorAll('[data-gal-tag]');
+      const demoMasonry = document.getElementById('demoMasonry');
+      const booruLabels = ['yande.re', 'safebooru', 'gelbooru', 'yande.re', 'safebooru', 'gelbooru', 'yande.re', 'safebooru'];
+      const pixivLabels = ['日榜 #01', '关注画师', '原创推荐', '多页作品', '周榜 #04', '云端书签', '新作精选', '原图 4K'];
+      let galMode = 'booru';
+
+      function setGalleryMode(mode) {
+        galMode = mode;
+        const activeBtn = Array.from(galButtons).find((b) => b.dataset.galMode === mode);
+        if (!activeBtn) return;
+        galButtons.forEach((b) => b.classList.toggle('is-active', b === activeBtn));
+        galIndicator.style.width = `${activeBtn.offsetWidth}px`;
+        galIndicator.style.transform = `translateX(${activeBtn.offsetLeft - 4}px)`;
+
+        demoMasonry.style.opacity = '0.45';
+        setTimeout(() => {
+          const labels = mode === 'pixiv' ? pixivLabels : booruLabels;
+          galTags.forEach((tag, i) => {
+            tag.textContent = labels[i % labels.length];
+          });
+          demoMasonry.style.opacity = '1';
+        }, 160);
+      }
+
+      const galLoop = prefersReduced
+        ? null
+        : autoLoop(demoMasonry, () => setGalleryMode(galMode === 'booru' ? 'pixiv' : 'booru'), 4200);
+
+      galButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (galLoop) galLoop.kill();
+          setGalleryMode(btn.dataset.galMode);
+        });
+      });
+      requestAnimationFrame(() => setGalleryMode('booru'));
+      window.addEventListener('resize', () => setGalleryMode(galMode));
+
+      /* =========================================================
+         5. 演示 2：来源识别与跳转（自循环 + 手动点击发起反搜）
+         ========================================================= */
+      const sniffActionPill = document.getElementById('sniffActionPill');
+      const sniffBtnLabel = document.getElementById('sniffBtnLabel');
+      const sniffResultBar = document.getElementById('sniffResultBar');
+      const sniffStateText = document.getElementById('sniffStateText');
+      let sniffStep = 0;
+
+      function applySniffStep(step) {
+        sniffStep = step;
+        if (step === 0) {
+          sniffStateText.textContent = '正在比对…';
+          sniffBtnLabel.textContent = '正在请求 SauceNAO…';
+          sniffActionPill.classList.remove('is-triggered');
+          sniffResultBar.classList.remove('is-ready');
+        } else if (step === 1) {
+          sniffStateText.textContent = '找到 3 条来源';
+          sniffBtnLabel.textContent = '打开对应大图页';
+          sniffActionPill.classList.add('is-triggered');
+          sniffResultBar.classList.remove('is-ready');
+        } else {
+          sniffStateText.textContent = '已找到 Pixiv 原图';
+          sniffBtnLabel.textContent = '点此重新反搜';
+          sniffActionPill.classList.add('is-triggered');
+          sniffResultBar.classList.add('is-ready');
+        }
+      }
+
+      const sniffLoop = prefersReduced
+        ? null
+        : autoLoop(document.querySelector('.demo-sniffer'), () => {
+            applySniffStep((sniffStep + 1) % 3);
+          }, 1800);
+
+      if (prefersReduced) applySniffStep(2);
+
+      sniffActionPill.addEventListener('click', () => {
+        if (sniffLoop) sniffLoop.kill();
+        applySniffStep(0);
+        setTimeout(() => applySniffStep(1), 520);
+        setTimeout(() => applySniffStep(2), 1150);
+      });
+
+      /* =========================================================
+         6. 演示 3：阅读器翻页与色温（自循环 + 手动翻页与切滤镜）
+         ========================================================= */
+      const demoReader = document.getElementById('demoReader');
+      const readerSpread = document.getElementById('readerSpread');
+      const readerImgL = document.getElementById('readerImgL');
+      const readerImgR = document.getElementById('readerImgR');
+      const readerPageLabel = document.getElementById('readerPageLabel');
+      const readerSliderFill = document.getElementById('readerSliderFill');
+      const readerModeBtns = document.querySelectorAll('[data-reader-mode]');
+      const readerPrevBtn = document.getElementById('readerPrevBtn');
+      const readerNextBtn = document.getElementById('readerNextBtn');
+
+      const readerSpreads = [
+        { l: 'assets/covers/c2.jpg', r: 'assets/covers/c3.jpg', page: '12 / 36', pct: 33 },
+        { l: 'assets/covers/c4.jpg', r: 'assets/covers/c5.jpg', page: '14 / 36', pct: 46 },
+        { l: 'assets/covers/c7.jpg', r: 'assets/covers/c1.jpg', page: '16 / 36', pct: 64 },
+        { l: 'assets/covers/c6.jpg', r: 'assets/covers/c8.jpg', page: '18 / 36', pct: 80 }
+      ];
+      const readerModeClasses = ['', 'mode-warm', 'mode-contrast'];
+      let readerIdx = 0;
+      let readerModeIdx = 0;
+
+      function applyReaderMode(mIdx) {
+        readerModeIdx = mIdx;
+        demoReader.className = `demo-reader ${readerModeClasses[mIdx] || ''}`.trim();
+        readerModeBtns.forEach((btn) => {
+          btn.classList.toggle('is-active', Number(btn.dataset.readerMode) === mIdx);
+        });
+      }
+
+      function turnReaderPage(nextIdx) {
+        readerIdx = (nextIdx + readerSpreads.length) % readerSpreads.length;
+        const f = readerSpreads[readerIdx];
+        readerSpread.classList.add('is-turning');
+        setTimeout(() => {
+          readerImgL.src = f.l;
+          readerImgR.src = f.r;
+          readerPageLabel.textContent = f.page;
+          readerSliderFill.style.width = `${f.pct}%`;
+          readerSpread.classList.remove('is-turning');
+        }, 200);
+      }
+
+      const readerLoop = prefersReduced
+        ? null
+        : autoLoop(demoReader, () => {
+            const nextP = (readerIdx + 1) % readerSpreads.length;
+            applyReaderMode(nextP % readerModeClasses.length);
+            turnReaderPage(nextP);
+          }, 3200);
+
+      readerModeBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (readerLoop) readerLoop.kill();
+          applyReaderMode(Number(btn.dataset.readerMode));
+        });
+      });
+
+      readerPrevBtn.addEventListener('click', () => {
+        if (readerLoop) readerLoop.kill();
+        turnReaderPage(readerIdx - 1);
+      });
+
+      readerNextBtn.addEventListener('click', () => {
+        if (readerLoop) readerLoop.kill();
+        turnReaderPage(readerIdx + 1);
+      });
+
+      /* =========================================================
+         7. 演示 4：下载队列与缺页补齐
+         ========================================================= */
+      const repairBadge = document.getElementById('repairBadge');
+      const repairBar = document.getElementById('repairBar');
+      const repairLog = document.getElementById('repairLog');
+      const repairBtn = document.getElementById('repairBtn');
+      const activeQueueBadge = document.getElementById('activeQueueBadge');
+      const activeQueueBar = document.getElementById('activeQueueBar');
+      let repairPhase = 0;
+      let activePages = 14;
+
+      function setRepairState(phase) {
+        repairPhase = phase;
+        if (phase === 0) {
+          repairBadge.textContent = '缺 2 页 · 28/30';
+          repairBadge.className = 'queue-badge is-warn';
+          repairBar.style.width = '92%';
+          repairBar.className = 'queue-bar-fill is-warn';
+          repairLog.textContent = '拦下 2 个错误页，没有写进磁盘';
+          repairBtn.textContent = '补齐缺页';
+          repairBtn.style.opacity = '1';
+        } else if (phase === 1) {
+          repairBadge.textContent = '补齐中 · 29/30';
+          repairBadge.className = 'queue-badge';
+          repairBar.style.width = '96%';
+          repairBar.className = 'queue-bar-fill';
+          repairLog.textContent = '仅重取缺失第 14、27 页，盘上原页零重下';
+          repairBtn.textContent = '写入中…';
+          repairBtn.style.opacity = '0.7';
+        } else {
+          repairBadge.textContent = '已下全 · 30/30';
+          repairBadge.className = 'queue-badge is-ok';
+          repairBar.style.width = '100%';
+          repairBar.className = 'queue-bar-fill is-ok';
+          repairLog.textContent = '图片检查通过，离线可以正常读';
+          repairBtn.textContent = '已补齐';
+          repairBtn.style.opacity = '0.55';
+        }
+      }
+
+      let repairLoop = null;
+      let activeLoop = null;
+
+      repairBtn.addEventListener('click', () => {
+        // 用户动手后停止自动演示，进度由点击驱动
+        if (repairLoop) repairLoop.kill();
+        if (activeLoop) activeLoop.kill();
+        if (repairPhase === 0) {
+          setRepairState(1);
+          setTimeout(() => setRepairState(2), 900);
+        } else {
+          setRepairState(0);
+        }
+      });
+
+      if (!prefersReduced) {
+        const queueEl = document.querySelector('.demo-queue');
+        repairLoop = autoLoop(queueEl, () => {
+          setRepairState((repairPhase + 1) % 3);
+        }, 2800);
+
+        activeLoop = autoLoop(queueEl, () => {
+          activePages = activePages >= 26 ? 6 : activePages + 2;
+          activeQueueBadge.textContent = `正在写入 · ${activePages}/26`;
+          activeQueueBar.style.width = `${Math.round((activePages / 26) * 100)}%`;
+        }, 1200);
+      }
+
+      /* =========================================================
+         8. 演示 5：内容分级（自循环 + 可点击切换）
+         ========================================================= */
+      const maskTabs = document.querySelectorAll('[data-mask-mode]');
+      const sensitiveCards = document.querySelectorAll('[data-sensitive="true"]');
+      const maskCycle = ['clear', 'blur', 'hide'];
+      let maskIdx = 1;
+
+      function applyMaskMode(mode) {
+        maskIdx = maskCycle.indexOf(mode);
+        maskTabs.forEach((btn) => btn.classList.toggle('is-active', btn.dataset.maskMode === mode));
+        sensitiveCards.forEach((card) => {
+          card.classList.toggle('is-masked', mode === 'blur');
+          card.classList.toggle('is-hidden', mode === 'hide');
+          const overlay = card.querySelector('.privacy-overlay');
+          if (overlay) {
+            overlay.textContent = mode === 'hide'
+              ? (card.dataset.hideText || '已彻底隐藏')
+              : (card.dataset.blurText || '分级封面打码');
+          }
+        });
+      }
+
+      const maskLoop = prefersReduced
+        ? null
+        : autoLoop(document.getElementById('privacyGrid'), () => {
+            applyMaskMode(maskCycle[(maskIdx + 1) % maskCycle.length]);
+          }, 3000);
+
+      maskTabs.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (maskLoop) maskLoop.kill();
+          applyMaskMode(btn.dataset.maskMode);
+        });
+      });
+
+      /* =========================================================
+         9. 演示 6：侧栏小猫桌宠互动（摸头 + 姿态切换 + 气泡台词）
+         ========================================================= */
+      const demoMascot = document.getElementById('demoMascot');
+      const mascotPoseBtns = document.querySelectorAll('[data-mascot-pose]');
+      const mascotPetBtn = document.getElementById('mascotPetBtn');
+      const mascotBubble = document.getElementById('mascotBubble');
+      const mascotBubbleDot = document.getElementById('mascotBubbleDot');
+      const mascotBubbleText = document.getElementById('mascotBubbleText');
+      const demoMascotBody = document.getElementById('demoMascotBody');
+      const demoEyeL = document.getElementById('demoEyeL');
+      const demoEyeR = document.getElementById('demoEyeR');
+      const demoArcL = document.getElementById('demoArcL');
+      const demoArcR = document.getElementById('demoArcR');
+      const demoMascotHeart = document.getElementById('demoMascotHeart');
+      const demoMascotSparkles = document.getElementById('demoMascotSparkles');
+
+      const mascotPoses = {
+        idle: { dot: '#89A8F8', text: '安静待着', smile: false, heart: false, sparkle: false, tilt: 0, sink: 0 },
+        working: { dot: '#FBBF24', text: '低头看两页书', smile: false, heart: false, sparkle: false, tilt: 6, sink: 0 },
+        favorite: { dot: '#38BDF8', text: '鼠标在动，看过去', smile: false, heart: false, sparkle: false, tilt: 0, sink: 0 },
+        doze: { dot: '#71717A', text: '没动静，趴一会儿', smile: false, heart: false, sparkle: false, tilt: -2, sink: 3 }
+      };
+      const mascotTapLines = ['（眨了下眼）', '（醒了）'];
+      let mascotPose = 'idle';
+      let mascotTapCount = 0;
+      let mascotTapTimer = null;
+
+      function renderMascotPose(poseKey, customText) {
+        const cfg = mascotPoses[poseKey] || mascotPoses.idle;
+        mascotPose = poseKey;
+        mascotPoseBtns.forEach((b) => b.classList.toggle('is-active', b.dataset.mascotPose === poseKey));
+        mascotBubbleDot.style.background = cfg.dot;
+        mascotBubbleText.textContent = customText || cfg.text;
+        mascotBubble.classList.remove('is-pop');
+        void mascotBubble.offsetWidth;
+        mascotBubble.classList.add('is-pop');
+
+        demoEyeL.setAttribute('opacity', cfg.smile ? '0' : '1');
+        demoEyeR.setAttribute('opacity', cfg.smile ? '0' : '1');
+        demoEyeL.setAttribute('height', poseKey === 'doze' ? '2.4' : '10.6');
+        demoEyeR.setAttribute('height', poseKey === 'doze' ? '2.4' : '10.6');
+        demoEyeL.setAttribute('y', poseKey === 'doze' ? '67' : '61');
+        demoEyeR.setAttribute('y', poseKey === 'doze' ? '67' : '61');
+        demoArcL.setAttribute('opacity', cfg.smile ? '1' : '0');
+        demoArcR.setAttribute('opacity', cfg.smile ? '1' : '0');
+        demoMascotHeart.setAttribute('opacity', cfg.heart ? '1' : '0');
+        demoMascotSparkles.setAttribute('opacity', cfg.sparkle ? '1' : '0');
+        demoMascotBody.setAttribute('transform', `translate(0, ${cfg.sink}) rotate(${cfg.tilt} 60 80)`);
+      }
+
+      const mascotLoop = prefersReduced
+        ? null
+        : autoLoop(demoMascot, () => {
+            const order = ['idle', 'working', 'favorite', 'doze'];
+            const next = order[(order.indexOf(mascotPose) + 1) % order.length];
+            renderMascotPose(next);
+          }, 3600);
+
+      mascotPoseBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (mascotLoop) mascotLoop.kill();
+          renderMascotPose(btn.dataset.mascotPose);
+        });
+      });
+
+      mascotPetBtn.addEventListener('click', () => {
+        if (mascotLoop) mascotLoop.kill();
+        if (mascotTapTimer) clearTimeout(mascotTapTimer);
+        const line = mascotTapLines[mascotTapCount % mascotTapLines.length];
+        mascotTapCount += 1;
+        renderMascotPose('favorite', line);
+        mascotBubbleDot.style.background = '#A5B4FC';
+        mascotTapTimer = setTimeout(() => {
+          renderMascotPose('idle');
+        }, 2200);
+      });
+
+      /* =========================================================
+         9.5 Android 4 屏组别切换 + 特性分类切换
+         ========================================================= */
+      const androidTabData = {
+        ui: [
+          {
+            icon: '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x="5.5" y="1.5" width="7" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 14.5h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+            title: 'Miuix + Material 3 双风格切换',
+            desc: 'Miuix 那套底栏与色板，也能切回 Material 3，用壁纸动态取色。'
+          },
+          {
+            icon: '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 4.5h12M3 9h12M3 13.5h8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+            title: '画廊与 Pixiv 原生生态',
+            desc: '支持 yande.re、Gelbooru、Safebooru 与 Pixiv 榜单、画师主页、SauceNAO 搜图；水彩效果是 Beta，默认关闭。'
+          },
+          {
+            icon: '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M7 11.5a3.5 3.5 0 0 0 5-5l-3-3a3.5 3.5 0 0 0-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M11 6.5a3.5 3.5 0 0 0-5 5l3 3a3.5 3.5 0 0 0 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+            title: '同一套 JS 源脚本生态',
+            desc: '兼容 ComicSource 插件协议，可以导入外部源脚本。'
+          }
+        ],
+        reader: [
+          {
+            icon: '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 4.5h5.5a2 2 0 0 1 1.5.7 2 2 0 0 1 1.5-.7H16v9h-5.5a2 2 0 0 0-1.5.7 2 2 0 0 0-1.5-.7H2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
+            title: '五档阅读模式与音量键翻页',
+            desc: '画卷、日漫、美漫、双页横折与竖屏连续全支持；配备双指缩放、音量键翻页与 1–10 秒自动巡航。'
+          },
+          {
+            icon: '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="5.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 5.5v3.5l2.2 1.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+            title: '夜间反色与绿光保护',
+            desc: '阅读器支持夜间反色、绿光保护色、对比度与锐化滤镜，翻至末页自动连读下一话。'
+          },
+          {
+            icon: '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x="3.5" y="7.5" width="11" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6 7.5V5.8a3 3 0 0 1 6 0v1.7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
+            title: 'FLAG_SECURE 系统级防窥',
+            desc: '开启防窥后禁止截屏并在系统多任务切换界面自动隐去预览，配合三级内容遮罩更安心。'
+          }
+        ],
+        network: [
+          {
+            icon: '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2.5a4.5 4.5 0 0 1 4.5 4.5v3l1.2 1.8H3.3L4.5 10V7A4.5 4.5 0 0 1 9 2.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M7.5 14a1.5 1.5 0 0 0 3 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+            title: '收藏夹后台追更通知',
+            desc: '指定追更文件夹后在后台轻量轮询检查更新，有新话上线即刻推送系统通知。'
+          },
+          {
+            icon: '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 9h12M9 3a9 9 0 0 1 0 12M9 3a9 9 0 0 0 0 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
+            title: '全自动过盾与深层链接直达',
+            desc: '内置 Cloudflare 过盾、DNS 优选路由与域名熔断；支持 29+ 漫画站网页链接直接唤起应用。'
+          },
+          {
+            icon: '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2.5v8.5M5.8 8l3.2 3.2L12.2 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 12.5v1.5a1.5 1.5 0 0 0 1.5 1.5h9a1.5 1.5 0 0 0 1.5-1.5v-1.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+            title: '1–16 线程下载与假图拦截',
+            desc: '自动识别假图与过盾页，断网离线可读；支持本地目录扫描与 CBZ 归档导入导出。'
+          }
+        ]
+      };
+
+      const androidTabBtns = document.querySelectorAll('[data-android-tab]');
+      const androidFeatList = document.getElementById('androidFeatList');
+
+      androidTabBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const items = androidTabData[btn.dataset.androidTab];
+          if (!items) return;
+          androidTabBtns.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+          androidFeatList.classList.remove('is-swapping');
+          androidFeatList.innerHTML = items
+            .map((it) => `<li>${it.icon}<div><b>${it.title}</b><p>${it.desc}</p></div></li>`)
+            .join('');
+          void androidFeatList.offsetWidth;
+          androidFeatList.classList.add('is-swapping');
+        });
+      });
+
+      const androidPairs = [
+        {
+          l: 'assets/android/gallery.jpg', lAlt: 'Android 版画廊：瀑布流封面墙',
+          r: 'assets/android/stats.jpg', rAlt: 'Android 版阅读统计：时长、页数与趋势'
+        },
+        {
+          l: 'assets/android/detail.jpg', lAlt: 'Android 版漫画详情：章节与下载',
+          r: 'assets/android/search.jpg', rAlt: 'Android 版全站搜图与标签聚合'
+        }
+      ];
+      let currentAndroidPair = 0;
+      const androidPairBtns = document.querySelectorAll('[data-android-pair]');
+      const androidImgL = document.getElementById('androidImgL');
+      const androidImgR = document.getElementById('androidImgR');
+      const androidPhones = document.querySelectorAll('.phone[data-android-slot]');
+
+      androidPairBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const idx = Number(btn.dataset.androidPair);
+          const pair = androidPairs[idx];
+          if (!pair || idx === currentAndroidPair) return;
+          currentAndroidPair = idx;
+          androidPairBtns.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+          androidPhones.forEach((p) => p.classList.add('is-swapping'));
+          setTimeout(() => {
+            androidImgL.src = pair.l;
+            androidImgL.alt = pair.lAlt;
+            androidImgR.src = pair.r;
+            androidImgR.alt = pair.rAlt;
+            androidPhones.forEach((p) => p.classList.remove('is-swapping'));
+          }, 150);
+        });
+      });
+
+      /* =========================================================
+         10. 实拍截图切换（6 屏）
+         ========================================================= */
+      const sceneData = {
+        'gallery-detail': {
+          img: 'assets/screenshots/gallery-detail.jpg',
+          tag: 'GALLERY · DETAIL',
+          title: '图库作品',
+          desc: '点开作品后看大图、标签、画师和来源站，可以切三档清晰度，也能把图片存到本地。',
+          specs: ['预览图、大图、原图三档清晰度', '点标签直接搜同标签作品', '画师名可以跳到他在 Pixiv 的主页']
+        },
+        artist: {
+          img: 'assets/screenshots/artist-profile.jpg',
+          tag: 'ARTIST · PROFILE',
+          title: '画师主页',
+          desc: '一个画师的作品和关注入口集中在一页，画师名可以在 Pixiv 与图库站之间跳转。',
+          specs: ['画师名可以在 Pixiv 与图库站的页面之间跳转', '可以关注画师，关注名单单独成节', '作品在主页集中排列']
+        },
+        search: {
+          img: 'assets/screenshots/gallery-search.jpg',
+          tag: 'SEARCH · GALLERY',
+          title: '图库搜索',
+          desc: '按标签搜索，可以多站一起搜，也可以只挑某几个站点。',
+          specs: ['搜索历史会保留', '多站可以一起搜，也可以只挑几个', '主墙排法可以切瀑布流或等宽网格']
+        },
+        'manga-search': {
+          img: 'assets/screenshots/manga-search.jpg',
+          tag: 'SEARCH · COMIC',
+          title: '漫画搜索',
+          desc: '左边选来源，右边看结果，选中后直接进详情。',
+          specs: ['可以单源搜，也可以多源一起搜', '结果支持分页和排序', '搜索历史保存在本地']
+        },
+        history: {
+          img: 'assets/screenshots/reading-history.jpg',
+          tag: 'HISTORY · TIMELINE',
+          title: '阅读历史',
+          desc: '按时间列出读过的作品和进度，点一下就回到上次的位置。',
+          specs: ['按时间轴列出读过的作品和进度', '可以按来源筛选', '不需要的记录可以两步清空']
+        },
+        sources: {
+          img: 'assets/screenshots/sources.jpg',
+          tag: 'SOURCES · MANAGER',
+          title: '站点管理',
+          desc: '列出所有内置漫画源，可以逐个启用或停用，也能改脚本、填账号。',
+          specs: ['内置 34 个源，默认启用 4 个', '可以导入外部源脚本', '需要登录的源可以单独填账号和 Cookie']
+        }
+      };
+
+      const scenePills = document.querySelectorAll('[data-scene]');
+      const showcaseImg = document.getElementById('showcaseImg');
+      const showcaseTag = document.getElementById('showcaseTag');
+      const showcaseTitle = document.getElementById('showcaseTitle');
+      const showcaseDesc = document.getElementById('showcaseDesc');
+      const showcaseSpecs = document.getElementById('showcaseSpecs');
+
+      const checkSvg = '<svg class="icon icon-medium" width="15" height="15" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>';
+
+      scenePills.forEach((pill) => {
+        pill.addEventListener('click', () => {
+          const key = pill.dataset.scene;
+          const item = sceneData[key];
+          if (!item) return;
+
+          scenePills.forEach((p) => p.setAttribute('aria-pressed', String(p === pill)));
+          showcaseImg.style.opacity = '0.25';
+          setTimeout(() => {
+            showcaseImg.src = item.img;
+            showcaseImg.alt = item.title;
+            showcaseImg.style.opacity = '1';
+          }, 110);
+
+          showcaseTag.textContent = item.tag;
+          showcaseTitle.textContent = item.title;
+          showcaseDesc.textContent = item.desc;
+          showcaseSpecs.innerHTML = item.specs
+            .map((s) => `<li>${checkSvg}<span>${s}</span></li>`)
+            .join('');
+        });
+      });
+
+      /* =========================================================
+         11. 架构维度二级切换
+         ========================================================= */
+      const archData = {
+        engine: [
+          { metric: '34 个', label: '内置漫画源', text: '随包附带 34 个 JavaScript 漫画源，兼容 ComicSource 插件协议；可以逐个启停、改脚本、填账号。' },
+          { metric: 'Kotlin', label: 'Compose Multiplatform', text: '不是网页套壳。滚动和切页会保留状态，从详情返回列表不会跳回顶部。' },
+          { metric: '两套', label: '收藏分开存', text: 'Pixiv 云端书签走官方接口；本地漫画和图库收藏各存一套，可以整包备份与还原。' }
+        ],
+        offline: [
+          { metric: '4 种', label: '图片格式检查', text: '写入前确认是 JPEG、PNG、GIF 或 WebP；站点返回的错误页面不会存进磁盘。' },
+          { metric: '1–16', label: '下载线程数可调', text: '章节可以排队下载，支持暂停、继续、单条移除和缺页补齐。' },
+          { metric: '离线', label: '本机优先阅读', text: '完整下载的章节直接从磁盘读取，不需要联网；部分下载的章节先读本地，再联网补缺页。' }
+        ]
+      };
+
+      const archBtns = document.querySelectorAll('[data-arch-mode]');
+      const specCards = document.getElementById('specCards');
+
+      function animateSpecMetrics(container) {
+        if (prefersReduced) return;
+        container.querySelectorAll('.spec-metric').forEach((el) => {
+          const text = el.textContent.trim();
+          const m = text.match(/^(\d+)(.*)$/);
+          if (!m) return;
+          const target = Number(m[1]);
+          const suffix = m[2];
+          if (target <= 1 || m[2].startsWith('–')) return;
+          const start = performance.now();
+          const dur = 420;
+          const step = (now) => {
+            const p = Math.min(1, (now - start) / dur);
+            const eased = 1 - Math.pow(1 - p, 3);
+            el.textContent = `${Math.max(1, Math.round(target * eased))}${suffix}`;
+            if (p < 1) requestAnimationFrame(step);
+            else el.textContent = text;
+          };
+          requestAnimationFrame(step);
+        });
+      }
+
+      if (!prefersReduced && 'IntersectionObserver' in window) {
+        let specAnimatedOnce = false;
+        new IntersectionObserver((entries, obs) => {
+          if (specAnimatedOnce) return;
+          if (entries.some((e) => e.isIntersecting)) {
+            specAnimatedOnce = true;
+            animateSpecMetrics(specCards);
+            obs.disconnect();
+          }
+        }, { threshold: 0.25 }).observe(specCards);
+      }
+
+      archBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const list = archData[btn.dataset.archMode];
+          if (!list) return;
+          archBtns.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+          specCards.innerHTML = list
+            .map((item) => `
+              <div class="spec-card is-stagger">
+                <div class="spec-metric">${item.metric}</div>
+                <div class="spec-label">${item.label}</div>
+                <p class="spec-text">${item.text}</p>
+              </div>
+            `).join('');
+          animateSpecMetrics(specCards);
+        });
+      });
+
+      /* =========================================================
+         11.5 内置 34 个漫画源 + 图库站流光徽章墙
+         ========================================================= */
+      const sourceRowTop = [
+        { name: '包子漫画', key: 'baozi', icon: 'assets/sources/baozi.png', def: true, note: '默认启用 · 中文漫画源' },
+        { name: '拷贝漫画', key: 'copy_manga', icon: 'assets/sources/copy_manga.png', def: true, note: '默认启用 · 中文漫画源（另附多账号版）' },
+        { name: '禁漫天堂', key: 'jm', icon: 'assets/sources/jm.png', def: true, note: '默认启用 · 漫画源' },
+        { name: 'MangaDex', key: 'manga_dex', icon: 'assets/sources/manga_dex.png', def: true, note: '默认启用 · 多语言国际漫画源' },
+        { name: 'Pixiv', key: 'pixiv', icon: null, mono: 'P', def: true, note: '原生接入 · 支持日/周/月榜、画师主页与云端书签' },
+        { name: 'yande.re', key: 'yandere', icon: null, mono: 'Y', def: true, note: '原生图库站 · 高清插画瀑布流与标签搜图' },
+        { name: 'Gelbooru', key: 'gelbooru', icon: 'assets/sources/gelbooru.png', def: true, note: '图库站 · 需填账号凭据，支持标签聚合' },
+        { name: 'Safebooru', key: 'safebooru', icon: null, mono: 'S', def: true, note: '原生图库站 · 全年龄插画瀑布流' },
+        { name: 'CCC追漫台', key: 'ccc', icon: 'assets/sources/ccc.png', note: '台湾原创新作平台漫画源' },
+        { name: '少年ジャンプ＋', key: 'shonen_jump_plus', icon: 'assets/sources/shonen_jump_plus.png', note: '日漫官方连载漫画源' },
+        { name: 'カドコミ', key: 'comic_walker', icon: 'assets/sources/comic_walker.png', note: '角川官方 ComicWalker 漫画源' },
+        { name: 'comick', key: 'comick', icon: 'assets/sources/comick.png', note: '多语言聚合漫画源' },
+        { name: 'Komiic', key: 'Komiic', icon: 'assets/sources/komiic.png', note: '中文漫画源' },
+        { name: '漫画人', key: 'manhuaren', icon: 'assets/sources/manhuaren.png', note: '中文漫画源' },
+        { name: '漫画柜', key: 'ManHuaGui', icon: null, mono: '柜', note: '中文漫画源' },
+        { name: '热辣漫画', key: 'hot_manga', icon: 'assets/sources/hot_manga.png', note: '中文漫画源' },
+        { name: '漫蛙吧', key: 'manwaba', icon: 'assets/sources/manwaba.png', note: '中文漫画源' },
+        { name: '再漫画', key: 'zaimanhua', icon: 'assets/sources/zaimanhua.png', note: '中文漫画源' }
+      ];
+
+      const sourceRowBottom = [
+        { name: 'Picacg', key: 'picacg', icon: 'assets/sources/picacg.png', note: '漫画源 · 支持账号登录与分区浏览' },
+        { name: 'ehentai', key: 'ehentai', icon: 'assets/sources/ehentai.png', note: '画廊与本子漫画源' },
+        { name: 'nhentai', key: 'nhentai', icon: 'assets/sources/nhentai.png', note: '漫画源 · 支持标签与多语言筛选' },
+        { name: 'hitomi', key: 'hitomi', icon: 'assets/sources/hitomi.png', note: '图集漫画源' },
+        { name: '紳士漫畫', key: 'wnacg', icon: 'assets/sources/wnacg.png', note: '中文漫画源' },
+        { name: 'H-Comic', key: 'hcomic', icon: 'assets/sources/hcomic.png', note: '漫画源' },
+        { name: '18漫画', key: 'mh18', icon: 'assets/sources/mh18.png', note: '漫画源' },
+        { name: 'Komga', key: 'komga', icon: 'assets/sources/komga.png', note: '自建书库服务连接源' },
+        { name: 'Lanraragi', key: 'lanraragi', icon: 'assets/sources/lanraragi.png', note: '自建归档书库连接源' },
+        { name: 'Kavita', key: 'kavita', icon: null, mono: 'K', note: '自建跨平台书库连接源' },
+        { name: '漫小肆', key: 'mxs', icon: 'assets/sources/mxs.png', note: '中文漫画源' },
+        { name: '优酷漫画', key: 'ykmh', icon: 'assets/sources/ykmh.png', note: '中文漫画源' },
+        { name: 'goda', key: 'goda', icon: 'assets/sources/goda.png', note: '中文漫画源' },
+        { name: '嗨皮漫画', key: 'happy', icon: null, mono: 'H', note: '中文漫画源' },
+        { name: 'ikmmh', key: 'ikmmh', icon: null, mono: 'I', note: '中文漫画源' },
+        { name: 'jcomic', key: 'jcomic', icon: null, mono: 'J', note: '漫画源' },
+        { name: 'mycomic', key: 'mycomic', icon: null, mono: 'M', note: '中文漫画源' },
+        { name: '漫画1234', key: 'mh1234', icon: null, mono: '12', note: '中文漫画源' }
+      ];
+
+      const backdropTracks = document.querySelectorAll('[data-backdrop-row]');
+
+      function buildSourceChipHtml(item) {
+        const iconHtml = item.icon
+          ? `<img class="source-chip-icon" src="${item.icon}" alt="" loading="lazy" />`
+          : `<span class="source-chip-mono" aria-hidden="true">${item.mono || item.name.slice(0, 1)}</span>`;
+        const dotHtml = item.def ? '<span class="source-default-dot" aria-hidden="true"></span>' : '';
+        return `<span class="source-chip">${iconHtml}<span>${item.name}</span>${dotHtml}</span>`;
+      }
+
+      if (backdropTracks.length) {
+        const allSources = [...sourceRowTop, ...sourceRowBottom];
+        backdropTracks.forEach((track, rowIdx) => {
+          const offset = (rowIdx * 9) % allSources.length;
+          const rotated = [...allSources.slice(offset), ...allSources.slice(0, offset)];
+          const base = rotated.map(buildSourceChipHtml).join('');
+          track.innerHTML = prefersReduced ? base : base + base;
+        });
+      }
+
+      /* =========================================================
+         12. 下载区展开 + 一键复制命令
+         ========================================================= */
+      document.querySelectorAll('[data-copy]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const codeEl = document.getElementById(btn.dataset.copy);
+          if (!codeEl) return;
+          try {
+            await navigator.clipboard.writeText(codeEl.textContent.trim());
+            const prev = btn.textContent;
+            btn.textContent = '已复制';
+            setTimeout(() => { btn.textContent = prev; }, 1600);
+          } catch (_) {
+            btn.textContent = '请手动复制';
+          }
+        });
+      });
+
+      /* =========================================================
+         13. FAQ 手风琴
+         ========================================================= */
+      document.querySelectorAll('.faq-trigger').forEach((trigger) => {
+        trigger.addEventListener('click', () => {
+          const item = trigger.closest('.faq-item');
+          const willOpen = !item.classList.contains('is-open');
+          item.classList.toggle('is-open', willOpen);
+          trigger.setAttribute('aria-expanded', String(willOpen));
+        });
+      });
+
+      /* =========================================================
+         14. 高清画廊灯箱（多图左右切换 + 1:1 放大 + 触屏滑动 + 预加载）
+         ========================================================= */
+      const lightbox = document.getElementById('lightbox');
+      const lightboxImg = document.getElementById('lightboxImg');
+      const lightboxCaption = document.getElementById('lightboxCaption');
+      const lightboxCounter = document.getElementById('lightboxCounter');
+      const lightboxPrev = document.getElementById('lightboxPrev');
+      const lightboxNext = document.getElementById('lightboxNext');
+      const lightboxZoomBtn = document.getElementById('lightboxZoomBtn');
+      const lightboxClose = document.getElementById('lightboxClose');
+
+      let lbItems = [];
+      let lbIndex = 0;
+
+      function setLightboxZoom(on) {
+        lightboxImg.classList.toggle('is-zoomed', on);
+        lightboxZoomBtn.textContent = on ? '适应屏幕' : '1:1 放大';
+      }
+
+      function preloadAdjacent(items, idx) {
+        if (items.length <= 1) return;
+        [-1, 1].forEach((offset) => {
+          const item = items[(idx + offset + items.length) % items.length];
+          if (item && item.src) {
+            const img = new Image();
+            img.src = item.src;
+          }
+        });
+      }
+
+      function renderLightboxFrame() {
+        const item = lbItems[lbIndex];
+        if (!item) return;
+        setLightboxZoom(false);
+        lightboxImg.style.opacity = '0.35';
+        lightboxImg.src = item.src;
+        lightboxImg.alt = item.caption || '截图预览';
+        lightboxImg.onload = () => { lightboxImg.style.opacity = '1'; };
+        if (lightboxImg.complete) lightboxImg.style.opacity = '1';
+        lightboxCaption.textContent = item.caption || '';
+        const hasMulti = lbItems.length > 1;
+        lightboxCounter.textContent = `${lbIndex + 1} / ${lbItems.length}`;
+        lightboxCounter.hidden = !hasMulti;
+        lightboxPrev.hidden = !hasMulti;
+        lightboxNext.hidden = !hasMulti;
+        preloadAdjacent(lbItems, lbIndex);
+      }
+
+      function openLightboxGallery(items, startIdx) {
+        lbItems = items && items.length ? items : [];
+        if (!lbItems.length) return;
+        lbIndex = Math.max(0, Math.min(lbItems.length - 1, startIdx || 0));
+        renderLightboxFrame();
+        lightbox.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function stepLightbox(delta) {
+        if (lbItems.length <= 1) return;
+        lbIndex = (lbIndex + delta + lbItems.length) % lbItems.length;
+        renderLightboxFrame();
+      }
+
+      function closeLightbox() {
+        lightbox.classList.remove('is-open');
+        setLightboxZoom(false);
+        document.body.style.overflow = '';
+      }
+
+      const heroGalleryItems = () => heroOrder.map((k) => ({
+        src: heroModules[k].img(),
+        caption: heroModules[k].route
+      }));
+      const showcaseKeys = Object.keys(sceneData);
+      const showcaseGalleryItems = () => showcaseKeys.map((k) => ({
+        src: sceneData[k].img,
+        caption: `${sceneData[k].title} — ${sceneData[k].desc}`
+      }));
+      const androidGalleryItems = [
+        { src: 'assets/android/gallery.jpg', caption: 'Android 版画廊：瀑布流封面墙' },
+        { src: 'assets/android/stats.jpg', caption: 'Android 版阅读统计：时长、页数与趋势' },
+        { src: 'assets/android/detail.jpg', caption: 'Android 版漫画详情：章节与下载' },
+        { src: 'assets/android/search.jpg', caption: 'Android 版全站搜图与标签聚合' }
+      ];
+
+      heroStageImg.addEventListener('click', () => {
+        if (justDraggedCompare) return;
+        openLightboxGallery(heroGalleryItems(), heroOrder.indexOf(currentHeroKey));
+      });
+
+      showcaseImg.addEventListener('click', () => {
+        const activePill = document.querySelector('[data-scene][aria-pressed="true"]');
+        const activeKey = activePill ? activePill.dataset.scene : showcaseKeys[0];
+        openLightboxGallery(showcaseGalleryItems(), Math.max(0, showcaseKeys.indexOf(activeKey)));
+      });
+
+      document.querySelectorAll('.phone[data-android-slot]').forEach((phoneEl) => {
+        const openPhone = () => {
+          const slot = Number(phoneEl.dataset.androidSlot || 0);
+          openLightboxGallery(androidGalleryItems, currentAndroidPair * 2 + slot);
+        };
+        phoneEl.addEventListener('click', openPhone);
+        phoneEl.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openPhone();
+          }
+        });
+      });
+
+      lightboxPrev.addEventListener('click', () => stepLightbox(-1));
+      lightboxNext.addEventListener('click', () => stepLightbox(1));
+      lightboxZoomBtn.addEventListener('click', () => setLightboxZoom(!lightboxImg.classList.contains('is-zoomed')));
+      lightboxImg.addEventListener('click', () => setLightboxZoom(!lightboxImg.classList.contains('is-zoomed')));
+      lightboxClose.addEventListener('click', closeLightbox);
+      lightbox.addEventListener('click', (e) => {
+        if (e.target === lightbox) closeLightbox();
+      });
+
+      let lbTouchStartX = 0;
+      lightbox.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) lbTouchStartX = e.touches[0].clientX;
+      }, { passive: true });
+      lightbox.addEventListener('touchend', (e) => {
+        if (lightboxImg.classList.contains('is-zoomed') || e.changedTouches.length !== 1) return;
+        const dx = e.changedTouches[0].clientX - lbTouchStartX;
+        if (Math.abs(dx) > 48) stepLightbox(dx < 0 ? 1 : -1);
+      }, { passive: true });
+
+      /* =========================================================
+         15. 滚动渐入观察器
+         ========================================================= */
+      const reveals = document.querySelectorAll('.reveal');
+      if (prefersReduced || !('IntersectionObserver' in window)) {
+        reveals.forEach((el) => el.classList.add('is-visible'));
+      } else {
+        const io = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                io.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.12 }
+        );
+        reveals.forEach((el) => io.observe(el));
+      }
+
+      /* =========================================================
+         16. Ctrl+K 快捷命令面板
+         ========================================================= */
+      const cmdkBackdrop = document.getElementById('cmdkBackdrop');
+      const cmdkInput = document.getElementById('cmdkInput');
+      const cmdkList = document.getElementById('cmdkList');
+      const cmdkCloseBtn = document.getElementById('cmdkCloseBtn');
+      const heroSearchBtn = document.getElementById('heroSearchBtn');
+
+      const cmdkItems = [
+        { title: '跳转到：功能互动演示（6 块）', tag: '板块', run: () => document.getElementById('features').scrollIntoView() },
+        { title: '跳转到：界面实拍截图（6 屏）', tag: '板块', run: () => document.getElementById('showcase').scrollIntoView() },
+        { title: '跳转到：Android 手机端主线', tag: '板块', run: () => document.getElementById('android').scrollIntoView() },
+        { title: '跳转到：技术架构与离线说明', tag: '板块', run: () => document.getElementById('architecture').scrollIntoView() },
+        { title: '跳转到：下载与源码运行命令', tag: '下载', run: () => document.getElementById('download').scrollIntoView() },
+        { title: '跳转到：常见问题 FAQ', tag: '板块', run: () => document.getElementById('faq').scrollIntoView() },
+        { title: '首屏演示：切换至「画廊 · Pixiv 与图库站」', tag: '首屏', run: () => { selectHeroTab('gallery', true); document.getElementById('top').scrollIntoView(); } },
+        { title: '首屏演示：切换至「阅读器 · 双页对开」', tag: '首屏', run: () => { selectHeroTab('reader', true); document.getElementById('top').scrollIntoView(); } },
+        { title: '首屏演示：切换至「阅读统计 · 近 7 天」', tag: '首屏', run: () => { selectHeroTab('stats', true); document.getElementById('top').scrollIntoView(); } },
+        { title: '切换网页明暗主题（纸白 / 暗黑）', tag: '外观', run: () => toggleTheme() }
+      ];
+      let cmdkFiltered = cmdkItems.slice();
+      let cmdkActiveIdx = 0;
+
+      function renderCmdkList() {
+        if (!cmdkFiltered.length) {
+          cmdkList.innerHTML = '<div style="padding:18px;text-align:center;font-size:13px;color:var(--fg-subtle);">没有匹配的页面或命令</div>';
+          return;
+        }
+        cmdkList.innerHTML = cmdkFiltered
+          .map((item, idx) => `
+            <button class="cmdk-item${idx === cmdkActiveIdx ? ' is-selected' : ''}" type="button" data-cmdk-idx="${idx}" role="option" aria-selected="${idx === cmdkActiveIdx}">
+              <span>${item.title}</span>
+              <span class="cmdk-item-tag">${item.tag}</span>
+            </button>
+          `).join('');
+        cmdkList.querySelectorAll('[data-cmdk-idx]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const target = cmdkFiltered[Number(btn.dataset.cmdkIdx)];
+            closeCmdk();
+            if (target) target.run();
+          });
+        });
+      }
+
+      function openCmdk() {
+        cmdkInput.value = '';
+        cmdkFiltered = cmdkItems.slice();
+        cmdkActiveIdx = 0;
+        renderCmdkList();
+        cmdkBackdrop.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+        requestAnimationFrame(() => cmdkInput.focus());
+      }
+
+      function closeCmdk() {
+        cmdkBackdrop.classList.remove('is-open');
+        if (!lightbox.classList.contains('is-open')) {
+          document.body.style.overflow = '';
+        }
+      }
+
+      heroSearchBtn.addEventListener('click', openCmdk);
+      cmdkCloseBtn.addEventListener('click', closeCmdk);
+      cmdkBackdrop.addEventListener('click', (e) => {
+        if (e.target === cmdkBackdrop) closeCmdk();
+      });
+
+      cmdkInput.addEventListener('input', () => {
+        const q = cmdkInput.value.trim().toLowerCase();
+        cmdkFiltered = q
+          ? cmdkItems.filter((it) => it.title.toLowerCase().includes(q) || it.tag.toLowerCase().includes(q))
+          : cmdkItems.slice();
+        cmdkActiveIdx = 0;
+        renderCmdkList();
+      });
+
+      cmdkInput.addEventListener('keydown', (e) => {
+        if (!cmdkFiltered.length) return;
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          cmdkActiveIdx = (cmdkActiveIdx + 1) % cmdkFiltered.length;
+          renderCmdkList();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          cmdkActiveIdx = (cmdkActiveIdx - 1 + cmdkFiltered.length) % cmdkFiltered.length;
+          renderCmdkList();
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          const chosen = cmdkFiltered[cmdkActiveIdx];
+          closeCmdk();
+          if (chosen) chosen.run();
+        }
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+          e.preventDefault();
+          if (cmdkBackdrop.classList.contains('is-open')) closeCmdk();
+          else openCmdk();
+          return;
+        }
+        if (e.key === 'Escape') {
+          if (cmdkBackdrop.classList.contains('is-open')) { closeCmdk(); return; }
+          if (lightbox.classList.contains('is-open')) { closeLightbox(); return; }
+          if (mobileDrawer.classList.contains('is-open')) { setDrawerOpen(false); return; }
+        }
+        if (lightbox.classList.contains('is-open')) {
+          if (e.key === 'ArrowLeft') { e.preventDefault(); stepLightbox(-1); }
+          else if (e.key === 'ArrowRight') { e.preventDefault(); stepLightbox(1); }
+        }
+      });
+
+      /* =========================================================
+         17. 同步 <head> 预加载的主题图标与文案
+         ========================================================= */
+      const initialTheme = root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+      applyTheme(initialTheme);
+
+      /* =========================================================
+         18. 全站卡片单色径向光晕（仅限支持悬停的指针设备）
+         ========================================================= */
+      if (!prefersReduced && window.matchMedia('(hover: hover)').matches) {
+        let spotRaf = 0;
+        let lastSpotCard = null;
+        let lastClientX = 0;
+        let lastClientY = 0;
+
+        document.addEventListener('pointermove', (e) => {
+          const card = e.target.closest('.bento-card, .spec-card, .android-band, .download-card, .showcase-shell, .source-wall');
+          if (!card) return;
+          lastSpotCard = card;
+          lastClientX = e.clientX;
+          lastClientY = e.clientY;
+          if (spotRaf) return;
+          spotRaf = requestAnimationFrame(() => {
+            spotRaf = 0;
+            if (!lastSpotCard) return;
+            const rect = lastSpotCard.getBoundingClientRect();
+            lastSpotCard.style.setProperty('--mx', `${(lastClientX - rect.left).toFixed(1)}px`);
+            lastSpotCard.style.setProperty('--my', `${(lastClientY - rect.top).toFixed(1)}px`);
+          });
+        }, { passive: true });
+      }
+    })();
+  </script>
+</body>
+</html>

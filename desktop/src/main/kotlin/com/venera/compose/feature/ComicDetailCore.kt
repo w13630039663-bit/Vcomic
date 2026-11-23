@@ -1,0 +1,1140 @@
+package com.venera.compose.feature
+
+import com.venera.compose.data.db.FavoriteItem
+import com.venera.compose.data.platform.ImageHeaderPolicy
+import com.venera.compose.data.platform.ComicMetricsSink
+import com.venera.compose.data.platform.Logger
+import com.venera.compose.source.model.ReaderSession
+import com.venera.compose.source.model.ReaderSessionFactory
+import com.venera.compose.source.model.ComicDetails
+import com.venera.compose.source.model.Comment
+import com.venera.compose.source.model.CommentCapabilities
+import com.venera.compose.source.model.WriteCapabilities
+import com.venera.compose.source.model.ResolvedThumbnailConfig
+import com.venera.compose.data.api.BusinessPorts
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import com.venera.compose.data.api.ComicContentApi
+import com.venera.compose.data.api.SourceCatalog
+import com.venera.compose.source.humanizeSourceError
+import com.venera.compose.source.isCancellation
+
+/**
+ * 评论统一按「最新在前」展示。
+ *
+ * 源脚本的分页不保证时间序：禁漫论坛按楼层、哔咔按创建序，详情页首屏常混进多年前的旧帖。
+ * 这里只对已取回的条目做一次稳定倒序，不改源请求——各站排序参数名并不统一，硬塞会踩 4xx。
+ * 时间解不出来的条目保持原序、排在有时间的条目之后。
+ */
+internal fun commentsNewestFirst(comments: List<Comment>): List<Comment> {
+    if (comments.size < 2) return comments
+    val keys = comments.map { commentTimeKey(it.time) }
+    if (keys.count { it != null } < 2) return comments
+    return comments.indices
+        .sortedWith(compareByDescending<Int> { keys[it] != null }.thenByDescending { keys[it] ?: 0L })
+        .map(comments::get)
+}
+
+/** 把 "2026-11-16 19:33:53" / "2026-11-16T19:33:53.699Z" 归一成 14 位数字键（yyyyMMddHHmmss）。 */
+internal fun commentTimeKey(raw: String?): Long? {
+    val digits = raw.orEmpty().filter { it.isDigit() }.take(14)
+    if (digits.length < 8) return null
+    return digits.padEnd(14, '0').toLongOrNull()
+}
+
+/** Root comments and reply threads keep independent cursors and errors. */
+data class DetailCommentState(
+    val items: List<Comment> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val page: Int = 0,
+    val requestedPage: Int = 1,
+    val maxPage: Int? = null,
+    val hasMore: Boolean = true,
+    val loaded: Boolean = false,
+) {
+    fun received(comments: List<Comment>, requestedPage: Int, maximumPage: Int?): DetailCommentState = copy(
+        // 一律按时间倒序展示（刷新与续页都重排），保证首屏是最新一条。
+        items = commentsNewestFirst(if (requestedPage == 1) comments else items + comments),
+        isLoading = false,
+        error = null,
+        page = requestedPage,
+        maxPage = maximumPage ?: if (requestedPage == 1) null else maxPage,
+        hasMore = comments.isNotEmpty() && requestedPage < (maximumPage ?: if (requestedPage == 1) Int.MAX_VALUE else maxPage ?: Int.MAX_VALUE),
+        loaded = true,
+    )
+}
+
+/** 详情页 UI 状态 */
+data class DetailUiState(
+    val details: ComicDetails? = null,
+    val isLoading: Boolean = false,
+    val loadingMessage: String = "",
+    val reversed: Boolean = false,
+    val error: String? = null,
+    val selectedGroupIndex: Int = 0,
+    val commentThread: DetailCommentState = DetailCommentState(),
+    val replyThread: DetailCommentState = DetailCommentState(),
+    val replyTo: Comment? = null,
+    val commentCapabilities: CommentCapabilities = CommentCapabilities(),
+    /** 打分 / 作品点赞两位（详情屏据此摆不摆把手；缺省全 false = 不摆）。 */
+    val writeCapabilities: WriteCapabilities = WriteCapabilities(),
+    val isSendingComment: Boolean = false,
+    val isLiked: Boolean = false,
+    val likesCount: Int = 0,
+    val userRating: Float = 0f,
+    /** 预览缩略图（源 `comic.loadThumbnails` 分页累计，或详情接口自带的首批）。 */
+    val thumbnails: List<String> = emptyList(),
+    val isLoadingThumbnails: Boolean = false,
+    /** 还有下一页缩略图（末页置 false）。 */
+    val hasMoreThumbnails: Boolean = false,
+    /** 首屏就失败且一张图都没有时的错误（已有图时不打扰用户）。 */
+    val thumbnailError: String? = null,
+    /** 预览缩略图所属章节 ID（点击缩略图直接开读该章节该页）。 */
+    val previewChapterId: String = "",
+    /**
+     * 预览图的原 url → 源声明的加载配置（`comic.onThumbnailLoad`）。
+     *
+     * 只覆盖**已换算过**的那些 url；缺项就按原样请求。源没实现该钩子时整张表为空，
+     * 预览条的行为与接线前完全一致。
+     */
+    val thumbnailConfigs: Map<String, ResolvedThumbnailConfig> = emptyMap(),
+    /**
+     * 用户是否已点开「查看更多预览」。
+     *
+     * 与分页游标 [hasMoreThumbnails] **互相独立**：详情自带全量预览图的源
+     * （nhentai 一次返回整本等）根本没有「下一页」，若只靠 [hasMoreThumbnails]
+     * 判定，折叠后按钮会消失、用户再也展不开。
+     */
+    val thumbnailsExpanded: Boolean = false
+) {
+    /** 折叠态下实际渲染的预览图（最多 [PREVIEW_LIMIT] 张）。 */
+    val visibleThumbnails: List<String>
+        get() = if (thumbnailsExpanded) thumbnails else thumbnails.take(PREVIEW_LIMIT)
+
+    /** 是否被折叠 —— 只表示「有图没显示出来」，与 [hasMoreThumbnails] 无关。 */
+    val thumbnailsCollapsed: Boolean
+        get() = !thumbnailsExpanded && thumbnails.size > PREVIEW_LIMIT
+
+    val comments: List<Comment> get() = commentThread.items
+    val isCommentLoading: Boolean get() = commentThread.isLoading
+    val activeCommentThread: DetailCommentState get() = if (replyTo == null) commentThread else replyThread
+}
+
+/**
+ * 预览图默认最多渲染的张数。
+ *
+ * 为什么要有这个上限：**详情接口自带全量预览图的源会一次返回整本**
+ * （nhentai 的 `data.pages`、hitomi 等，动辄两三百张）。全量铺进详情页有两个
+ * 实测代价：一次性发起几百个图片请求把带宽和内存吃光；详情页被预览图撑成
+ * 一条几千 dp 的长列表，章节列表要翻很久才看得到。
+ * 超出部分收进「查看更多预览」按钮，用户显式点击才展开。
+ */
+const val PREVIEW_LIMIT = 10
+
+/**
+ * 一次性事件：打开阅读器。
+ *
+ * 只存在真实链路 —— 章节图片解析不出来时如实报 [Failed]，
+ * 不再回退到硬编码占位图（历史遗留的 `Sample` 事件已删除）。
+ */
+sealed interface ReaderEvent {
+    data class Live(val session: ReaderSession) : ReaderEvent
+    data class Failed(val message: String) : ReaderEvent
+}
+
+/**
+ * 详情页收藏面板状态，对齐官方 `_FavoritePanel` / `_FavoriteList`：
+ *
+ * 面板分两个互相独立的分区（原版从不把本地收藏自动同步到网络收藏）：
+ * - **本地收藏**：[localFolders] 每个夹一行 + 「新建收藏夹」
+ * - **网络收藏**：仅当源声明了 `favorites` **且账号已登录**时出现；
+ *   多夹源逐夹一行，单夹源只有一个 `folderId == ""` 的条目
+ */
+data class FavoritePanelState(
+    val visible: Boolean = false,
+    // ---- 本地收藏分区 ----
+    val localFolders: List<String> = emptyList(),
+    val localAdded: Set<String> = emptySet(),
+    // ---- 网络收藏分区 ----
+    /** 源声明了 `favorites` 且账号已登录时才显示网络分区。 */
+    val hasNetwork: Boolean = false,
+    /** 是否多收藏夹（源提供了 `loadFolders`）。 */
+    val networkMultiFolder: Boolean = false,
+    /** `folderId -> folderName`。 */
+    val networkFolders: Map<String, String> = emptyMap(),
+    /** 该漫画已加入的网络收藏夹 id 集合。 */
+    val networkAdded: Set<String> = emptySet(),
+    /** 单文件夹模式下「网络收藏」整体是否已添加。 */
+    val networkSingleAdded: Boolean = false,
+    /** 源限制「一本漫画只进一个网络收藏夹」。 */
+    val singleFolderForSingleComic: Boolean = false,
+    val isLoadingNetwork: Boolean = false,
+    val networkError: String? = null,
+    // ---- 交互 ----
+    /** 等待中的条目 key（本地 = 夹名，网络 = `net:<夹id>`）。 */
+    val pending: Set<String> = emptySet(),
+    val toast: String? = null,
+)
+
+/**
+ * 详情页**平台无关内核**。
+ *
+ * 前身是那颗 `ComicDetailViewModel`：D3 之后业务已全部走 [BusinessPorts] 契约，
+ * 真正钉死它在 Android 面的只剩四族 —— `Application` / `AndroidViewModel` /
+ * `viewModelScope` / `ComicMetricsCache(getApplication())` + `android.util.Log`。
+ * 这一颗把四族换成构造参数（[scope] / [metricsSink] / [logger]），语义逐字不变；
+ * Android 侧的 `ComicDetailViewModel` 瘦成薄壳（`AndroidViewModel` + 委托），
+ * `viewModel()` 的 17 处调用点与 `AndroidViewModelFactory` 反射的 arity 全部不动。
+ *
+ * 追加：详情页收藏按钮 → 打开收藏面板（本地 + 网络双分区）。
+ * 收藏的唯一数据源是 [com.venera.compose.data.api.FavoriteLibrary]（对齐官方），
+ * 原先写的旧单表 `comic_favorite` 已废弃，否则收藏页看不到详情页收藏的内容。
+ */
+class ComicDetailCore(
+    private val ports: BusinessPorts,
+    private val scope: CoroutineScope,
+    private val metricsSink: ComicMetricsSink,
+    private val logger: Logger,
+) {
+
+    private val sources: SourceCatalog = ports.sources
+    private val comics: ComicContentApi = ports.comics
+    private val favoritesManager = ports.favorites
+    private val prefs = ports.comicPrefs
+    private val historyDao = ports.history
+
+    /** 屏的批量下载弹窗三枚动作（isChapterDownloaded / chapterOffline / enqueue）走这枚口子，
+     *  不再 `DownloadManager.getInstance(context)` 直取（那是屏的禁引之一）。 */
+    val downloads = ports.downloads
+
+    /** 内容守卫（详情页封面打码那一条判定链）；屏走它，不再 `BusinessPorts.of(context)`。 */
+    val contentGuard = ports.contentGuard
+
+    /** 标签长按「屏蔽该标签」的规则本（同上，屏不再自取端口图）。 */
+    val guardRuleBook = ports.guardRuleBook
+
+    /** 「倒序章节」默认档（屏里那颗 LaunchedEffect 读一次）；同上不再自取端口图。 */
+    val readerPrefs = ports.readerPrefs
+
+    private val _uiState = MutableStateFlow(DetailUiState())
+    val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
+
+    /** 当前这本的身份（桌面壳靠它把 route 与核同步 —— 推荐跳本是在核内原地换的，route 不知道）。 */
+    private val _currentComic = MutableStateFlow<ComicItem?>(null)
+    val currentComic: StateFlow<ComicItem?> = _currentComic.asStateFlow()
+
+    private val _readerEvents = MutableSharedFlow<ReaderEvent>(extraBufferCapacity = 4)
+    val readerEvents: SharedFlow<ReaderEvent> = _readerEvents.asSharedFlow()
+
+    private val _favPanel = MutableStateFlow(FavoritePanelState())
+    val favPanel: StateFlow<FavoritePanelState> = _favPanel.asStateFlow()
+
+    /** 当前漫画是否已在本地收藏（任一收藏夹）。 */
+    private val _isLocalFav = MutableStateFlow(false)
+    val isLocalFav: StateFlow<Boolean> = _isLocalFav.asStateFlow()
+
+    /**
+     * 该漫画在**源账号**（网络收藏）上是否已收藏。
+     * 权威来源是源详情自带的 isFavorite（EH 的 comic.isFavorite / 哔咔 isFavourite /
+     * jm 的 is_favorite，getComicDetails 时已解析到手）——不依赖面板里那条脆弱的
+     * loadFolders 二次查询（EH 该查询内部还要再跑一次 loadInfo，易失败）。
+     * 面板查询成功只会把它置 true 增强，绝不因查询失败回退成 false。
+     */
+    private val _isNetworkFav = MutableStateFlow(false)
+    val isNetworkFav: StateFlow<Boolean> = _isNetworkFav.asStateFlow()
+
+    val historyFlow by lazy { historyDao.historyFlow }
+
+    private var loadedId: String? = null
+    private var detailJob: Job? = null
+    private var commentJob: Job? = null
+    private var replyJob: Job? = null
+    private var detailGeneration = 0
+    private var currentComicItem: ComicItem? = null
+
+    /** 预览图分页游标与状态（对齐官方 thumbnails.dart 的 `next` / `isInitialLoading`）。 */
+    private var thumbnailNext: String? = null
+    private var thumbnailStarted = false
+    private var thumbnailExhausted = false
+    private var fallbackChapterPages: List<String> = emptyList()
+
+    init {
+        // 收藏库任何变更后，同步详情页按钮状态与（若开着的）收藏面板
+        scope.launch {
+            favoritesManager.version.collect {
+                val c = currentComicItem ?: return@collect
+                val key = resolveSourceKey(c.sourceName)
+                _isLocalFav.value = favoritesManager.isExist(c.id, key)
+                if (_favPanel.value.visible) {
+                    _favPanel.update {
+                        it.copy(
+                            localFolders = favoritesManager.folders.value,
+                            localAdded = favoritesManager.find(c.id, key).toSet(),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    /** 拉取真实详情（章节目录、分卷、推荐等） */
+    fun load(comic: ComicItem) {
+        currentComicItem = comic
+        _currentComic.value = comic
+        val identity = "${resolveSourceKey(comic.sourceName)}:${comic.id}"
+        if (loadedId == identity && (_uiState.value.details != null || _uiState.value.isLoading)) return
+        loadedId = identity
+        val generation = ++detailGeneration
+        detailJob?.cancel()
+        commentJob?.cancel()
+        replyJob?.cancel()
+        _uiState.value = DetailUiState(isLoading = true)
+        _isNetworkFav.value = false
+        // 换作品：重置预览图分页游标
+        thumbnailNext = null
+        thumbnailStarted = false
+        thumbnailExhausted = false
+        fallbackChapterPages = emptyList()
+
+        val key = resolveSourceKey(comic.sourceName)
+        detailJob = scope.launch {
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    loadingMessage = "正在拉取章节目录与元数据...",
+                    error = null,
+                    thumbnails = emptyList(),
+                    isLoadingThumbnails = false,
+                    hasMoreThumbnails = false,
+                    thumbnailError = null,
+                    previewChapterId = "",
+                    thumbnailsExpanded = false
+                )
+            }
+            val res = comics.getComicDetails(key, comic.id)
+            if (generation != detailGeneration) return@launch
+            val d = res.getOrNull()
+            if (d != null) {
+                cacheMetrics(d, key)
+                val capabilities = withContext(Dispatchers.IO) {
+                    sources.getSource(key)?.getCommentCapabilities() ?: CommentCapabilities()
+                }
+                val writeCaps = withContext(Dispatchers.IO) {
+                    sources.getSource(key)?.getWriteCapabilities() ?: WriteCapabilities()
+                }
+                if (generation != detailGeneration) return@launch
+                val initialPreviewChId = d.chapters.firstOrNull()?.id
+                    ?: d.chapterGroups.firstOrNull()?.chapters?.firstOrNull()?.id
+                    ?: ""
+                _uiState.update {
+                    it.copy(
+                        details = d,
+                        isLoading = false,
+                        loadingMessage = "",
+                        error = null,
+                        isLiked = d.isLiked,
+                        likesCount = d.likesCount,
+                        commentThread = DetailCommentState(items = d.comments),
+                        commentCapabilities = capabilities,
+                        writeCapabilities = writeCaps,
+                        // 部分源的详情接口自带首批缩略图（EH 不带，走 loadThumbnails）
+                        thumbnails = d.thumbnails,
+                        previewChapterId = initialPreviewChId
+                    )
+                }
+                // 源端收藏状态：详情返回即种子（EH/哔咔/jm 均自带），收藏图标与面板摘要据此标深
+                _isNetworkFav.value = d.isFavorite
+                // 异步拉取全量评论
+                if (capabilities.canLoad) loadComments()
+                // 预览图：详情自带首批时先展示，否则调源接口分页拉
+                if (d.thumbnails.isNotEmpty()) thumbnailStarted = true else loadThumbnails()
+            } else {
+                val e = res.exceptionOrNull()
+                logger.error("VeneraDebug", "getComicDetails($key) failed for id=${comic.id}", e)
+                // 取消不是错误：切作品 / 退出页面会走到这里，上一版会把内部那句
+                // "The coroutine scope left the composition" 原样写上屏（真机）。
+                if (isCancellation(e)) return@launch
+                // 登录能力要问一次源（`getAccountInfo()` 会同步跑 JS，必须在 IO 上问）。
+                // 只有它能把这个 401/403 说成"要先登录"而不是"源站拦了"。
+                val loginable = withContext(Dispatchers.IO) {
+                    runCatching { sources.getSource(key)?.getAccountInfo()?.hasAccount == true }
+                        .getOrDefault(false)
+                }
+                if (generation != detailGeneration) return@launch
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        loadingMessage = "",
+                        error = humanizeSourceError(e, loginable)
+                    )
+                }
+            }
+        }
+    }
+
+    private fun cacheMetrics(details: ComicDetails, key: String = currentSourceKey()) {
+        metricsSink.put(
+            key, details.comic.id, details.comic.rating?.toDouble(), details.comic.likesCount
+        )
+    }
+
+    /** 重新计算「是否已本地收藏」（进入页面时调用一次）。 */
+    fun syncLocalFav(comic: ComicItem) {
+        currentComicItem = comic
+        scope.launch {
+            _isLocalFav.value = favoritesManager.isExist(comic.id, resolveSourceKey(comic.sourceName))
+        }
+    }
+
+    fun selectGroup(index: Int) {
+        _uiState.update { it.copy(selectedGroupIndex = index) }
+    }
+
+    fun setReversed(value: Boolean) = _uiState.update { it.copy(reversed = value) }
+
+    // region ---- 收藏面板（对齐官方 _FavoritePanel）----
+
+    /** 打开收藏面板：读本地收藏夹 + 该漫画已加入的夹，再异步拉网络收藏夹。 */
+    fun openFavoritePanel(comic: ComicItem) {
+        _uiState.value.details?.let { cacheMetrics(it) }
+        currentComicItem = comic
+        val key = resolveSourceKey(comic.sourceName)
+        _favPanel.value = FavoritePanelState(visible = true)
+
+        scope.launch {
+            _favPanel.update {
+                it.copy(
+                    localFolders = favoritesManager.folders.value,
+                    localAdded = favoritesManager.find(comic.id, key).toSet(),
+                    // 摘要行先用详情已知的源端状态兜底（单夹源此后不再有二次查询）
+                    networkSingleAdded = _isNetworkFav.value,
+                )
+            }
+
+            // 网络收藏：源声明了 favorites 且已登录才有。注意这两步都会同步跑 JS 引擎，
+            // 必须在 IO 线程，否则主线程会被 evaluate 的 30s 超时卡死（踩过一次）。
+            val src = sources.getSource(key)
+            val (fd, logged) = withContext(Dispatchers.IO) {
+                val f = src?.favoriteData
+                f to (f != null && src.getAccountInfo().isLogged)
+            }
+            if (fd == null || !logged) {
+                _favPanel.update { it.copy(hasNetwork = false, isLoadingNetwork = false) }
+                return@launch
+            }
+
+            _favPanel.update {
+                it.copy(
+                    hasNetwork = true,
+                    networkMultiFolder = fd.loadFolders != null,
+                    singleFolderForSingleComic = fd.singleFolderForSingleComic,
+                    isLoadingNetwork = fd.loadFolders != null,
+                    // 单夹源没有 loadFolders 查询通道（哔咔/JM 单夹等），此前 state 恒为默认
+                    // false → 永远显示「尚未收藏」。改用源详情自带的 isFavorite（picacg 的
+                    // isFavourite / jm 的 is_favorite 等，loadComic info 已带回）作为初始态。
+                    networkError = null,
+                )
+            }
+
+            val loader = fd.loadFolders ?: return@launch
+            loader(comic.id)
+                .onSuccess { res ->
+                    // EH 等多夹源的 favorited 查询成功 → 增强已知状态（写入 isNetworkFav，
+                    // 让收藏图标也能标深）；空结果不回退详情已判定的 true，防二次查询
+                    // 抖动把真实状态冲掉。
+                    if (res.favorited.isNotEmpty()) {
+                        _isNetworkFav.value = true
+                    }
+                    _favPanel.update { st ->
+                        st.copy(
+                            networkFolders = res.folders,
+                            networkAdded = res.favorited.toSet(),
+                            networkSingleAdded = if (res.favorited.isNotEmpty()) true else st.networkSingleAdded,
+                            isLoadingNetwork = false,
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    com.venera.desktop.DesktopErrorBus.report(
+                        category = "漫画",
+                        headline = "网络收藏夹读取失败",
+                        humanReason = "这颗源的收藏夹没读回来，本地收藏不受影响；重开收藏面板或稍后再试。",
+                        detail = "$key: ${e::class.java.simpleName}: ${e.message.orEmpty()}",
+                        dedupKey = "comic:net_folders_read:$key",
+                    )
+                    _favPanel.update { it.copy(isLoadingNetwork = false, networkError = humanizeSourceError(e, sources.sourceSupportsLogin(key))) }
+                }
+        }
+    }
+
+    fun closeFavoritePanel() {
+        _favPanel.update { it.copy(visible = false) }
+    }
+
+    /** 加入 / 移出某个本地收藏夹。 */
+    fun toggleLocalFavorite(comic: ComicItem, folder: String) {
+        if (folder in _favPanel.value.pending) return
+        val key = resolveSourceKey(comic.sourceName)
+        _favPanel.update { it.copy(pending = it.pending + folder) }
+
+        scope.launch {
+            val wasAdded = folder in _favPanel.value.localAdded
+            runCatching {
+                if (wasAdded) {
+                    favoritesManager.deleteComicWithId(folder, comic.id, key)
+                } else {
+                    favoritesManager.addComic(folder, comic.toFavoriteItem(key), null, currentUpdateTime())
+                }
+            }.onSuccess {
+                _favPanel.update {
+                    it.copy(
+                        localAdded = if (wasAdded) it.localAdded - folder else it.localAdded + folder,
+                        pending = it.pending - folder,
+                        toast = if (wasAdded) "已移出「$folder」" else "已收藏到「$folder」",
+                    )
+                }
+            }.onFailure { e ->
+                // 本地收藏夹是设备上的库操作，失败原因（SQLite 原文）对用户没有可操作性，
+                // 说清"没成"和"可以再试"就够了。
+                logger.warn("VeneraDebug", "toggleLocalFavorite($folder) failed", e)
+                com.venera.desktop.DesktopErrorBus.report(
+                    category = "漫画",
+                    headline = "本地收藏操作失败",
+                    humanReason = "未能更新收藏夹「$folder」，请重试或检查本地数据库状态。",
+                    detail = "${e::class.java.simpleName}: ${e.message.orEmpty()}",
+                    dedupKey = "comic:toggle_fav:$folder",
+                )
+                _favPanel.update { it.copy(pending = it.pending - folder, toast = "这一步没成，再试一次") }
+            }
+        }
+    }
+
+    /** 新建本地收藏夹。 */
+    fun createLocalFolder(name: String, onError: (String) -> Unit = {}) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) {
+            onError("收藏夹名不能为空")
+            return
+        }
+        scope.launch {
+            runCatching { favoritesManager.createFolder(trimmed) }
+                .onSuccess { real ->
+                    _favPanel.update {
+                        it.copy(
+                            localFolders = if (real in it.localFolders) it.localFolders else it.localFolders + real,
+                            toast = "已创建「$real」",
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    logger.warn("VeneraDebug", "createFolder($trimmed) failed", e)
+                    com.venera.desktop.DesktopErrorBus.report(
+                        category = "漫画",
+                        headline = "新建收藏夹失败",
+                        humanReason = "未能创建「$trimmed」，请检查名称是否重复或数据库是否可写。",
+                        detail = "${e::class.java.simpleName}: ${e.message.orEmpty()}",
+                        dedupKey = "comic:create_folder:$trimmed",
+                    )
+                    onError("新建分组没成功，换个名字再试试")
+                }
+        }
+    }
+
+    /**
+     * 加入 / 移出某个网络收藏夹。
+     *
+     * @param folderId 多夹源传夹 id；单夹源传 `""`（对齐官方 `addOrDelFavorite(cid, '', ...)`）
+     */
+    fun toggleNetworkFavorite(comic: ComicItem, folderId: String, isAdded: Boolean) {
+        val entryKey = "net:$folderId"
+        if (entryKey in _favPanel.value.pending) return
+        val key = resolveSourceKey(comic.sourceName)
+        _favPanel.update { it.copy(pending = it.pending + entryKey) }
+
+        scope.launch {
+            val src = sources.getSource(key)
+            val fd = withContext(Dispatchers.IO) { src?.favoriteData }
+            if (fd == null) {
+                _favPanel.update { it.copy(pending = it.pending - entryKey, toast = "该源不支持网络收藏") }
+                return@launch
+            }
+            fd.addOrDelFavorite(comic.id, folderId, !isAdded, null)
+                .onSuccess {
+                    _favPanel.update { st ->
+                        val added = if (isAdded) st.networkAdded - folderId else st.networkAdded + folderId
+                        val nowAdded = if (folderId.isEmpty()) !isAdded else added.isNotEmpty()
+                        st.copy(
+                            networkAdded = added,
+                            networkSingleAdded = nowAdded,
+                            pending = st.pending - entryKey,
+                            toast = if (isAdded) "已从网络收藏移除" else "已加入网络收藏",
+                        )
+                    }
+                    // 网络收藏变动同步到详情页收藏图标（标深/褪色）
+                    _isNetworkFav.value = if (isAdded) false else true
+                }
+                .onFailure { e ->
+                    com.venera.desktop.DesktopErrorBus.report(
+                        category = "漫画",
+                        headline = "网络收藏操作失败",
+                        humanReason = "这颗源的收藏接口没成，本地收藏不受影响；可再点一次或稍后重试。",
+                        detail = "$key: ${e::class.java.simpleName}: ${e.message.orEmpty()}",
+                        dedupKey = "comic:net_fav_toggle:$key",
+                    )
+                    _favPanel.update { it.copy(pending = it.pending - entryKey, toast = humanizeSourceError(e, sources.sourceSupportsLogin(key))) }
+                }
+        }
+    }
+
+    /** 消费一次性提示。 */
+    fun consumeToast() {
+        _favPanel.update { it.copy(toast = null) }
+    }
+
+    /**
+     * 长按收藏按钮的快捷收藏（对齐官方 `quickFavorite`）：
+     * 加入设置的快捷夹；未设置快捷夹时退化为打开收藏面板。
+     */
+    fun quickFavorite(comic: ComicItem) {
+        _uiState.value.details?.let { cacheMetrics(it) }
+        val target = prefs.quickFavorite.value?.takeIf { it.isNotBlank() }
+            ?: favoritesManager.folders.value.firstOrNull()
+        if (target == null) {
+            openFavoritePanel(comic)
+            return
+        }
+        currentComicItem = comic
+        val key = resolveSourceKey(comic.sourceName)
+        scope.launch {
+            runCatching { favoritesManager.addComic(target, comic.toFavoriteItem(key), null, currentUpdateTime()) }
+                .onSuccess { added ->
+                    _favPanel.update { it.copy(toast = if (added) "已收藏到「$target」" else "「$target」里已有这本") }
+                }
+                .onFailure { e ->
+                    logger.warn("VeneraDebug", "quickFavorite($target) failed", e)
+                    com.venera.desktop.DesktopErrorBus.report(
+                        category = "漫画",
+                        headline = "快捷收藏失败",
+                        humanReason = "未能将漫画加入「$target」，请重试。",
+                        detail = "${e::class.java.simpleName}: ${e.message.orEmpty()}",
+                        dedupKey = "comic:quick_fav:$target",
+                    )
+                    _favPanel.update { it.copy(toast = "收藏没成功，再试一次") }
+                }
+        }
+    }
+
+    // endregion
+
+    /** 喜欢/点赞漫画（乐观更新 + 失败回滚） */
+    fun toggleLike() {
+        val details = _uiState.value.details ?: return
+        val key = resolveSourceKey(details.sourceKey)
+        val currentLiked = _uiState.value.isLiked
+        val newCount = (if (currentLiked) _uiState.value.likesCount - 1 else _uiState.value.likesCount + 1).coerceAtLeast(0)
+        // 1) 乐观更新：先让 UI 即时响应
+        _uiState.update { it.copy(isLiked = !currentLiked, likesCount = newCount) }
+
+        scope.launch {
+            val src = sources.getSource(key)
+            val result = src?.likeComic(details.comic.id, isLike = !currentLiked)
+            val supported = result?.getOrDefault(false) == true
+            if (result == null || result.isFailure || !supported) {
+                // 2) 失败 / 源不支持：回滚本地状态并如实提示
+                _uiState.update {
+                    it.copy(isLiked = currentLiked, likesCount = _uiState.value.likesCount.let { c ->
+                        if (currentLiked) c - 1 else c + 1
+                    }.coerceAtLeast(0))
+                }
+                _uiState.update {
+                    it.copy(
+                        error = when {
+                            result == null -> "没找到这本所属的源，点赞没生效"
+                            result.isFailure -> humanizeSourceError(result.exceptionOrNull(), sources.sourceSupportsLogin(key))
+                            else -> "这颗源不支持点赞"
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * 评分 (0.0 - 5.0)：乐观更新 + 失败或源不支持时回滚并如实提示（与 toggleLike 同一套）。
+     *
+     * @param rating 界面星级（0.0–5.0）；换算成源脚本规范的 0–10 由源适配层负责
+     * @param onComplete 结果回调：true = 源接受；false 附一句屏上文案。缺省 null = 老调用点行为不变
+     */
+    fun rateComic(rating: Float, onComplete: ((Boolean, String?) -> Unit)? = null) {
+        val details = _uiState.value.details ?: return
+        val key = resolveSourceKey(details.sourceKey)
+        val previousRating = _uiState.value.userRating
+        // 1) 乐观更新：先让星级立刻变
+        _uiState.update { it.copy(userRating = rating) }
+
+        scope.launch {
+            val src = sources.getSource(key)
+            val result = src?.starRating(details.comic.id, rating)
+            val supported = result?.getOrDefault(false) == true
+            if (result == null || result.isFailure || !supported) {
+                // 2) 失败 / 源不支持：回滚星级并说明原因，不能留着"已经评上了"的假象
+                val message = when {
+                    result == null -> "没找到这本所属的源，评分没生效"
+                    result.isFailure -> humanizeSourceError(result.exceptionOrNull(), sources.sourceSupportsLogin(key))
+                    else -> "这颗源不支持评分"
+                }
+                _uiState.update { it.copy(userRating = previousRating, error = message) }
+                onComplete?.invoke(false, message)
+            } else {
+                onComplete?.invoke(true, null)
+            }
+        }
+    }
+
+    /**
+     * 拉取预览缩略图 —— 对齐官方 `comic_details_page/thumbnails.dart`。
+     *
+     * - 详情接口自带首批缩略图的源：先展示，「加载更多」时再调接口（结果去重合并）。
+     * - EH 这类详情不带缩略图的源：由源 `comic.loadThumbnails` 分页拉取
+     *   （一次请求拿一整页 gallery HTML 里的官方预览小图，比逐页请求大图快得多）。
+     * - 已有图时失败不打扰用户（官方亦只在首屏失败且无兜底时才显示错误）。
+     */
+    fun loadThumbnails(loadMore: Boolean = false) {
+        val d = _uiState.value.details ?: return
+        if (_uiState.value.isLoadingThumbnails) return
+        if (loadMore) {
+            if (thumbnailExhausted) return
+            if (fallbackChapterPages.isNotEmpty()) {
+                val currentCount = _uiState.value.thumbnails.size
+                val nextCount = (currentCount + 12).coerceAtMost(fallbackChapterPages.size)
+                thumbnailExhausted = nextCount >= fallbackChapterPages.size
+                _uiState.update {
+                    it.copy(
+                        thumbnails = fallbackChapterPages.take(nextCount),
+                        hasMoreThumbnails = !thumbnailExhausted
+                    )
+                }
+                return
+            }
+        } else if (thumbnailStarted) {
+            return
+        }
+        thumbnailStarted = true
+        val key = resolveSourceKey(d.sourceKey)
+
+        scope.launch {
+            _uiState.update { it.copy(isLoadingThumbnails = true, thumbnailError = null) }
+            val res = comics.loadThumbnails(key, d.comic.id, if (loadMore) thumbnailNext else null)
+            val page = res.getOrNull()
+            if (page != null && page.thumbnails.isNotEmpty()) {
+                thumbnailNext = page.next
+                thumbnailExhausted = page.next == null
+                _uiState.update {
+                    it.copy(
+                        thumbnails = (it.thumbnails + page.thumbnails)
+                            .filter { t -> t.isNotBlank() }
+                            .distinct(),
+                        isLoadingThumbnails = false,
+                        hasMoreThumbnails = !thumbnailExhausted,
+                        thumbnailError = null
+                    )
+                }
+                return@launch
+            }
+
+            // 官方 loadThumbnails 接口未实现或无结果时（包括 JM、拷贝、MangaDex、包子等大部分源），
+            // 自动拉取第一话正文图片作为预览图，并在详情页展示
+            val firstChapter = d.chapters.firstOrNull()
+                ?: d.chapterGroups.firstOrNull()?.chapters?.firstOrNull()
+            if (firstChapter != null) {
+                val chRes = comics.getChapterPages(key, d.comic.id, firstChapter.id)
+                val chPages = chRes.getOrNull()
+                if (chPages != null && chPages.pages.isNotEmpty()) {
+                    fallbackChapterPages = chPages.pages
+                    if (chPages.headers.isNotEmpty()) {
+                        ImageHeaderPolicy.publishForUrls(chPages.pages, chPages.headers)
+                    }
+                    val initialSlice = fallbackChapterPages.take(12)
+                    thumbnailExhausted = fallbackChapterPages.size <= 12
+                    _uiState.update {
+                        it.copy(
+                            thumbnails = initialSlice,
+                            isLoadingThumbnails = false,
+                            hasMoreThumbnails = !thumbnailExhausted,
+                            thumbnailError = null,
+                            previewChapterId = firstChapter.id
+                        )
+                    }
+                    return@launch
+                }
+            }
+
+            val raw = res.exceptionOrNull()?.message ?: "预览图加载失败"
+            logger.warn("VeneraDebug", "loadThumbnails($key, cid=${d.comic.id}, loadMore=$loadMore) failed: $raw")
+            _uiState.update {
+                it.copy(
+                    isLoadingThumbnails = false,
+                    thumbnailError = if (it.thumbnails.isEmpty()) {
+                        humanizeSourceError(res.exceptionOrNull(), sources.sourceSupportsLogin(key))
+                    } else null
+                )
+            }
+        }
+    }
+
+    /**
+     * 展开被 [PREVIEW_LIMIT] 折叠的预览图。
+     *
+     * 展开是纯粹的 UI 操作：已到手的图直接放出来，不做网络请求。
+     * 只有源真的还有下一页（[DetailUiState.hasMoreThumbnails]）且用户
+     * 还没拉过时，才顺带补一次分页 —— 否则光展开会漏掉后面的页。
+     */
+    fun expandThumbnails() {
+        val state = _uiState.value
+        if (state.thumbnailsExpanded) return
+        _uiState.update { it.copy(thumbnailsExpanded = true) }
+        // 折叠期间没拉过的后续分页，展开时补齐；已经在拉/已到末页则不重复触发。
+        if (state.hasMoreThumbnails && !state.isLoadingThumbnails) {
+            loadThumbnails(loadMore = true)
+        }
+    }
+
+    /** 收起预览图，回到最多 [PREVIEW_LIMIT] 张的折叠态。 */
+    fun collapseThumbnails() {
+        _uiState.update { it.copy(thumbnailsExpanded = false) }
+    }
+
+    /**
+     * 已经问过 `onThumbnailLoad` 的 url。每个 url **只问一次**：
+     * 源没实现这个钩子时拿不到任何结果，不记一笔就会在每次预览窗口变化时重跑一遍 JS
+     * （引擎在主线程串行，那是纯浪费）。超时的那次同样不再重试 —— 预览条退回今天的行为，
+     * 比反复堵主线程划算。
+     */
+    private val thumbnailConfigAsked = mutableSetOf<String>()
+
+    /**
+     * 为**当前挂载的那批**预览图换算源声明的加载配置（`comic.onThumbnailLoad`）。
+     * 由屏幕侧在预览窗口变化时调用，所以一次只有几十个 url，不会把整本两三百张塞进一次 JS。
+     *
+     * ⚠️ 这个钩子**不换小图**，只回 url + 防盗头（实测与依据见 [ResolvedThumbnailConfig]）。
+     * 拿到头就按 host 记进 [ImageHeaderPolicy]：预览条原先只有「首话页面图兜底」那一条发过
+     * 头（[loadThumbnails] 里的 publishForUrls），详情自带 thumbnails 与 loadThumbnails
+     * 两条**一处都没发**，于是内置表覆盖不到的 host 就是一排 403 空白。
+     */
+    fun ensureThumbnailConfigs(urls: List<String>) {
+        val pending = urls.filter { it.isNotBlank() && thumbnailConfigAsked.add(it) }
+        if (pending.isEmpty()) return
+        scope.launch {
+            val configs = comics.resolveThumbnailConfigs(currentSourceKey(), pending)
+            if (configs.isEmpty()) return@launch
+            configs.forEach { (_, cfg) ->
+                // 按**实际要请求的那个 url** 的 host 记账（EH 会换成镜像域 ehgt.org）。
+                if (cfg.headers.isNotEmpty()) {
+                    ImageHeaderPolicy.publishForUrls(listOf(cfg.url), cfg.headers)
+                }
+            }
+            _uiState.update { it.copy(thumbnailConfigs = it.thumbnailConfigs + configs) }
+        }
+    }
+
+    /** Use the resolved source key for comments and downloads, not its display name. */
+    fun currentSourceKey(): String = resolveSourceKey(
+        _uiState.value.details?.sourceKey?.takeIf { it.isNotBlank() }
+            ?: currentComicItem?.sourceName.orEmpty()
+    )
+
+    fun openReplies(comment: Comment) {
+        if (comment.id.isBlank() || !_uiState.value.commentCapabilities.canLoad) return
+        replyJob?.cancel()
+        _uiState.update { it.copy(replyTo = comment, replyThread = DetailCommentState()) }
+        loadComments(replyId = comment.id)
+    }
+
+    fun closeReplies() {
+        replyJob?.cancel()
+        _uiState.update { it.copy(replyTo = null, replyThread = DetailCommentState()) }
+    }
+
+    /** Refresh replaces even an empty result; only successful pages advance the cursor. */
+    fun loadComments(loadMore: Boolean = false, replyId: String? = null) {
+        val state = _uiState.value
+        val details = state.details ?: return
+        if (!state.commentCapabilities.canLoad) return
+        if (replyId != null && state.replyTo?.id != replyId) return
+        val thread = if (replyId == null) state.commentThread else state.replyThread
+        if (thread.isLoading || (loadMore && !thread.hasMore)) return
+        val requestedPage = if (loadMore) thread.page + 1 else 1
+        val generation = detailGeneration
+        val key = currentSourceKey()
+        fun updateThread(transform: (DetailCommentState) -> DetailCommentState) {
+            if (generation != detailGeneration) return
+            _uiState.update { current ->
+                if (replyId == null) current.copy(commentThread = transform(current.commentThread))
+                else if (current.replyTo?.id == replyId) current.copy(replyThread = transform(current.replyThread))
+                else current
+            }
+        }
+        updateThread { it.copy(isLoading = true, error = null, requestedPage = requestedPage) }
+        val job = scope.launch {
+            try {
+                val page = withContext(Dispatchers.IO) {
+                    val source = sources.getSource(key) ?: error("找不到对应漫画源")
+                    source.loadCommentsPage(details.comic.id, details.subId, requestedPage, replyId).getOrThrow()
+                }
+                updateThread { it.received(page.comments, requestedPage, page.maxPage) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // 先算好文案再进 updateThread：那个 lambda 不是挂起上下文，
+                // 而 sourceSupportsLogin 是挂起的（要跑源 JS）。
+                val message = humanizeSourceError(e, sources.sourceSupportsLogin(key))
+                com.venera.desktop.DesktopErrorBus.report(
+                    category = "漫画",
+                    headline = "章节评论加载失败",
+                    humanReason = "这一页评论没取回来，已经显示的那些仍在；可重试或稍后再看。",
+                    detail = "$key page=$requestedPage: ${e::class.java.simpleName}: ${e.message.orEmpty()}",
+                    dedupKey = "comic:comments_page:$key",
+                )
+                updateThread { it.copy(isLoading = false, error = message) }
+            }
+        }
+        if (replyId == null) commentJob = job else replyJob = job
+    }
+
+    /** Preserve subId and pass replyId separately, as the Flutter/JS protocol requires. */
+    fun sendComment(content: String, replyId: String? = null, onComplete: (Boolean, String?) -> Unit) {
+        val state = _uiState.value
+        val details = state.details
+        val validationError = when {
+            details == null -> "详情尚未加载完成"
+            !state.commentCapabilities.canSend -> "当前源暂不支持发送评论"
+            content.isBlank() -> "评论不能为空"
+            state.isSendingComment -> "评论正在发送中"
+            replyId != null && state.replyTo?.id != replyId -> "回复对象已改变，请重试"
+            else -> null
+        }
+        if (validationError != null || details == null) {
+            onComplete(false, validationError ?: "详情尚未加载完成")
+            return
+        }
+        val generation = detailGeneration
+        val key = currentSourceKey()
+        _uiState.update { it.copy(isSendingComment = true) }
+        scope.launch {
+            try {
+                val success = withContext(Dispatchers.IO) {
+                    val source = sources.getSource(key) ?: error("找不到对应漫画源")
+                    source.sendComment(details.comic.id, details.subId, content, replyId).getOrThrow()
+                }
+                if (generation != detailGeneration) return@launch
+                if (!success) {
+                    onComplete(false, "源拒绝了评论，请重试")
+                    return@launch
+                }
+                // 先把第一页重读一遍，刷完再报成功：否则屏上先挂「已发表」、列表还是旧的，
+                // 用户会以为根本没发出去（哔咔这条就是这么被误判的）。
+                val stillRelevant = replyId == null || _uiState.value.replyTo?.id == replyId
+                val fresh = if (stillRelevant) {
+                    withContext(Dispatchers.IO) {
+                        runCatching {
+                            val source = sources.getSource(key) ?: error("找不到对应漫画源")
+                            source.loadCommentsPage(details.comic.id, details.subId, 1, replyId).getOrThrow()
+                        }.getOrNull()
+                    }
+                } else {
+                    null
+                }
+                if (generation != detailGeneration) return@launch
+                if (fresh != null) {
+                    if (replyId == null) {
+                        // 撤掉发送前那一跳，免得它的旧结果盖掉刚刷回来的第一页。
+                        commentJob?.cancel()
+                        _uiState.update {
+                            it.copy(commentThread = it.commentThread.received(fresh.comments, 1, fresh.maxPage))
+                        }
+                    } else if (_uiState.value.replyTo?.id == replyId) {
+                        replyJob?.cancel()
+                        _uiState.update {
+                            it.copy(replyThread = it.replyThread.received(fresh.comments, 1, fresh.maxPage))
+                        }
+                    }
+                } else {
+                    // 刷新没成：至少把 loading 关掉，别留一圈永远转下去的评论区。
+                    _uiState.update {
+                        if (replyId == null) it.copy(commentThread = it.commentThread.copy(isLoading = false))
+                        else it.copy(replyThread = it.replyThread.copy(isLoading = false))
+                    }
+                }
+                onComplete(
+                    true,
+                    if (fresh == null) "评论已发出，但列表没刷新成功，稍后可手动再刷" else null,
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (generation == detailGeneration) {
+                    val reason = humanizeSourceError(e, sources.sourceSupportsLogin(key))
+                    val raw = e.message.orEmpty()
+                    // 源站 5xx（镜像域的网关挂了）是外部波动：状态行与失败态已经照原文念了原因，
+                    // 不必再往报错胶囊里塞一条，免得每试一次就弹一条「评论发送失败」。
+                    val upstreamError = raw.contains("Invalid Status Code: 5") ||
+                        raw.contains("502") || raw.contains("503")
+                    if (!upstreamError) {
+                        com.venera.desktop.DesktopErrorBus.report(
+                            category = "漫画",
+                            headline = "评论发送失败",
+                            humanReason = "这条评论没发出去，草稿仍在输入框里；可直接重试。",
+                            detail = "$key: ${e::class.java.simpleName}: ${e.message.orEmpty()}",
+                            dedupKey = "comic:send_comment:$key",
+                        )
+                    }
+                    onComplete(false, reason)
+                }
+            } finally {
+                if (generation == detailGeneration) _uiState.update { it.copy(isSendingComment = false) }
+            }
+        }
+    }
+
+    /**
+     * 解析一章的真实图片地址并打开阅读器。
+     *
+     * @param initialPageIndex 起始页（0 基）；预览图点击进入时用
+     *        （对齐官方 thumbnails.dart 的 `state.read(null, index + 1)`）
+     */
+    fun openChapter(
+        comic: ComicItem,
+        chapterId: String,
+        chapterTitle: String,
+        fallbackIdx: Int,
+        initialPageIndex: Int = 0
+    ) {
+        scope.launch {
+            val key = resolveSourceKey(comic.sourceName)
+            // 封面优先取详情解析结果，其次取入口值；ReaderSession.coverUrl 会直接写入历史表，
+            // 避免插图收藏入口空串覆盖历史封面。
+            val sessionCover =
+                _uiState.value.details?.comic?.cover?.ifBlank { comic.coverUrl } ?: comic.coverUrl
+
+            // 优先检查本地离线下载文件，已下载章节实现秒开与无网离线阅读
+            val dlMgr = ports.downloads
+            val localFiles = dlMgr.getDownloadedChapterFiles(key, comic.id, chapterId)
+            if (!localFiles.isNullOrEmpty()) {
+                val state = _uiState.value
+                val currentGroup = state.details?.chapterGroups?.getOrNull(state.selectedGroupIndex)
+                val allChapters = currentGroup?.chapters?.map { it.id to it.title }
+                    ?: state.details?.chapters?.map { it.id to it.title }
+                val mappedPages = localFiles.mapIndexed { idx, file ->
+                    com.venera.compose.source.model.ComicPageSource.LocalFile(file, idx)
+                }
+                val readerChapter = com.venera.compose.source.model.ReaderChapter(
+                    id = chapterId,
+                    title = chapterTitle,
+                    pages = mappedPages,
+                    isLoaded = true
+                )
+                _readerEvents.tryEmit(
+                    ReaderEvent.Live(
+                        com.venera.compose.source.model.ReaderSession(
+                            comicId = comic.id,
+                            comicTitle = comic.title,
+                            coverUrl = sessionCover,
+                            sourceName = comic.sourceName,
+                            sourceKey = key,
+                            chapters = listOf(readerChapter),
+                            initialChapterIndex = 0,
+                            initialPageIndex = initialPageIndex
+                        )
+                    )
+                )
+                return@launch
+            }
+
+            _uiState.update { it.copy(loadingMessage = "正在解析章节画质...") }
+            val res = comics.getChapterPages(key, comic.id, chapterId)
+            val pagesData = res.getOrNull()
+            val pages = pagesData?.pages.orEmpty()
+            _uiState.update { it.copy(loadingMessage = "") }
+
+            // 防盗链头交给图片加载策略。注意动态页（useOnImageLoad）的 pages 是
+            // 「图片键」不是 URL，不能按 URL 预发布 —— 真实头由阅读器逐页解析后发布
+            pagesData?.headers?.takeIf { it.isNotEmpty() }?.let { hdrs ->
+                // 外层 ?.let 已保证 pagesData 非空，这里不必再判一次（原先的 pd != null 恒真）
+                if (!pagesData.useOnImageLoad) ImageHeaderPolicy.publishForUrls(pages, hdrs)
+                // 用 sessionCover 而不是 comic.coverUrl：picacg 这类站的封面必须带防盗头，
+                // 入口封面为空时若跳过这一步，详情拉到的真封面就没发布过头 → 取图 403 → 空白。
+                if (sessionCover.isNotEmpty()) ImageHeaderPolicy.publishForUrls(listOf(sessionCover), hdrs)
+            }
+
+            if (pages.isNotEmpty()) {
+                val state = _uiState.value
+                val currentGroup = state.details?.chapterGroups?.getOrNull(state.selectedGroupIndex)
+                val allChapters = currentGroup?.chapters?.map { it.id to it.title }
+                    ?: state.details?.chapters?.map { it.id to it.title }
+                _readerEvents.tryEmit(
+                    ReaderEvent.Live(
+                        ReaderSessionFactory.createLiveSession(
+                            comicId = comic.id,
+                            comicTitle = comic.title,
+                            coverUrl = sessionCover,
+                            chapterId = chapterId,
+                            chapterTitle = chapterTitle,
+                            pages = pages,
+                            sourceName = comic.sourceName,
+                            sourceKey = key,
+                            allChapters = allChapters,
+                            // 优先使用详情 tagMap 打平结果（列表裸词会被归一化丢弃），并合并 comic.tags 兜底未加载完场景。
+                            tags = (state.details?.plainTags.orEmpty() + comic.tags).distinct(),
+                            useOnImageLoad = pagesData?.useOnImageLoad == true,
+                            initialPageIndex = initialPageIndex
+                        ),
+                    ),
+                )
+            } else {
+                // 解析不出图片就如实报错：**绝不回退到占位图**
+                // （曾用硬编码 Unsplash 图伪造整章，用户会读到与作品无关的图片）
+                val failure = res.exceptionOrNull()
+                // 取消不是错误：用户自己切走了，不许弹"这一章读不出来"。
+                if (isCancellation(failure)) return@launch
+                val reason = if (failure != null) {
+                    humanizeSourceError(failure, sources.sourceSupportsLogin(key))
+                } else {
+                    "「$chapterTitle」没有解析到任何图片页，稍后重试或换一颗源"
+                }
+                _readerEvents.tryEmit(ReaderEvent.Failed(reason))
+            }
+        }
+    }
+
+    /** 详情里带回来的更新时间，收藏时一并写入（追更用）。 */
+    private fun currentUpdateTime(): String? =
+        _uiState.value.details?.updateTime?.takeIf { it.isNotBlank() }
+
+    private fun resolveSourceKey(sourceNameOrKey: String): String {
+        return sources.sourcesFlow.value.find {
+            it.key.equals(sourceNameOrKey, ignoreCase = true) || it.name.equals(sourceNameOrKey, ignoreCase = true)
+        }?.key ?: sources.activeSourceKey.value
+    }
+}
+
+/** 详情页漫画 → 本地收藏条目（对齐官方 `_toFavoriteItem`）。 */
+private fun ComicItem.toFavoriteItem(sourceKey: String) = FavoriteItem(
+    id = id,
+    name = title,
+    author = author,
+    sourceKey = sourceKey,
+    tags = tags,
+    coverPath = coverUrl,
+)

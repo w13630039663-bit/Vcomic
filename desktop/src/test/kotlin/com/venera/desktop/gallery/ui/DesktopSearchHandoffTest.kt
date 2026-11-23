@@ -1,0 +1,153 @@
+package com.venera.desktop.gallery.ui
+
+import com.venera.compose.gallery.data.GalleryPost
+import com.venera.compose.gallery.data.GallerySite
+import com.venera.compose.gallery.domain.GallerySearchSource
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * 桌面 批 2 · ⑤：标签 / 画师 → 搜索那条动线。
+ *
+ * ## 这一批补的是"缺动线被说成用户的责任"
+ *
+ * 画师那一屏页脚写着「要看某位的图，去「搜索」那一屏输入他的名字」，而详情浮层里那整片标签墙
+ * 与那枚名字全是裸文本 —— 把一条 Android 侧早就有的主路径（`GalleryInfoSheet` 点标签 →
+ * `GallerySearchHandoff.postTag` → `GalleryScreen` consume → 即查重查）在桌面上说成"请你自己打字"。
+ * 手册 §22.3 那条规矩在这里的反向应用：**接上能力之后要回查每一屏那句说明**。
+ *
+ * ## 「站点不能猜」是这条链唯一容易被写错的地方
+ *
+ * Android 那边交接载荷带的是 `(站, 标签)`，注释原文是「两站词表不通，站点不能猜」
+ * （`GallerySearchHandoff.kt:34-37`）。桌面这一侧多一档可用来源（「全部」是桌面搜索屏自己的
+ * 来源轴第一档），所以规则是：**只有一位所属站就切到那一站，跨好几位（画师整页那种并条）就打全部**
+ * —— "都打"是真做了的事，把它写成某一站才是猜。
+ *
+ * ## 画师那一栏的三档，与批 1 那条同源
+ *
+ * 画师名不是 `post.author`。实测那句在 `GalleryInfoSheet.kt:444-447`：yande.re 的 `author`
+ * 与 Gelbooru 的 `owner` 都是**上传者的登录名**（真帖 1269641 的 `author=Arsy`，画师是标签 `gijang`），
+ * 只有 Safebooru 的 `tag_string_artist` 才是画师档。而桌面浮层从前把 `post.author` 摆在稿的
+ * `.artist .nm`（画师署名）那一格上 —— 那是一句**用位置说出来的假读数**。
+ * 真画师走站方标好的档位（`fetchTagCategories` → `galleryArtistNames`，词典兜底那一路桌面恒空），
+ * 于是"没取到 / 没有 / 没接"三档又出现一次：那一页没答上、答上了而这张没标画师档、取到了几位。
+ */
+class DesktopSearchHandoffTest {
+
+    private fun post(
+        site: GallerySite = GallerySite.GELBOORU,
+        tags: String = "touhou wowoguni",
+        author: String = "Arsy",
+    ) = GalleryPost(
+        site = site,
+        id = 11L,
+        tags = tags,
+        author = author,
+        previewUrl = "https://p/11.jpg",
+    )
+
+    /**
+     * ① 交接载荷：串**原样**、站点**按所属**、同一枚再点一次要能再落地。
+     *
+     * `token` 存在的理由不是装饰：种子是数据类，同一枚标签第二次交接 `query` 与 `source` 都没变
+     * ⇒ 消费方那颗 `LaunchedEffect(seed)` 不会重启 ⇒ 用户改了输入框之后再点同一枚标签，屏上不动。
+     * 那正是"看起来能点而其实只在第一次管用"。
+     */
+    @Test
+    fun 交接带着所属站而不猜() {
+        val seed = desktopSearchSeedFor(listOf(GallerySite.GELBOORU), "touhou", token = 3)
+        assertEquals("交接串就是那一枚标签，不改写不加前缀", "touhou", seed.query)
+        assertEquals(
+            "一位所属站 ⇒ 来源轴切到那一站（留在「全部」会把另外两站的同名标签一起捞进来，" +
+                "而用户看到的墙不是他点的那一站的）",
+            listOf(GallerySite.GELBOORU),
+            seed.source.sites,
+        )
+        assertEquals(3, seed.token)
+
+        val again = desktopSearchSeedFor(listOf(GallerySite.GELBOORU), "touhou", token = 4)
+        assertFalse(
+            "同一枚标签第二次交接必须是个**不等**的载荷（否则消费方不会重新落地）",
+            seed == again,
+        )
+
+        assertEquals(
+            "两站并条的那一位（画师整页）打全部 —— 都打是真做了，写成某一站才是猜",
+            // 改口径：桌面那一档是 `DESKTOP_ALL`（含 Konachan / TBIB）；
+            // `ALL` 是安卓来源轴，不含 `desktopOnly` 两站。
+            GallerySearchSource.DESKTOP_ALL.sites,
+            desktopSearchSeedFor(GallerySite.entries.toList(), "gijang", token = 1).source.sites,
+        )
+        assertEquals(
+            "排除项的减号是站方语法，不在这里改写（改了下一次 parse 就变成另一枚标签）",
+            "-foo",
+            desktopSearchSeedFor(listOf(GallerySite.YANDERE), "-foo", token = 1).query,
+        )
+    }
+
+    /**
+     * ② 画师那一栏三档：`null`（那一页没答上）与"答上了而这张没标画师档"**不许塌回同一档**。
+     *
+     * 这正是批 1 那条 `DesktopFaceProbe` 的同族：把"没问到"记成"没有"，屏上就替站方宣布了一句话。
+     */
+    @Test
+    fun 画师那一栏三档分开() {
+        val asked = desktopDetailArtists(post().tagList, categories = mapOf("wowoguni" to 1, "touhou" to 0), fallbackArtistNames = emptySet(), asked = true)
+        assertTrue(
+            "站方答上了档位，画师就该是站方标好的那几个名字（这里只有 wowoguni 是 1 档）",
+            asked is DesktopDetailArtists.Names && asked.names == listOf("wowoguni"),
+        )
+
+        val unlabeled = desktopDetailArtists(post(tags = "touhou").tagList, categories = mapOf("touhou" to 0), fallbackArtistNames = emptySet(), asked = true)
+        assertTrue(
+            "答上了而这一张确实没标画师档 ⇒ 这是**一句定论**，与'没问到'不同",
+            unlabeled is DesktopDetailArtists.Unlabeled,
+        )
+
+        val notAnswered = desktopDetailArtists(post().tagList, categories = null, fallbackArtistNames = emptySet(), asked = true)
+        assertTrue(
+            "那一页没答上（或还没取完）⇒ 不许说成'这张没有画师'",
+            notAnswered is DesktopDetailArtists.NotAnswered,
+        )
+        // 对照：站方答上了但整张一个档位都没分类（空表）也不算"没问到"。
+        assertTrue(
+            "空档位表是'答上了、没分类'，与 null（没答上）两档",
+            desktopDetailArtists(post().tagList, categories = emptyMap(), fallbackArtistNames = emptySet(), asked = true) is DesktopDetailArtists.Unlabeled,
+        )
+    }
+
+    /**
+     * ②′ 三档各说一句人话，而取到的那一档不在屏上留一句废话。
+     *
+     * "没取到"那一句要**点是哪一站**：stdout 上那一行写的是
+     * `取 https://safebooru.donmai.us/posts/12314547 的标签分类失败：分类页没有可识别的 tag-type 类名`
+     * —— 页面 200 而认不出类名，不是网络。那一站到底"没接"还是"偶尔没取到"还差第二张样本，
+     * 所以这一句先把站名摆出来，让人自己去分，而不是替用户下一个结论。
+     */
+    @Test
+    fun 画师那一栏三档各有一句() {
+        val yande = GallerySite.YANDERE
+        assertEquals("取到名字就不必再写一句'画师如下'（名字本身就是内容）", "", desktopArtistLineNotice(DesktopDetailArtists.Names(listOf("gijang"), DesktopArtistSource.SITE), yande, dictionary = null))
+        assertEquals("未标注画师要说'未标注'", "未标注画师", desktopArtistLineNotice(DesktopDetailArtists.Unlabeled, yande, dictionary = null))
+        val notice = desktopArtistLineNotice(DesktopDetailArtists.NotAnswered, GallerySite.SAFEBOORU, dictionary = null)
+        assertEquals("画师信息不可用那一档只念统一短句", "画师信息不可用", notice)
+        assertFalse(
+            "那一句不许把加载失败说成站方的结论",
+            notice.contains("没有画师") || notice.contains("没答上"),
+        )
+    }
+
+    /**
+     * ③ 「上传者」那一格与 Android **同一个词**，而且走信息表而不是摆在署名位。
+     *
+     * 词不是自选的：判据直接从 `GalleryInfoSheet.kt` 那一行把标签抽出来比。两端各写一份词，
+     * 用户换设备就读到两张不同的表 —— 而"这张图到底谁画的"恰好是最不该两端不同的那一格。
+     */
+
+    /** ④ 画师那一份取数**只走共享那颗词典件**，桌面不自拼页面解析。 */
+    /** ⑤ 标签墙每一枚都可点，而可点的地方要有真的接收者。 */
+    /** ⑥ 四跳接线：声明一处、根上 provide、页脚那句旧说明不许残留。 */
+    /** ⑦ 那颗种子的初值必须仍然是 `--query=`（取证那条链不许被交接顶掉）。 */
+}

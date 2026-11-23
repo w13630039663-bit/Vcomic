@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Venera Desktop · 报错提醒与问题反馈系统视觉方案稿</title>
+<style>
+  :root {
+    --bg-canvas: #141518;
+    --bg-wall-card: #1E2025;
+    --text-primary: #F2F3F5;
+    --text-secondary: #A1A6B3;
+    --text-tertiary: #6C7280;
+    --accent: #0A84FF;
+    --accent-soft: rgba(10, 132, 255, 0.16);
+    --error: #FF5C5C;
+    --error-soft: rgba(255, 92, 92, 0.14);
+    --warn: #F5A623;
+    --warn-soft: rgba(245, 166, 35, 0.14);
+    --sys: #7C8CFF;
+    --sys-soft: rgba(124, 140, 255, 0.15);
+    --glass-primary: rgba(34, 36, 42, 0.78);
+    --glass-nested: rgba(48, 51, 60, 0.52);
+    --glass-nested-hover: rgba(58, 62, 72, 0.72);
+    --border-hairline: rgba(255, 255, 255, 0.10);
+    --border-nested: rgba(255, 255, 255, 0.08);
+    --border-accent: rgba(10, 132, 255, 0.42);
+    --top-bar-bg: rgba(20, 21, 24, 0.82);
+    --hover-bg: rgba(255, 255, 255, 0.08);
+    --input-bg: rgba(16, 17, 20, 0.56);
+    --shadow-panel: 0 18px 48px rgba(0, 0, 0, 0.45);
+  }
+
+  body.theme-light {
+    --bg-canvas: #F3F4F7;
+    --bg-wall-card: #E6E8EE;
+    --text-primary: #181A1F;
+    --text-secondary: #585E6B;
+    --text-tertiary: #8A919E;
+    --accent: #0A63F6;
+    --accent-soft: rgba(10, 99, 246, 0.12);
+    --error: #D93838;
+    --error-soft: rgba(217, 56, 56, 0.10);
+    --warn: #C97A00;
+    --warn-soft: rgba(201, 122, 0, 0.11);
+    --sys: #5161E0;
+    --sys-soft: rgba(81, 97, 224, 0.11);
+    --glass-primary: rgba(255, 255, 255, 0.84);
+    --glass-nested: rgba(242, 244, 248, 0.74);
+    --glass-nested-hover: rgba(232, 235, 242, 0.92);
+    --border-hairline: rgba(18, 22, 32, 0.10);
+    --border-nested: rgba(18, 22, 32, 0.07);
+    --border-accent: rgba(10, 99, 246, 0.38);
+    --top-bar-bg: rgba(243, 244, 247, 0.84);
+    --hover-bg: rgba(18, 22, 32, 0.06);
+    --input-bg: rgba(255, 255, 255, 0.78);
+    --shadow-panel: 0 16px 42px rgba(15, 20, 35, 0.12);
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", "Microsoft YaHei UI", system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    background: #0C0D10;
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    gap: 16px;
+  }
+
+  /* 演示控制台（仅方案稿顶部切换状态用） */
+  .demo-toolbar {
+    width: 100%;
+    max-width: 1180px;
+    background: #1B1D23;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    color: #E5E7EB;
+    font-size: 12px;
+  }
+
+  .demo-toolbar .label {
+    color: #9CA3AF;
+    margin-right: 4px;
+    font-weight: 600;
+  }
+
+  .demo-btn {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #F3F4F6;
+    border-radius: 7px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+  .demo-btn:hover { background: rgba(255,255,255,0.14); }
+  .demo-btn.active {
+    background: rgba(10, 132, 255, 0.22);
+    border-color: rgba(10, 132, 255, 0.65);
+    color: #FFFFFF;
+  }
+  .demo-spacer { flex: 1; }
+
+  /* 模拟桌面端主窗体 */
+  .app-window {
+    width: 100%;
+    max-width: 1180px;
+    height: 700px;
+    background: var(--bg-canvas);
+    border: 1px solid var(--border-hairline);
+    border-radius: 14px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    transition: background 180ms ease, color 180ms ease;
+  }
+
+  /* 顶部标题栏 */
+  .titlebar {
+    height: 44px;
+    background: var(--top-bar-bg);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--border-nested);
+    display: flex;
+    align-items: center;
+    padding: 0 6px 0 16px;
+    position: relative;
+    z-index: 30;
+    user-select: none;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .brand-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    background: linear-gradient(135deg, #0A84FF, #7C5CFF);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .nav-pills {
+    display: flex;
+    gap: 4px;
+    margin-left: 20px;
+  }
+  .nav-pill {
+    padding: 5px 11px;
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .nav-pill.active {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  /* 顶部居中/偏右的报错胶囊区域 */
+  .error-capsule-anchor {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 40;
+  }
+
+  .error-capsule {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 28px;
+    padding: 0 11px 0 9px;
+    border-radius: 999px;
+    background: var(--glass-primary);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-hairline);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+    cursor: pointer;
+    overflow: hidden;
+    transition:
+      opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+      max-width 260ms cubic-bezier(0.22, 1, 0.36, 1),
+      padding 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      background 140ms ease,
+      border-color 140ms ease;
+    max-width: 420px;
+  }
+  .error-capsule:hover {
+    border-color: var(--border-accent);
+    background: var(--glass-nested-hover);
+  }
+  .error-capsule.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-10px) scale(0.92);
+  }
+  .error-capsule.badge-only {
+    max-width: 84px;
+    padding: 0 10px 0 8px;
+    gap: 6px;
+  }
+
+  .capsule-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--error);
+    box-shadow: 0 0 0 3px var(--error-soft);
+    flex-shrink: 0;
+  }
+  .capsule-text {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 310px;
+    opacity: 1;
+    transition: max-width 240ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms ease, margin 220ms ease;
+  }
+  .error-capsule.badge-only .capsule-text {
+    max-width: 0;
+    opacity: 0;
+    margin-right: -8px;
+  }
+  .capsule-count {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--error-soft);
+    color: var(--error);
+    flex-shrink: 0;
+  }
+  .capsule-chevron {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+  }
+
+  /* 顶栏右侧：反馈入口（在最小化左侧）+ 窗口控制按钮 */
+  .titlebar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .feedback-trigger {
+    height: 28px;
+    padding: 0 10px;
+    margin-right: 6px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  }
+  .feedback-trigger:hover, .feedback-trigger.active {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+    border-color: var(--border-nested);
+  }
+  .feedback-trigger svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.8;
+  }
+
+  .win-ctrl {
+    width: 38px;
+    height: 32px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: default;
+  }
+  .win-ctrl:hover { background: var(--hover-bg); color: var(--text-primary); }
+  .win-ctrl.close:hover { background: #E81123; color: #FFFFFF; }
+
+  /* 模拟背景图墙（复现截图环境，不抢焦点） */
+  .wall-content {
+    flex: 1;
+    padding: 18px 22px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .wall-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .wall-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .wall-sub {
+    font-size: 12px;
+    color: var(--text-tertiary);
+  }
+  .wall-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+  }
+  .wall-card {
+    background: var(--bg-wall-card);
+    border: 1px solid var(--border-nested);
+    border-radius: 12px;
+    overflow: hidden;
+    opacity: 0.72;
+  }
+  .wall-thumb {
+    aspect-ratio: 1 / 1.08;
+    background: linear-gradient(155deg, rgba(120,130,155,0.22), rgba(60,65,80,0.18));
+    position: relative;
+  }
+  .wall-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: rgba(0,0,0,0.52);
+    color: #E5E7EB;
+    font-size: 10px;
+  }
+  .wall-meta {
+    padding: 9px 10px;
+  }
+  .wall-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 3px;
+  }
+  .wall-hint {
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+
+  /* 报错轻量下拉面板（从顶部胶囊正下方展开） */
+  .error-dropdown {
+    position: absolute;
+    top: 52px;
+    left: 50%;
+    width: 540px;
+    max-height: 520px;
+    background: var(--glass-primary);
+    backdrop-filter: blur(26px);
+    border: 1px solid var(--border-hairline);
+    border-radius: 16px;
+    box-shadow: var(--shadow-panel);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 50;
+    transform-origin: top center;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+    pointer-events: auto;
+    transition:
+      opacity 200ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .error-dropdown.hidden {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px) scale(0.96);
+    pointer-events: none;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+  }
+  .mini-action {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--text-secondary);
+  }
+  .mini-action:hover { background: var(--hover-bg); color: var(--text-primary); }
+  .mini-action.primary { color: var(--accent); }
+  .mini-action.danger { color: var(--error); }
+
+  /* 分类筛选胶囊 */
+  .filter-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .filter-chip {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--glass-nested);
+    border: 1px solid var(--border-nested);
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .filter-chip:hover { background: var(--glass-nested-hover); color: var(--text-primary); }
+  .filter-chip.active {
+    background: var(--accent-soft);
+    border-color: var(--border-accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* 报错卡片列表（同心圆：外16 = 内10 + 6/12） */
+  .error-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+  .error-item {
+    background: var(--glass-nested);
+    border: 1px solid var(--border-nested);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+  .error-item:hover {
+    background: var(--glass-nested-hover);
+    border-color: var(--border-hairline);
+  }
+  .item-top {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .cat-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 999px;
+  }
+  .cat-tag.sys { background: var(--sys-soft); color: var(--sys); }
+  .cat-tag.comic { background: var(--error-soft); color: var(--error); }
+  .cat-tag.gallery { background: var(--warn-soft); color: var(--warn); }
+
+  .item-time {
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+  .item-count {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .item-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .item-btn {
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 5px;
+    border: 1px solid var(--border-nested);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .item-btn:hover { background: var(--hover-bg); color: var(--text-primary); }
+  .item-btn.feedback {
+    color: var(--accent);
+    border-color: var(--border-accent);
+    background: var(--accent-soft);
+  }
+
+  .item-headline {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .item-reason {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.45;
+  }
+  .item-tech-wrap {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows 210ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease, margin-top 210ms ease;
+    margin-top: 0;
+  }
+  .item-tech-wrap.open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    margin-top: 4px;
+  }
+  .item-tech {
+    overflow: hidden;
+    border-radius: 7px;
+    background: var(--input-bg);
+    border: 1px solid transparent;
+    font-family: Consolas, "Cascadia Mono", monospace;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    line-height: 1.45;
+    word-break: break-all;
+    padding: 0 10px;
+    transition: padding 210ms cubic-bezier(0.22, 1, 0.36, 1), border-color 180ms ease;
+  }
+  .item-tech-wrap.open .item-tech {
+    padding: 8px 10px;
+    border-color: var(--border-nested);
+  }
+
+  @keyframes cardFadeSlide {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .error-item.filtering {
+    animation: cardFadeSlide 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* 问题反馈与新功能建议面板（右上角最小化左侧按钮下方展开） */
+  .feedback-panel {
+    position: absolute;
+    top: 52px;
+    right: 128px;
+    width: 440px;
+    max-height: 590px;
+    background: var(--glass-primary);
+    backdrop-filter: blur(26px);
+    border: 1px solid var(--border-hairline);
+    border-radius: 16px;
+    box-shadow: var(--shadow-panel);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 55;
+    transform-origin: top right;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+    transition:
+      opacity 200ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .feedback-panel.hidden {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+    pointer-events: none;
+  }
+
+  .segmented-tabs {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 3px;
+    border-radius: 10px;
+    background: var(--glass-nested);
+    border: 1px solid var(--border-nested);
+  }
+  .seg-indicator {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: calc(50% - 5px);
+    height: 30px;
+    border-radius: 7px;
+    background: var(--accent);
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 0;
+  }
+  .segmented-tabs.feat .seg-indicator {
+    transform: translateX(calc(100% + 4px));
+  }
+  .seg-tab {
+    position: relative;
+    z-index: 1;
+    height: 30px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 180ms ease;
+  }
+  .seg-tab.active {
+    color: #FFFFFF;
+    font-weight: 600;
+  }
+
+  .collapsible-field {
+    display: grid;
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition: grid-template-rows 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease, margin 220ms ease;
+  }
+  .collapsible-field.collapsed {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    margin-top: -12px;
+    pointer-events: none;
+  }
+  .collapsible-inner {
+    overflow: hidden;
+  }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .field-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .field-input, .field-textarea, .field-select {
+    width: 100%;
+    border-radius: 9px;
+    border: 1px solid var(--border-nested);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 12px;
+    padding: 8px 10px;
+    outline: none;
+  }
+  .field-input:focus, .field-textarea:focus, .field-select:focus {
+    border-color: var(--border-accent);
+  }
+  .field-textarea {
+    resize: none;
+    height: 82px;
+    line-height: 1.5;
+  }
+
+  /* 关联报错预览条 */
+  .linked-error-box {
+    padding: 8px 10px;
+    border-radius: 9px;
+    background: var(--error-soft);
+    border: 1px solid rgba(255, 92, 92, 0.25);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .linked-error-box .txt {
+    flex: 1;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 截图上传/粘贴区 */
+  .shot-dropzone {
+    border: 1px dashed var(--border-hairline);
+    border-radius: 10px;
+    background: var(--glass-nested);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .shot-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+  .shot-thumbs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .shot-thumb {
+    width: 68px;
+    height: 48px;
+    border-radius: 7px;
+    border: 1px solid var(--border-nested);
+    background: linear-gradient(135deg, rgba(10,132,255,0.22), rgba(124,92,255,0.22));
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--text-secondary);
+  }
+  .shot-remove {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: none;
+    background: var(--error);
+    color: #fff;
+    font-size: 10px;
+    cursor: pointer;
+    line-height: 16px;
+  }
+
+  .submit-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 2px;
+  }
+  .submit-hint {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    flex: 1;
+  }
+  .primary-btn {
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 9px;
+    border: none;
+    background: var(--accent);
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .primary-btn:hover { filter: brightness(1.08); }
+
+  /* 轻提示模拟（提交后提示剪贴板） */
+  .sim-toast {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(14px);
+    opacity: 0;
+    pointer-events: none;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: var(--glass-primary);
+    backdrop-filter: blur(18px);
+    border: 1px solid var(--border-accent);
+    color: var(--text-primary);
+    font-size: 12px;
+    box-shadow: var(--shadow-panel);
+    z-index: 80;
+    transition: opacity 200ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .sim-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* 方案说明卡（阶段 A 标注口径） */
+  .spec-notes {
+    width: 100%;
+    max-width: 1180px;
+    background: #17191E;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 14px 18px;
+    color: #D1D5DB;
+    font-size: 12px;
+    line-height: 1.65;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .spec-notes h4 {
+    color: #F9FAFB;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+  .spec-notes code {
+    background: rgba(255,255,255,0.08);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+  <!-- 方案稿交互切换条 -->
+  <div class="demo-toolbar">
+    <span class="label">方案状态预览：</span>
+    <button class="demo-btn" onclick="setCapsuleState('hidden')" id="btn-hidden">1. 平时无错（隐藏）</button>
+    <button class="demo-btn active" onclick="setCapsuleState('expanded-toast')" id="btn-toast">2. 刚报错（滑出摘要）</button>
+    <button class="demo-btn" onclick="setCapsuleState('badge')" id="btn-badge">3. 自动缩成角标</button>
+    <button class="demo-btn" onclick="toggleErrorPanel()" id="btn-err-panel">4. 展开报错下拉面板</button>
+    <button class="demo-btn" onclick="openFeedbackPanel('bug')" id="btn-fb-panel">5. 打开问题反馈面板</button>
+    <div class="demo-spacer"></div>
+    <button class="demo-btn" onclick="toggleTheme()" id="btn-theme">切换亮/暗主题</button>
+  </div>
+
+  <!-- 桌面端窗口原型 -->
+  <div class="app-window">
+    <!-- 顶部标题栏 -->
+    <div class="titlebar">
+      <div class="brand">
+        <span class="brand-dot">V</span>
+        <span>Venera</span>
+      </div>
+      <div class="nav-pills">
+        <span class="nav-pill active">图库</span>
+        <span class="nav-pill">漫画</span>
+        <span class="nav-pill">收藏</span>
+        <span class="nav-pill">下载</span>
+      </div>
+
+      <!-- 顶部报错胶囊（平时隐藏，有错时滑出，数秒后缩为角标） -->
+      <div class="error-capsule-anchor">
+        <div class="error-capsule" id="errorCapsule" onclick="toggleErrorPanel()">
+          <span class="capsule-dot"></span>
+          <span class="capsule-text" id="capsuleText">本地数据库版本冲突，无法降级打开</span>
+          <span class="capsule-count" id="capsuleCount">3</span>
+          <span class="capsule-chevron">▾</span>
+        </div>
+      </div>
+
+      <!-- 最小化左侧常驻反馈入口 + 窗口控制 -->
+      <div class="titlebar-right">
+        <button class="feedback-trigger" id="feedbackTrigger" onclick="toggleFeedbackPanel()" title="问题反馈与新功能建议">
+          <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          <span>反馈</span>
+        </button>
+        <div class="win-ctrl">—</div>
+        <div class="win-ctrl">□</div>
+        <div class="win-ctrl close">×</div>
+      </div>
+    </div>
+
+    <!-- 主内容区（图墙模拟背景） -->
+    <div class="wall-content" onclick="closeAllDropdowns(event)">
+      <div class="wall-header">
+        <span class="wall-title">每日热门</span>
+        <span class="wall-sub">pixiv 日榜 · 47 张</span>
+      </div>
+      <div class="wall-grid">
+        <div class="wall-card"><div class="wall-thumb"><span class="wall-badge">pixiv</span></div><div class="wall-meta"><div class="wall-name">ケースワベ【K-SUWABE】</div><div class="wall-hint">点击查看大图</div></div></div>
+        <div class="wall-card"><div class="wall-thumb"><span class="wall-badge">pixiv</span></div><div class="wall-meta"><div class="wall-name">奏永 #152301042</div><div class="wall-hint">点击查看大图</div></div></div>
+        <div class="wall-card"><div class="wall-thumb"><span class="wall-badge">pixiv</span></div><div class="wall-meta"><div class="wall-name">チャイ #152284064</div><div class="wall-hint">点击查看大图</div></div></div>
+        <div class="wall-card"><div class="wall-thumb"><span class="wall-badge">pixiv</span></div><div class="wall-meta"><div class="wall-name">金沢育之介 #152270761</div><div class="wall-hint">点击查看大图</div></div></div>
+        <div class="wall-card"><div class="wall-thumb"><span class="wall-badge">pixiv</span></div><div class="wall-meta"><div class="wall-name">ポ〜ン #152268112</div><div class="wall-hint">点击查看大图</div></div></div>
+        <div class="wall-card"><div class="wall-thumb"><span class="wall-badge">pixiv</span></div><div class="wall-meta"><div class="wall-name">ウラ #152260656</div><div class="wall-hint">点击查看大图</div></div></div>
+        <div class="wall-card"><div class="wall-thumb"><span class="wall-badge">pixiv</span></div><div class="wall-meta"><div class="wall-name">遊ハち #152308869</div><div class="wall-hint">点击查看大图</div></div></div>
+        <div class="wall-card"><div class="wall-thumb"><span class="wall-badge">pixiv</span></div><div class="wall-meta"><div class="wall-name">ぬか #152284955</div><div class="wall-hint">点击查看大图</div></div></div>
+        <div class="wall-card"><div class="wall-thumb"><span class="wall-badge">pixiv</span></div><div class="wall-meta"><div class="wall-name">Re° #152293681</div><div class="wall-hint">点击查看大图</div></div></div>
+        <div class="wall-card"><div class="wall-thumb"><span class="wall-badge">pixiv</span></div><div class="wall-meta"><div class="wall-name">漫画素材工房 #152301460</div><div class="wall-hint">点击查看大图</div></div></div>
+      </div>
+    </div>
+
+    <!-- 报错轻量下拉面板 -->
+    <div class="error-dropdown hidden" id="errorDropdown">
+      <div class="panel-header">
+        <span class="panel-title">异常与操作提醒（3）</span>
+        <button class="mini-action primary" onclick="showSimToast('已复制全部诊断信息')">全部复制</button>
+        <button class="mini-action danger" onclick="clearAllErrors()">清空</button>
+        <button class="mini-action" onclick="toggleErrorPanel(false)">✕</button>
+      </div>
+
+      <div class="filter-row">
+        <button class="filter-chip active" onclick="filterErrors('all', this)">全部 (3)</button>
+        <button class="filter-chip" onclick="filterErrors('comic', this)">漫画 (1)</button>
+        <button class="filter-chip" onclick="filterErrors('gallery', this)">图库 (1)</button>
+        <button class="filter-chip" onclick="filterErrors('sys', this)">系统 (1)</button>
+      </div>
+
+      <div class="error-list" id="errorList">
+        <!-- 系统错误示例（还原截图里的数据库报错） -->
+        <div class="error-item" data-cat="sys">
+          <div class="item-top">
+            <span class="cat-tag sys">系统</span>
+            <span class="item-time">20:36:12</span>
+            <span class="item-count">×3</span>
+            <div class="item-actions">
+              <button class="item-btn" onclick="toggleTech(this)">详情</button>
+              <button class="item-btn" onclick="showSimToast('已复制该条诊断信息')">复制</button>
+              <button class="item-btn feedback" onclick="goFeedbackWith('本地数据库版本冲突（v4 > v3）')">去反馈</button>
+            </div>
+          </div>
+          <div class="item-headline">本地数据库版本过新，拒绝降级打开</div>
+          <div class="item-reason">当前数据库结构为 v4，但此版本程序仅支持 v3，请更新软件或备份后重建数据文件。</div>
+          <div class="item-tech-wrap">
+            <div class="item-tech">
+              IllegalStateException: 库版本 4 高于代码期望的 3，拒绝降级打开 (venera_core.db)<br/>
+              线程=DefaultDispatcher-worker-10 · 栈=DatabaseSchema.kt:42<br/>
+              日志=C:\Users\leimi\AppData\Local\venera\logs\venera-27036.log
+            </div>
+          </div>
+        </div>
+
+        <!-- 漫画类示例 -->
+        <div class="error-item" data-cat="comic">
+          <div class="item-top">
+            <span class="cat-tag comic">漫画</span>
+            <span class="item-time">20:34:05</span>
+            <div class="item-actions">
+              <button class="item-btn" onclick="toggleTech(this)">详情</button>
+              <button class="item-btn" onclick="showSimToast('已复制该条诊断信息')">复制</button>
+              <button class="item-btn feedback" onclick="goFeedbackWith('本地漫画导入失败：无法解析压缩包')">去反馈</button>
+            </div>
+          </div>
+          <div class="item-headline">本地漫画导入失败</div>
+          <div class="item-reason">所选文件未包含可识别的图片目录或压缩包已损坏，未能加入书架。</div>
+          <div class="item-tech-wrap">
+            <div class="item-tech">
+              D_本地导入 成功=0 · DesktopComicAndFilesEffects.kt:923
+            </div>
+          </div>
+        </div>
+
+        <!-- 图库类示例 -->
+        <div class="error-item" data-cat="gallery">
+          <div class="item-top">
+            <span class="cat-tag gallery">图库</span>
+            <span class="item-time">20:31:48</span>
+            <div class="item-actions">
+              <button class="item-btn" onclick="toggleTech(this)">详情</button>
+              <button class="item-btn" onclick="showSimToast('已复制该条诊断信息')">复制</button>
+              <button class="item-btn feedback" onclick="goFeedbackWith('视频起播失败：未检测到本机 VLC')">去反馈</button>
+            </div>
+          </div>
+          <div class="item-headline">视频起播失败</div>
+          <div class="item-reason">未检测到本机 VLC 播放器，请先安装 VLC 或在设置中指定路径。</div>
+          <div class="item-tech-wrap">
+            <div class="item-tech">
+              DesktopVideoLauncher.kt:123 · 起播失败(多半本机没装 VLC)
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 问题反馈 & 新功能建议面板 -->
+    <div class="feedback-panel hidden" id="feedbackPanel">
+      <div class="panel-header">
+        <span class="panel-title">反馈与建议</span>
+        <button class="mini-action" onclick="toggleFeedbackPanel(false)">✕</button>
+      </div>
+
+      <div class="segmented-tabs" id="segmentedTabs">
+        <div class="seg-indicator"></div>
+        <button class="seg-tab active" id="tabBug" onclick="switchFeedbackTab('bug')">问题反馈</button>
+        <button class="seg-tab" id="tabFeat" onclick="switchFeedbackTab('feat')">新功能建议</button>
+      </div>
+
+      <!-- 关联报错区（仅问题反馈显示） -->
+      <div class="collapsible-field" id="bugLinkGroup">
+        <div class="collapsible-inner">
+          <div class="field-group">
+            <div class="field-label">
+              <span>附带最近报错</span>
+              <span style="color:var(--text-tertiary);font-weight:400;">自动带入环境与详情</span>
+            </div>
+            <select class="field-select" id="errorSelect">
+              <option value="本地数据库版本冲突（v4 > v3）">本地数据库版本过新，拒绝降级打开（20:36:12）</option>
+              <option value="本地漫画导入失败：无法解析压缩包">本地漫画导入失败（20:34:05）</option>
+              <option value="视频起播失败：未检测到本机 VLC">视频起播失败（20:31:48）</option>
+              <option value="">不附带报错记录</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label"><span id="titleLabel">问题标题</span></div>
+        <input class="field-input" id="fbTitleInput" type="text" placeholder="一句话概括遇到的问题…" value="打开软件时提示本地数据库版本冲突" />
+      </div>
+
+      <div class="field-group">
+        <div class="field-label"><span id="descLabel">补充说明</span></div>
+        <textarea class="field-textarea" id="fbDescInput" placeholder="复现步骤、期望结果或具体建议…"></textarea>
+      </div>
+
+      <!-- 截图区（仅支持选择本地图片 + Ctrl+V 粘贴） -->
+      <div class="field-group">
+        <div class="field-label">
+          <span>截图附件（可选）</span>
+          <span style="color:var(--text-tertiary);font-weight:400;">支持 Ctrl+V 粘贴</span>
+        </div>
+        <div class="shot-dropzone">
+          <div class="shot-thumbs" id="shotThumbs">
+            <div class="shot-thumb">截图 1<button class="shot-remove" onclick="this.parentElement.remove()">×</button></div>
+          </div>
+          <div class="shot-actions">
+            <span>提交时将自动复制截图到剪贴板</span>
+            <button class="mini-action primary" onclick="addMockShot()">+ 选择本地图片</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="submit-row">
+        <span class="submit-hint">将打开 GitHub 预填页面，Ctrl+V 贴图即可提交</span>
+        <button class="primary-btn" onclick="submitToGithub()">前往 GitHub 提交</button>
+      </div>
+    </div>
+
+    <div class="sim-toast" id="simToast"></div>
+  </div>
+
+  <!-- 阶段 A 标注说明 -->
+  <div class="spec-notes">
+    <div>
+      <h4>现状问题标注</h4>
+      • 【确定 · <code>DesktopErrorReport.kt:496,572</code>】原居中弹窗使用 <code>palette.elevated / card</code>，在暗色图墙下呈现刺眼纯白卡片，且无分类与折叠机制。<br/>
+      • 【确定 · <code>DesktopErrorReport.kt:482</code>】全屏居中遮罩阻断主内容区；默认直接暴露线程名、代码行号与本机日志路径。<br/>
+      • 【确定 · 代码盘点】14 处高价值操作/系统报错仅写进日志，未给界面反馈；顶栏最小化左侧缺少反馈入口。
+    </div>
+    <div>
+      <h4>方案分层（保留既有数据流与状态管理）</h4>
+      • <strong>视觉层</strong>：<code>DesktopGlassCard</code> 半透明磨砂 + <code>1px</code> 细描边，严格跟随 <code>LocalChromePalette</code> 深浅主题与同心圆几何，accent 沿用 <code>#0A84FF / #0A63F6</code>。<br/>
+      • <strong>交互层</strong>：顶部胶囊“无错隐藏 → 滑出摘要 → 缩为角标 → 点击展开下拉面板”；最小化左侧常驻“反馈”入口，与报错卡片「去反馈」双向打通。<br/>
+      • <strong>数据层</strong>：保留 <code>DesktopErrorBus</code> 与日志文件写入，新增 14 处分类上报；GitHub Issue 走零门槛预填 URL + 剪贴板带图。
+    </div>
+  </div>
+
+<script>
+  const capsule = document.getElementById('errorCapsule');
+  const capsuleText = document.getElementById('capsuleText');
+  const capsuleCount = document.getElementById('capsuleCount');
+  const errorDropdown = document.getElementById('errorDropdown');
+  const feedbackPanel = document.getElementById('feedbackPanel');
+  const feedbackTrigger = document.getElementById('feedbackTrigger');
+
+  function setCapsuleState(mode) {
+    document.querySelectorAll('#btn-hidden, #btn-toast, #btn-badge').forEach(b => b.classList.remove('active'));
+    capsule.classList.remove('hidden', 'badge-only');
+    if (mode === 'hidden') {
+      capsule.classList.add('hidden');
+      errorDropdown.classList.add('hidden');
+      document.getElementById('btn-hidden').classList.add('active');
+    } else if (mode === 'expanded-toast') {
+      document.getElementById('btn-toast').classList.add('active');
+    } else if (mode === 'badge') {
+      capsule.classList.add('badge-only');
+      document.getElementById('btn-badge').classList.add('active');
+    }
+  }
+
+  function toggleErrorPanel(force) {
+    const show = typeof force === 'boolean' ? force : errorDropdown.classList.contains('hidden');
+    if (show) {
+      feedbackPanel.classList.add('hidden');
+      feedbackTrigger.classList.remove('active');
+      errorDropdown.classList.remove('hidden');
+    } else {
+      errorDropdown.classList.add('hidden');
+    }
+  }
+
+  function toggleFeedbackPanel(force) {
+    const show = typeof force === 'boolean' ? force : feedbackPanel.classList.contains('hidden');
+    if (show) {
+      errorDropdown.classList.add('hidden');
+      feedbackPanel.classList.remove('hidden');
+      feedbackTrigger.classList.add('active');
+    } else {
+      feedbackPanel.classList.add('hidden');
+      feedbackTrigger.classList.remove('active');
+    }
+  }
+
+  function openFeedbackPanel(tab) {
+    switchFeedbackTab(tab);
+    toggleFeedbackPanel(true);
+  }
+
+  function switchFeedbackTab(tab) {
+    const isBug = tab === 'bug';
+    document.getElementById('segmentedTabs').classList.toggle('feat', !isBug);
+    document.getElementById('tabBug').classList.toggle('active', isBug);
+    document.getElementById('tabFeat').classList.toggle('active', !isBug);
+    document.getElementById('bugLinkGroup').classList.toggle('collapsed', !isBug);
+    document.getElementById('titleLabel').textContent = isBug ? '问题标题' : '建议标题';
+    document.getElementById('descLabel').textContent = isBug ? '补充说明' : '功能介绍';
+    document.getElementById('fbTitleInput').placeholder = isBug ? '一句话概括遇到的问题…' : '希望新增什么功能…';
+    if (!isBug) document.getElementById('fbTitleInput').value = '';
+  }
+
+  function goFeedbackWith(errText) {
+    switchFeedbackTab('bug');
+    document.getElementById('errorSelect').value = errText;
+    document.getElementById('fbTitleInput').value = errText;
+    toggleFeedbackPanel(true);
+  }
+
+  function filterErrors(cat, btn) {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.error-item').forEach(el => {
+      const show = (cat === 'all' || el.dataset.cat === cat);
+      el.style.display = show ? 'flex' : 'none';
+      if (show) {
+        el.classList.remove('filtering');
+        void el.offsetWidth;
+        el.classList.add('filtering');
+      }
+    });
+  }
+
+  function toggleTech(btn) {
+    const wrap = btn.closest('.error-item').querySelector('.item-tech-wrap');
+    const open = wrap.classList.toggle('open');
+    btn.textContent = open ? '收起' : '详情';
+  }
+
+  function clearAllErrors() {
+    setCapsuleState('hidden');
+    showSimToast('已清空记录，顶部胶囊已隐藏');
+  }
+
+  function addMockShot() {
+    const wrap = document.getElementById('shotThumbs');
+    const idx = wrap.children.length + 1;
+    const div = document.createElement('div');
+    div.className = 'shot-thumb';
+    div.innerHTML = `截图 ${idx}<button class="shot-remove" onclick="this.parentElement.remove()">×</button>`;
+    wrap.appendChild(div);
+  }
+
+  function submitToGithub() {
+    showSimToast('截图已复制到剪贴板，正在打开 GitHub Issue 预填页…');
+    setTimeout(() => toggleFeedbackPanel(false), 1200);
+  }
+
+  function toggleTheme() {
+    document.body.classList.toggle('theme-light');
+  }
+
+  function closeAllDropdowns(e) {
+    if (!e.target.closest('.error-dropdown') && !e.target.closest('.error-capsule')) {
+      errorDropdown.classList.add('hidden');
+    }
+    if (!e.target.closest('.feedback-panel') && !e.target.closest('.feedback-trigger')) {
+      feedbackPanel.classList.add('hidden');
+      feedbackTrigger.classList.remove('active');
+    }
+  }
+
+  let toastTimer = null;
+  function showSimToast(msg) {
+    const el = document.getElementById('simToast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+  }
+</script>
+</body>
+</html>

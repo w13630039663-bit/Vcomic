@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spatial Gallery - 完美适配竖图</title>
+    <style>
+        :root {
+            --bg-dark: #030303;
+            --glass-bg: rgba(25, 25, 30, 0.65);
+            --text-main: #f5f5f7;
+            --text-sub: #86868b;
+            --smooth: cubic-bezier(0.16, 1, 0.3, 1);
+            --spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Microsoft YaHei", sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            perspective: 1500px;
+        }
+
+        /* 全局大背景环境光 */
+        .ambient-bg {
+            position: fixed; inset: -10%; z-index: -1;
+            background-image: url('https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200&q=80');
+            background-position: center; background-size: cover;
+            filter: blur(100px) saturate(150%) brightness(0.25);
+            transition: background-image 0.8s ease;
+        }
+
+        .spatial-container {
+            width: 100vw; height: 100vh;
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 2.2fr 1fr 1fr;
+            grid-template-rows: auto 1fr auto;
+            gap: 24px;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(30px) saturate(180%);
+            -webkit-backdrop-filter: blur(30px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.05);
+            padding: 20px;
+            position: relative;
+            transition: transform 0.1s ease-out, border-color 0.3s;
+        }
+
+        /* =========================================
+           主图展示区 (竖图适配核心)
+           ========================================= */
+        .main-image-card {
+            grid-column: 1 / 3;
+            grid-row: 1 / 3;
+            padding: 16px; /* 留出画廊相框的内边距 */
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 轮播轨道 */
+        .carousel-track {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s var(--smooth);
+        }
+
+        .slide {
+            min-width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+
+        /* 核心技巧 1：竖图的模糊背景底色 (填补两侧空白) */
+        .slide-bg {
+            position: absolute;
+            inset: -20px; /* 放大以消除模糊边缘 */
+            background-size: cover;
+            background-position: center;
+            filter: blur(30px) brightness(0.4);
+            z-index: 0;
+            transition: opacity 0.5s;
+        }
+
+        /* 核心技巧 2：主图完整展示 */
+        .slide img.main-img {
+            position: relative;
+            z-index: 1;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* 绝不裁切，完整展示 */
+            border-radius: 8px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.1); /* 提升画框质感 */
+            transition: transform 0.4s var(--smooth);
+        }
+
+        /* 鼠标悬停时，图片轻微放大 (不影响外层布局) */
+        .slide img.main-img:hover {
+            transform: scale(1.02);
+        }
+
+        /* 页面指示器 */
+        .page-indicator {
+            position: absolute; top: 24px; right: 24px;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+            padding: 8px 16px; border-radius: 30px;
+            font-size: 13px; font-weight: 600;
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 10;
+        }
+
+        /* 翻页按钮 */
+        .nav-btn {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 50px; height: 50px; border-radius: 50%;
+            background: rgba(20,20,20,0.6); backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.2); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 10;
+            opacity: 0; transition: all 0.3s var(--spring);
+        }
+        .main-image-card:hover .nav-btn { opacity: 1; }
+        .nav-btn:hover { background: rgba(255,255,255,0.2); transform: translateY(-50%) scale(1.1); }
+        .nav-btn.prev { left: 24px; }
+        .nav-btn.next { right: 24px; }
+
+        /* 底部缩略图 */
+        .thumb-nav {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 10px; padding: 10px;
+            background: rgba(20,20,20,0.6); backdrop-filter: blur(15px);
+            border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);
+            opacity: 0; transition: opacity 0.3s, bottom 0.3s var(--spring);
+            z-index: 10;
+        }
+        .main-image-card:hover .thumb-nav { opacity: 1; bottom: 30px; }
+        .thumb-item {
+            width: 40px; height: 40px; border-radius: 8px; overflow: hidden;
+            cursor: pointer; border: 2px solid transparent; transition: all 0.2s;
+            opacity: 0.5;
+        }
+        .thumb-item img { width: 100%; height: 100%; object-fit: cover; }
+        .thumb-item.active { border-color: #fff; opacity: 1; transform: scale(1.1); }
+
+        /* --- 其他信息模块 (保持高质感) --- */
+        .author-card { grid-column: 3 / 4; grid-row: 1 / 2; display: flex; flex-direction: column; justify-content: center; }
+        .author-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .author-info { display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 48px; height: 48px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); }
+        .author-name { font-size: 18px; font-weight: 700; }
+        .author-badge { font-size: 10px; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; }
+        .btn-follow { background: #fff; color: #000; border: none; padding: 8px 20px; border-radius: 100px; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        .btn-follow:hover { transform: scale(1.05); }
+        .stats { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-sub); border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; }
+
+        .actions-card { grid-column: 3 / 4; grid-row: 2 / 3; display: flex; flex-direction: column; justify-content: center; }
+        .title { font-size: 24px; font-weight: 800; margin-bottom: 6px; }
+        .date { font-size: 12px; color: var(--text-sub); margin-bottom: 20px; }
+        .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+        .tag { background: rgba(255,255,255,0.06); padding: 6px 12px; border-radius: 100px; font-size: 12px; cursor: pointer; transition: 0.2s; }
+        .tag:hover { background: rgba(255,255,255,0.15); }
+        .action-buttons { display: flex; gap: 12px; }
+        .btn-primary { flex: 1; padding: 14px; border-radius: 12px; border: none; background: linear-gradient(135deg, #5c8dff, #5e5ce6); color: #fff; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.3s; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 20px -5px rgba(92,141,255,0.6); }
+        .btn-icon { width: 48px; height: 48px; border-radius: 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 20px; }
+
+        .comments-card { grid-column: 1 / 3; grid-row: 3 / 4; }
+        .section-title { font-size: 13px; font-weight: 600; color: var(--text-sub); margin-bottom: 16px; display: flex; justify-content: space-between; }
+        .comments-list { display: flex; gap: 24px; }
+        .comment { display: flex; gap: 12px; flex: 1; }
+        .comment-avatar { width: 36px; height: 36px; border-radius: 50%; }
+        .comment-name { font-size: 12px; color: #a0a0a0; margin-bottom: 6px; }
+        .comment-text { font-size: 14px; color: #fff; }
+
+        .related-card { grid-column: 3 / 4; grid-row: 3 / 4; }
+        .related-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .related-item { position: relative; aspect-ratio: 1/1; border-radius: 8px; overflow: hidden; cursor: pointer; }
+        .related-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+        .related-item:hover img { transform: scale(1.15); }
+        .badge-7p { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.8); font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 4px; }
+
+        .parallax-layer { transform-style: preserve-3d; will-change: transform; transition: transform 0.1s ease-out; }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-bg" id="ambientBg"></div>
+
+    <div class="spatial-container" id="spatialContainer">
+        
+        <div class="glass-card main-image-card parallax-layer" data-depth="5">
+            <div class="page-indicator" id="pageIndicator">1 / 3</div>
+            
+            <div class="carousel-track" id="carouselTrack">
+                <!-- 图1：竖图演示 -->
+                <div class="slide">
+                    <div class="slide-bg" style="background-image: url('https://images.unsplash.com/photo-1541562232579-512a21360020?w=600&h=1000&fit=crop')"></div>
+                    <img src="https://images.unsplash.com/photo-1541562232579-512a21360020?w=600&h=1000&fit=crop" class="main-img" alt="竖图1">
+                </div>
+                <!-- 图2：横图演示 -->
+                <div class="slide">
+                    <div class="slide-bg" style="background-image: url('https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200&h=600&fit=crop')"></div>
+                    <img src="https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200&h=600&fit=crop" class="main-img" alt="横图2">
+                </div>
+                <!-- 图3：方图演示 -->
+                <div class="slide">
+                    <div class="slide-bg" style="background-image: url('https://images.unsplash.com/photo-1512418490979-92798cec1380?w=800&h=800&fit=crop')"></div>
+                    <img src="https://images.unsplash.com/photo-1512418490979-92798cec1380?w=800&h=800&fit=crop" class="main-img" alt="方图3">
+                </div>
+            </div>
+
+            <button class="nav-btn prev" onclick="changeSlide(-1)">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <button class="nav-btn next" onclick="changeSlide(1)">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+
+            <div class="thumb-nav" id="thumbNav"></div>
+        </div>
+
+        <div class="glass-card author-card parallax-layer" data-depth="15">
+            <div class="author-top">
+                <div class="author-info">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=GreenHair&backgroundColor=b6e3f4" class="avatar">
+                    <div>
+                        <div class="author-name">よう <span class="author-badge">画师</span></div>
+                        <div style="font-size: 13px; color: var(--text-sub); margin-top: 4px;">点头像看这位画师</div>
+                    </div>
+                </div>
+                <button class="btn-follow">+ 关注</button>
+            </div>
+            <div class="stats">
+                <span>👁 2684 浏览</span>
+                <span>❤️ 592 收藏</span>
+                <span>📅 2026-10-12</span>
+            </div>
+        </div>
+
+        <div class="glass-card actions-card parallax-layer" data-depth="12">
+            <div class="title">小悪魔こいしちゃん</div>
+            <div class="date">2026-10-13T00:01:53+09:00</div>
+            <div class="tags">
+                <span class="tag">東方Project</span>
+                <span class="tag">古明地恋</span>
+                <span class="tag">こいしちゃんマジ天使</span>
+            </div>
+            <div class="action-buttons">
+                <button class="btn-primary">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    下载原图
+                </button>
+                <button class="btn-icon" title="收藏">🤍</button>
+            </div>
+        </div>
+
+        <div class="glass-card comments-card parallax-layer" data-depth="8">
+            <div class="section-title">评论 COMMENTS <span>查看全部 5 条</span></div>
+            <div class="comments-list">
+                <div class="comment">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Orbis" class="comment-avatar">
+                    <div class="comment-content">
+                        <div class="comment-name">おーびす Orbis</div>
+                        <div class="comment-text">かわいい！光影太绝了。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card related-card parallax-layer" data-depth="20">
+            <div class="section-title">相关作品 RELATED</div>
+            <div class="related-grid">
+                <div class="related-item"><img src="https://images.unsplash.com/photo-1512418490979-92798cec1380?w=200&h=200&fit=crop"><div class="badge-7p">7P</div></div>
+                <div class="related-item"><img src="https://images.unsplash.com/photo-1541562232579-512a21360020?w=200&h=200&fit=crop"></div>
+                <div class="related-item"><img src="https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=200&h=200&fit=crop"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 1. 翻页逻辑 ---
+        const track = document.getElementById('carouselTrack');
+        const slides = document.querySelectorAll('.slide');
+        const indicator = document.getElementById('pageIndicator');
+        const thumbNav = document.getElementById('thumbNav');
+        const ambientBg = document.getElementById('ambientBg');
+        
+        let currentIndex = 0;
+        const totalSlides = slides.length;
+
+        // 初始化缩略图
+        slides.forEach((slide, index) => {
+            const imgSrc = slide.querySelector('img').src;
+            const thumb = document.createElement('div');
+            thumb.className = `thumb-item ${index === 0 ? 'active' : ''}`;
+            thumb.innerHTML = `<img src="${imgSrc}">`;
+            thumb.onclick = () => goToSlide(index);
+            thumbNav.appendChild(thumb);
+        });
+
+        function goToSlide(index) {
+            if (index < 0) index = totalSlides - 1;
+            if (index >= totalSlides) index = 0;
+            
+            currentIndex = index;
+            track.style.transform = `translateX(-${currentIndex * 100}%)`;
+            indicator.innerText = `${currentIndex + 1} / ${totalSlides}`;
+            
+            const thumbs = document.querySelectorAll('.thumb-item');
+            thumbs.forEach((t, i) => t.classList.toggle('active', i === currentIndex));
+
+            // 联动背景
+            const currentImgSrc = slides[currentIndex].querySelector('img').src;
+            ambientBg.style.backgroundImage = `url('${currentImgSrc}')`;
+        }
+
+        function changeSlide(direction) { goToSlide(currentIndex + direction); }
+
+        // 键盘支持
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') changeSlide(-1);
+            if (e.key === 'ArrowRight') changeSlide(1);
+        });
+
+
+        // --- 2. 3D 视差逻辑 ---
+        const container = document.getElementById('spatialContainer');
+        const layers = document.querySelectorAll('.parallax-layer');
+
+        document.addEventListener('mousemove', (e) => {
+            const xAxis = (window.innerWidth / 2 - e.pageX) / window.innerWidth;
+            const yAxis = (window.innerHeight / 2 - e.pageY) / window.innerHeight;
+
+            container.style.transform = `rotateY(${xAxis * 4}deg) rotateX(${yAxis * 4}deg)`;
+
+            layers.forEach(layer => {
+                const depth = parseFloat(layer.getAttribute('data-depth')) || 10;
+                layer.style.transform = `translate3d(${xAxis * depth * 2}px, ${yAxis * depth * 2}px, 0)`;
+            });
+        });
+
+        document.addEventListener('mouseleave', () => {
+            container.style.transform = `rotateY(0) rotateX(0)`;
+            layers.forEach(layer => layer.style.transform = `translate3d(0, 0, 0)`);
+        });
+    </script>
+</body>
+</html>

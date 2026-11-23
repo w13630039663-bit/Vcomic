@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-zcode-design>
+<head>
+<meta charset="utf-8">
+<title>作品详情页画布承托方案稿</title>
+<style>
+:root{
+  /* 画面取值自主人截图实测 */
+  --page:#6f686a;
+  --card:#544b4e;
+  --card-hi:#5d5356;
+  --line:rgba(255,255,255,.08);
+  --text:#f3eeef;
+  --text-2:#c8bcbe;
+  --text-3:#9b9092;
+  --accent:#b3c5ff;
+
+  /* 可调参数：方案屏用 */
+  --frame-pad:10px;      /* 画框内衬 */
+  --work-radius:16px;    /* 画作圆角 */
+  --glow:0;              /* 环境光强度，默认关 */
+  --shadow:0.38;         /* 落影强度 */
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#242123;color:#e9e3e4;
+  font-family:"Segoe UI","Microsoft YaHei","Hiragino Sans",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased}
+
+.wrap{max-width:1280px;margin:0 auto;padding:28px 20px 64px}
+
+.head{padding:0 4px 18px;border-bottom:1px solid #333}
+.head h1{font-size:19px;font-weight:600;letter-spacing:.2px}
+.head p{margin-top:8px;font-size:13px;line-height:1.7;color:#a49a9c}
+.head p b{color:#dcd4d5;font-weight:600}
+.head .q{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+.head .q span{font-size:12px;color:#b8adb0;background:#2d2a2c;border:1px solid #3a3638;
+  padding:4px 9px;border-radius:999px}
+
+/* 控制条 */
+.ctrl{display:flex;gap:22px;flex-wrap:wrap;align-items:center;
+  margin-top:16px;padding:12px 14px;background:#2b282a;border:1px solid #383436;border-radius:12px}
+.ctrl label{display:flex;align-items:center;gap:8px;font-size:12px;color:#b5aaad;cursor:default}
+.ctrl input[type=range]{width:104px;accent-color:#8f9fe0;cursor:pointer}
+.ctrl output{font-variant-numeric:tabular-nums;color:#d9d1d2;min-width:34px}
+.ctrl .hint{margin-left:auto;font-size:11.5px;color:#7d7376}
+
+.cap{margin:26px 0 10px;display:flex;align-items:baseline;gap:10px}
+.cap h2{font-size:14px;font-weight:600;color:#e6dfe0}
+.cap em{font-style:normal;font-size:12px;color:#8d8285}
+.cap .tag{font-size:11px;padding:2px 7px;border-radius:4px;letter-spacing:.3px}
+.cap .tag.now{background:#3a3335;color:#a99da0}
+.cap .tag.new{background:#2f3a55;color:#a9bcf0}
+
+/* ── 屏 ── */
+.screen{position:relative;width:100%;aspect-ratio:1672/1256;display:flex;overflow:hidden;
+  border-radius:12px;border:1px solid #3a3638;background:var(--page);
+  container-type:inline-size;
+  box-shadow:0 18px 46px rgba(0,0,0,.34)}
+
+/* 左：画布 */
+.canvas{position:relative;width:65.8%;height:100%;display:flex;align-items:center;
+  justify-content:center;overflow:hidden;background:var(--page)}
+
+/* 现状：整块视口铺一层自身放大重糊（= 现在的 DesktopImageBackdrop 口径），压得很淡 */
+.ambient{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.ambient .plate{height:126%;aspect-ratio:0.779;background-image:var(--work);
+  background-size:cover;background-position:center;
+  filter:blur(46px) saturate(1.06);opacity:.20;
+  transform:scale(1.12);pointer-events:none}
+
+/* 方案：光只留在画作周围一圈，远处仍是干净中灰 —— 画框才有得衬 */
+.halo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.halo .plate{width:132%;aspect-ratio:0.779;background-image:var(--work);
+  background-size:cover;background-position:center;
+  filter:blur(64px) saturate(1.12);opacity:calc(var(--glow) * .78);
+  transform:scale(1.02);pointer-events:none;
+  -webkit-mask-image:radial-gradient(closest-side, #000 48%, transparent 96%);
+  mask-image:radial-gradient(closest-side, #000 48%, transparent 96%)}
+
+.workbox{position:relative;height:85.5%;aspect-ratio:0.779;display:flex;
+  align-items:center;justify-content:center}
+.workbox .plate{width:100%;height:100%;background-image:var(--work);
+  background-size:cover;background-position:center;display:block}
+
+/* 现状：8px 圆角，硬切，零承托 */
+.screen[data-state=now] .workbox{border-radius:10px;overflow:hidden}
+.screen[data-state=now] .workbox .plate{border-radius:10px}
+
+/* 方案：画框 = 内衬 + 提亮卡面 + 高光边 + 柔落影 */
+.screen[data-state=new] .workbox{
+  height:calc(85.5% - 2 * var(--frame-pad));
+  padding:var(--frame-pad);
+  border-radius:calc(var(--work-radius) + var(--frame-pad));
+  background:rgba(0,0,0,.16);
+  border:1px solid rgba(255,255,255,.10);
+  box-shadow:
+    0 calc(var(--frame-pad) * 3) calc(var(--frame-pad) * 10) rgba(0,0,0,var(--shadow)),
+    0 calc(var(--frame-pad) * .8) calc(var(--frame-pad) * 2.4) rgba(0,0,0,calc(var(--shadow) * .5)),
+    inset 0 1px 0 rgba(255,255,255,.18);
+}
+.screen[data-state=new] .workbox .plate{border-radius:var(--work-radius);
+  box-shadow:0 0 0 1px rgba(0,0,0,.12)}
+
+/* 翻页箭头与页坞（两屏一致，只作参照） */
+.arrow{position:absolute;top:50%;transform:translateY(-50%);width:4.4cqw;height:4.4cqw;
+  min-width:26px;min-height:26px;border-radius:50%;background:rgba(30,27,29,.42);
+  border:1px solid rgba(255,255,255,.10);display:grid;place-items:center;color:#d8d0d1}
+.arrow.l{left:1.4%}
+.arrow.r{right:1.4%}
+.arrow svg{width:40%;height:40%;fill:none;stroke:currentColor;stroke-width:1.9;
+  stroke-linecap:round;stroke-linejoin:round}
+
+.dock{position:absolute;bottom:3.4%;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:.5cqw;padding:.9cqw 1.4cqw;border-radius:999px;
+  background:rgba(40,36,38,.52);border:1px solid rgba(255,255,255,.09);
+  backdrop-filter:blur(16px);font-size:1.05cqw;color:#cfc7c8}
+.dock i{display:block;width:1.9cqw;height:1.9cqw;border-radius:3px;background:rgba(255,255,255,.16)}
+.dock i.on{background:#e7dfe0}
+
+/* 右栏 */
+.pane{flex:1;height:100%;padding:2.3cqw 2.1cqw 0;display:flex;flex-direction:column;gap:.72cqw;
+  overflow:hidden}
+.card{background:var(--card);border:1px solid var(--line);border-radius:1.1cqw;
+  padding:1.35cqw 1.5cqw}
+.card.hi{background:var(--card-hi)}
+
+.title{font-size:2.0cqw;font-weight:700;line-height:1.34;letter-spacing:.01em}
+.meta{font-size:1.05cqw;color:var(--text-3);margin-top:.55cqw}
+
+.artist{display:flex;align-items:center;gap:1cqw;margin-top:1.15cqw}
+.avatar{width:3.4cqw;height:3.4cqw;border-radius:50%;background:#8a7d80;flex:none;
+  border:1px solid rgba(255,255,255,.14)}
+.artist .n{font-size:1.3cqw;font-weight:600}
+.pill{font-size:.92cqw;padding:.22cqw .6cqw;border-radius:.35cqw;
+  background:rgba(255,255,255,.13);color:var(--text-2)}
+.artist .sub{font-size:1.0cqw;color:var(--text-3);margin-top:.3cqw}
+.follow{margin-left:auto;display:flex;align-items:center;gap:.5cqw;font-size:1.05cqw;
+  padding:.5cqw 1.05cqw;border-radius:999px;background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.12);color:var(--text)}
+
+.facts{display:flex;gap:2.4cqw;margin-top:1.3cqw}
+.fact{display:flex;flex-direction:column;gap:.25cqw}
+.fact .v{font-size:1.15cqw;font-weight:600;color:var(--text)}
+.fact .k{font-size:.95cqw;color:var(--text-3)}
+
+.sec{display:flex;align-items:baseline;gap:.6cqw;margin-bottom:.85cqw}
+.sec b{font-size:1.2cqw;font-weight:700}
+.sec s{text-decoration:none;font-size:.85cqw;letter-spacing:.14em;color:var(--text-3)}
+.sec::before{content:"";width:.22cqw;height:1.05cqw;border-radius:1px;
+  background:var(--accent);align-self:center}
+
+.body-txt{font-size:1.05cqw;line-height:1.75;color:var(--text-2)}
+.chips{display:flex;flex-wrap:wrap;gap:.5cqw}
+.chip{font-size:1.0cqw;padding:.42cqw .95cqw;border-radius:999px;
+  background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.10);color:var(--text-2)}
+
+.input{display:flex;align-items:center;gap:.7cqw;padding:.62cqw 1cqw;border-radius:999px;
+  background:rgba(0,0,0,.20);border:1px solid var(--line);font-size:1.0cqw;color:var(--text-3)}
+.input .send{margin-left:auto;padding:.3cqw .9cqw;border-radius:.4cqw;
+  background:rgba(255,255,255,.13);color:var(--text-2)}
+.cmt{display:flex;gap:.85cqw;margin-top:1.05cqw}
+.cmt .av{width:2.1cqw;height:2.1cqw;border-radius:50%;background:#7d7274;flex:none}
+.cmt .who{font-size:1.0cqw;color:var(--text-2)}
+.cmt .pic{width:6.4cqw;height:6.4cqw;border-radius:.55cqw;background:rgba(255,255,255,.14);
+  margin-top:.5cqw;display:grid;place-items:center;font-size:.85cqw;color:#8e8386}
+.cmt .when{font-size:.9cqw;color:var(--text-3);margin-top:.45cqw}
+.more{margin-top:1.05cqw;text-align:center;font-size:1.0cqw;padding:.55cqw;
+  border-radius:.55cqw;border:1px dashed rgba(255,255,255,.16);color:var(--text-3)}
+
+.bar{margin-top:auto;padding:1cqw;border-radius:1.1cqw;background:var(--card-hi);
+  border:1px solid var(--line);display:flex;gap:.7cqw;margin-bottom:2.1cqw}
+.btn-main{flex:1;display:flex;align-items:center;justify-content:center;gap:.55cqw;
+  height:2.9cqw;border-radius:.7cqw;background:var(--accent);color:#2a2740;
+  font-size:1.15cqw;font-weight:600}
+.btn{display:flex;align-items:center;justify-content:center;gap:.45cqw;width:6.2cqw;
+  height:2.9cqw;border-radius:.7cqw;background:rgba(255,255,255,.10);
+  border:1px solid var(--line);font-size:1.05cqw;color:var(--text-2)}
+.btn.sq{width:2.9cqw}
+.btn svg,.btn-main svg{width:1.25cqw;height:1.25cqw;fill:none;stroke:currentColor;
+  stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* 说明条 */
+.notes{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:10px}
+.note{background:#2b282a;border:1px solid #383436;border-radius:10px;padding:11px 13px}
+.note h3{font-size:12px;color:#dfd7d8;font-weight:600;display:flex;gap:7px;align-items:baseline}
+.note h3 i{font-style:normal;font-size:10.5px;color:#8f9fe0;font-variant-numeric:tabular-nums}
+.note p{margin-top:5px;font-size:11.5px;line-height:1.65;color:#9e9496}
+.note code{font-family:ui-monospace,Consolas,monospace;font-size:10.5px;color:#c3b8ba;
+  background:#343032;padding:1px 4px;border-radius:3px}
+
+.foot{margin-top:26px;padding-top:14px;border-top:1px solid #333;font-size:11.5px;
+  color:#7f7578;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <h1>作品详情页 · 画布承托方案稿</h1>
+    <p>只改左画布那一层，右栏内容与交互原样不动。下面是同一张画、同一套右栏，只换画布的<b>承托与圆角</b>。
+       拖动控制条可以改参数，两个方案屏会一起响应。</p>
+    <div class="q">
+      <span>背景实测 #6F686A</span>
+      <span>画作近纯白 #FEFBF9</span>
+      <span>现状圆角 10dp（shape.small）</span>
+      <span>右栏卡 16dp</span>
+    </div>
+    <div class="ctrl">
+      <label>内衬 <input id="pad" type="range" min="0" max="20" step="1" value="10"><output id="padO">10</output></label>
+      <label>画作圆角 <input id="rad" type="range" min="0" max="28" step="1" value="16"><output id="radO">16</output></label>
+      <label>环境光 <input id="glow" type="range" min="0" max="100" step="1" value="0"><output id="glowO">55</output></label>
+      <label>落影 <input id="shadow" type="range" min="0" max="100" step="1" value="38"><output id="shadowO">38</output></label>
+      <span class="hint">参数只作用在方案屏</span>
+    </div>
+  </div>
+
+  <!-- ══════ 现状 ══════ -->
+  <div class="cap"><h2>现状</h2><span class="tag now">当前实现</span>
+    <em>10dp 圆角、零承托、白色画直接切在中灰背板上</em></div>
+  <div class="screen" data-state="now">
+    <div class="canvas">
+      <div class="ambient"><div class="plate"></div></div>
+      <div class="arrow l"><svg viewBox="0 0 24 24"><path d="M15 5 L8 12 L15 19"/></svg></div>
+      <div class="workbox"><div class="plate"></div></div>
+      <div class="arrow r"><svg viewBox="0 0 24 24"><path d="M9 5 L16 12 L9 19"/></svg></div>
+      <div class="dock"><i class="on"></i><i></i><i></i><span style="margin-left:.4cqw">1 / 2</span></div>
+    </div>
+    <aside class="pane">
+      <div class="card">
+        <div class="title">おめでとうございます</div>
+        <div class="meta">2026-11-18 20:51</div>
+        <div class="artist">
+          <div class="avatar"></div>
+          <div>
+            <div style="display:flex;align-items:center;gap:.5cqw">
+              <span class="n">BLACKmeow</span><span class="pill">画师</span>
+            </div>
+            <div class="sub">点头像看这位画师</div>
+          </div>
+          <div class="follow">+ 关注</div>
+        </div>
+        <div class="facts">
+          <div class="fact"><span class="v">4782</span><span class="k">浏览</span></div>
+          <div class="fact"><span class="v">925</span><span class="k">收藏</span></div>
+          <div class="fact"><span class="v">2026-11-18</span><span class="k">发布</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec"><b>作品简介</b><s>ABOUT</s></div>
+        <div class="body-txt">御子神琴音様の「春泥棒」100万再生、誠におめでとうございます！</div>
+      </div>
+      <div class="card">
+        <div class="sec"><b>作品标签</b><s>TAGS</s></div>
+        <div class="chips">
+          <span class="chip">絵になる琴音</span><span class="chip">彩虹社</span>
+          <span class="chip">御子神琴音</span><span class="chip">バーチャルYouTuber100users入り</span>
+          <span class="chip">二次創作</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec"><b>评论</b><s>COMMENTS</s></div>
+        <div class="input">写评论...（最多 140 字）<span class="send">发送</span></div>
+        <div class="cmt">
+          <div class="av"></div>
+          <div><div class="who">laisha</div>
+            <div class="pic">配图</div>
+            <div class="when">2026-11-19 18:04</div></div>
+        </div>
+        <div class="cmt">
+          <div class="av"></div>
+          <div><div class="who">狐言</div>
+            <div class="pic">配图</div>
+            <div class="when">2026-11-18 22:06</div></div>
+        </div>
+        <div class="more">展开全部 3 条评论</div>
+      </div>
+      <div class="bar">
+        <div class="btn-main"><svg viewBox="0 0 24 24"><path d="M12 4v11M8 11l4 4 4-4M5 19h14"/></svg>下载原图</div>
+        <div class="btn"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4-6 4z"/></svg>收藏</div>
+        <div class="btn sq"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5h10"/></svg></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="notes">
+    <div class="note"><h3>问题</h3>
+      <p>白色画作与中灰背板之间是硬切边，既没有承托也没有过渡，看起来像一块板子贴在墙上。</p></div>
+    <div class="note"><h3>问题</h3>
+      <p>10dp 圆角与右栏 16dp 卡片不是一套圆角语言，同屏出现两种观感。</p></div>
+  </div>
+
+  <!-- ══════ 方案 ══════ -->
+  <div class="cap" style="margin-top:40px"><h2>方案 · 承托画框</h2>
+    <span class="tag new">提议</span>
+    <em>暗内衬卡面 + 同心圆角 + 高光描边 + 落影；环境光可选、默认关</em></div>
+  <div class="screen" data-state="new">
+    <div class="canvas">
+      <div class="halo"><div class="plate"></div></div>
+      <div class="arrow l"><svg viewBox="0 0 24 24"><path d="M15 5 L8 12 L15 19"/></svg></div>
+      <div class="workbox"><div class="plate"></div></div>
+      <div class="arrow r"><svg viewBox="0 0 24 24"><path d="M9 5 L16 12 L9 19"/></svg></div>
+      <div class="dock"><i class="on"></i><i></i><i></i><span style="margin-left:.4cqw">1 / 2</span></div>
+    </div>
+    <aside class="pane">
+      <div class="card">
+        <div class="title">おめでとうございます</div>
+        <div class="meta">2026-11-18 20:51</div>
+        <div class="artist">
+          <div class="avatar"></div>
+          <div>
+            <div style="display:flex;align-items:center;gap:.5cqw">
+              <span class="n">BLACKmeow</span><span class="pill">画师</span>
+            </div>
+            <div class="sub">点头像看这位画师</div>
+          </div>
+          <div class="follow">+ 关注</div>
+        </div>
+        <div class="facts">
+          <div class="fact"><span class="v">4782</span><span class="k">浏览</span></div>
+          <div class="fact"><span class="v">925</span><span class="k">收藏</span></div>
+          <div class="fact"><span class="v">2026-11-18</span><span class="k">发布</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec"><b>作品简介</b><s>ABOUT</s></div>
+        <div class="body-txt">御子神琴音様の「春泥棒」100万再生、誠におめでとうございます！</div>
+      </div>
+      <div class="card">
+        <div class="sec"><b>作品标签</b><s>TAGS</s></div>
+        <div class="chips">
+          <span class="chip">絵になる琴音</span><span class="chip">彩虹社</span>
+          <span class="chip">御子神琴音</span><span class="chip">バーチャルYouTuber100users入り</span>
+          <span class="chip">二次創作</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec"><b>评论</b><s>COMMENTS</s></div>
+        <div class="input">写评论...（最多 140 字）<span class="send">发送</span></div>
+        <div class="cmt">
+          <div class="av"></div>
+          <div><div class="who">laisha</div>
+            <div class="pic">配图</div>
+            <div class="when">2026-11-19 18:04</div></div>
+        </div>
+        <div class="cmt">
+          <div class="av"></div>
+          <div><div class="who">狐言</div>
+            <div class="pic">配图</div>
+            <div class="when">2026-11-18 22:06</div></div>
+        </div>
+        <div class="more">展开全部 3 条评论</div>
+      </div>
+      <div class="bar">
+        <div class="btn-main"><svg viewBox="0 0 24 24"><path d="M12 4v11M8 11l4 4 4-4M5 19h14"/></svg>下载原图</div>
+        <div class="btn"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4-6 4z"/></svg>收藏</div>
+        <div class="btn sq"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5h10"/></svg></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="notes">
+    <div class="note"><h3><i>01</i>画框承托</h3>
+      <p>画作外裹一层内衬（默认 10dp），内衬比背板暗一档（黑 16%），跟右栏卡片同一套
+         "卡面落在背景之下"的语言；再压 1px 白色 10% 高光边定轮廓。</p></div>
+    <div class="note"><h3><i>02</i>同心圆角</h3>
+      <p>画作 16dp，外框 = 16 + 内衬 = 26dp，同心不打架；跟右栏卡片同一套圆角体系。</p></div>
+    <div class="note"><h3><i>03</i>落影</h3>
+      <p>向下 30dp、扩散 100dp、黑 38%。实现上不用 <code>Modifier.shadow</code>
+         （本仓实测出灰边），走自绘渐变。</p></div>
+    <div class="note"><h3><i>04</i>环境光（可选）</h3>
+      <p>画作四周一圈同图柔光，只在画布范围内衰减到透明。默认关；调上去可以压一点左右色温的割裂感，
+         代价是白画周围的边界会变软。</p></div>
+  </div>
+
+  <div class="foot">
+    口径：只改 <b>DesktopPixivWorkScreen.kt</b> 与 <b>DesktopGalleryPostDetailScreen.kt</b> 的画布层，
+    两处统一。右栏、翻页箭头、页坞、悬停放大（1.01）、点击看大图、右键复制一律保留。<br>
+    稿内数据取自主人 2026-11-20 的截图；评论配图以灰块代替。
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  function bind(id, cssVar, suffix, divide){
+    var el = document.getElementById(id), out = document.getElementById(id + 'O');
+    function apply(){
+      var v = Number(el.value);
+      root.style.setProperty(cssVar, (divide ? v / 100 : v) + suffix);
+      out.textContent = v;
+    }
+    el.addEventListener('input', apply);
+    apply();
+  }
+  bind('pad', '--frame-pad', 'px');
+  bind('rad', '--work-radius', 'px');
+  bind('glow', '--glow', '', true);
+  bind('shadow', '--shadow', '', true);
+})();
+</script>
+</body>
+</html>

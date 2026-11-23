@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-zcode-design>
+<head>
+<meta charset="utf-8">
+<title>漫画搜索 · 源选择器重做方案稿</title>
+<style>
+:root{
+  --canvas:#08090b;
+  --app-bg:#131519;
+  --surface:#1b1e24;
+  --elevated:#202329;
+  --popup:#212429;
+  --hover:rgba(255,255,255,.06);
+  --line:rgba(255,255,255,.07);
+  --line-2:rgba(255,255,255,.11);
+  --ink:rgba(255,255,255,.94);
+  --ink-2:rgba(255,255,255,.62);
+  --ink-3:rgba(255,255,255,.38);
+  --accent:#0A84FF;
+  --accent-soft:rgba(10,132,255,.14);
+  --accent-line:rgba(10,132,255,.45);
+  --chip-bg:rgba(255,255,255,.06);
+  --chip-border:rgba(255,255,255,.09);
+  --chip-selected-bg:rgba(10,132,255,.15);
+  --chip-selected-border:rgba(10,132,255,.40);
+  --shadow-popup:0 18px 44px rgba(0,0,0,.58),0 2px 8px rgba(0,0,0,.4);
+  --shadow-app:0 40px 90px rgba(0,0,0,.6);
+  --skeleton:rgba(255,255,255,.045);
+  --font:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ease:cubic-bezier(.2,0,0,1);
+}
+body[data-theme="light"]{
+  --canvas:#e7e9ee;
+  --app-bg:#f4f5f8;
+  --surface:#ffffff;
+  --elevated:#ffffff;
+  --popup:#ffffff;
+  --hover:rgba(0,0,0,.045);
+  --line:rgba(0,0,0,.07);
+  --line-2:rgba(0,0,0,.10);
+  --ink:rgba(0,0,0,.88);
+  --ink-2:rgba(0,0,0,.58);
+  --ink-3:rgba(0,0,0,.38);
+  --accent:#0A63F6;
+  --accent-soft:rgba(10,99,246,.10);
+  --accent-line:rgba(10,99,246,.45);
+  --chip-bg:rgba(0,0,0,.04);
+  --chip-border:rgba(0,0,0,.09);
+  --chip-selected-bg:rgba(10,99,246,.09);
+  --chip-selected-border:rgba(10,99,246,.36);
+  --shadow-popup:0 18px 44px rgba(20,24,32,.16),0 2px 8px rgba(20,24,32,.08);
+  --shadow-app:0 40px 90px rgba(20,24,32,.16);
+  --skeleton:rgba(0,0,0,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--canvas)}
+body{
+  background:var(--canvas);
+  color:var(--ink);
+  font-family:var(--font);
+  font-size:13px;
+  line-height:1.55;
+  padding:48px 40px 120px;
+  transition:background .2s var(--ease),color .2s var(--ease);
+}
+img{display:block}
+button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
+
+.sheet{max-width:1240px;margin:0 auto}
+h1{font-size:22px;font-weight:600;letter-spacing:.2px}
+.lede{color:var(--ink-2);margin-top:8px;max-width:760px}
+.meta{color:var(--ink-3);font-size:12px;margin-top:12px}
+.meta b{color:var(--ink-2);font-weight:500}
+.section{margin-top:64px}
+.section-head{display:flex;align-items:baseline;gap:12px;margin-bottom:8px}
+.section-head h2{font-size:15px;font-weight:600}
+.tag{font-size:11px;color:var(--accent);border:1px solid var(--accent-line);border-radius:99px;padding:1px 9px;white-space:nowrap}
+.tag.muted{color:var(--ink-3);border-color:var(--line-2)}
+.note{color:var(--ink-2);font-size:12.5px;max-width:760px;margin-bottom:24px}
+.note b{color:var(--ink);font-weight:600}
+
+/* ── 设计要点三卡 ── */
+.points{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:26px}
+.point{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:16px 18px;
+}
+.point .k{font-size:11px;color:var(--accent);letter-spacing:.08em;font-weight:600}
+.point .t{font-size:13.5px;font-weight:600;margin-top:6px}
+.point .d{font-size:12.5px;color:var(--ink-2);margin-top:6px}
+
+/* ── 应用窗 ── */
+.stage{
+  margin-top:24px;
+  display:flex;
+  justify-content:center;
+}
+.win{
+  width:1200px;
+  background:var(--app-bg);
+  border:1px solid var(--line-2);
+  border-radius:14px;
+  box-shadow:var(--shadow-app);
+  overflow:visible;
+  position:relative;
+}
+.win-inner{padding:0 32px 28px}
+.win-top{
+  height:44px;
+  margin:0 -32px;
+  display:flex;align-items:center;
+  padding:0 18px;
+  gap:6px;
+  border-bottom:1px solid var(--line);
+}
+.traffic{width:10px;height:10px;border-radius:99px;background:var(--skeleton);margin-right:4px}
+.traffic:nth-child(2){opacity:.7}
+.traffic:nth-child(3){opacity:.45}
+.win-title{flex:1;text-align:center;font-size:11.5px;color:var(--ink-3)}
+
+/* 工具栏行 */
+.toolbar{
+  height:60px;
+  display:flex;align-items:center;gap:10px;
+  position:relative;
+}
+.segmented{
+  display:flex;align-items:center;
+  background:var(--chip-bg);
+  border:1px solid var(--chip-border);
+  border-radius:9px;
+  padding:2px;
+  gap:2px;
+  flex:0 0 auto;
+}
+.segmented button{
+  height:26px;padding:0 14px;border-radius:7px;
+  font-size:12px;color:var(--ink-2);
+  transition:background .15s var(--ease),color .15s var(--ease);
+}
+.segmented button:hover{color:var(--ink)}
+.segmented button.on{
+  background:color-mix(in srgb,var(--ink) 12%,transparent);
+  color:var(--ink);
+  font-weight:600;
+}
+.search-field{
+  flex:1;
+  height:36px;
+  display:flex;align-items:center;gap:9px;
+  padding:0 12px;
+  background:var(--chip-bg);
+  border:1px solid var(--chip-border);
+  border-radius:9px;
+  color:var(--ink-3);
+  font-size:13px;
+}
+.search-field svg{flex:0 0 auto;opacity:.55}
+.search-field .q{color:var(--ink-2)}
+
+/* 源按钮 */
+.source-btn{
+  flex:0 0 auto;
+  height:36px;
+  display:flex;align-items:center;gap:8px;
+  padding:0 11px 0 9px;
+  background:var(--chip-bg);
+  border:1px solid var(--chip-border);
+  border-radius:9px;
+  transition:background .15s var(--ease),border-color .15s var(--ease);
+}
+.source-btn:hover{background:var(--hover);border-color:var(--line-2)}
+.source-btn.open{border-color:var(--accent-line);background:var(--accent-soft)}
+.src-ico{
+  width:20px;height:20px;border-radius:5px;
+  overflow:hidden;flex:0 0 auto;
+  background:var(--skeleton);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;color:var(--ink-2);
+}
+.src-ico img{width:100%;height:100%;object-fit:cover}
+.src-ico.lg{width:22px;height:22px;border-radius:6px;font-size:11px}
+.source-btn .nm{font-size:13px;font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.source-btn .caret{opacity:.55;transition:transform .18s var(--ease)}
+.source-btn.open .caret{transform:rotate(180deg)}
+
+/* 弹出清单 */
+.picker{
+  position:absolute;
+  top:56px;right:0;
+  width:308px;
+  background:var(--popup);
+  border:1px solid var(--line-2);
+  border-radius:12px;
+  box-shadow:var(--shadow-popup);
+  padding:8px;
+  z-index:40;
+  opacity:0;
+  transform:translateY(-4px) scale(.985);
+  transform-origin:top right;
+  pointer-events:none;
+  transition:opacity .16s var(--ease),transform .18s var(--ease);
+}
+.picker.open{opacity:1;transform:none;pointer-events:auto}
+.picker-search{
+  height:32px;
+  display:flex;align-items:center;gap:8px;
+  padding:0 10px;
+  background:var(--chip-bg);
+  border:1px solid var(--chip-border);
+  border-radius:8px;
+  margin-bottom:6px;
+}
+.picker-search input{
+  flex:1;background:none;border:none;outline:none;
+  color:var(--ink);font-family:inherit;font-size:12.5px;
+}
+.picker-search input::placeholder{color:var(--ink-3)}
+.picker-search svg{opacity:.5;flex:0 0 auto}
+.picker-list{max-height:328px;overflow:auto;padding:2px 0}
+.picker-group{
+  font-size:10.5px;font-weight:600;letter-spacing:.08em;
+  color:var(--ink-3);
+  padding:8px 10px 4px;
+}
+.picker-row{
+  width:100%;
+  height:36px;
+  display:flex;align-items:center;gap:10px;
+  padding:0 10px;
+  border-radius:8px;
+  text-align:left;
+  transition:background .12s var(--ease);
+}
+.picker-row:hover,.picker-row.hl{background:var(--hover)}
+.picker-row .nm{flex:1;font-size:12.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.picker-row .check{opacity:0;color:var(--accent);flex:0 0 auto}
+.picker-row.sel .check{opacity:1}
+.picker-row.sel{background:var(--accent-soft)}
+.picker-row .key{font-size:10.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.picker-empty{
+  padding:22px 10px 26px;
+  text-align:center;font-size:12px;color:var(--ink-3);
+}
+
+/* 标题行 */
+.page-head{
+  display:flex;align-items:baseline;
+  padding:4px 0 12px;
+}
+.page-head .ttl{font-size:20px;font-weight:700;letter-spacing:.2px}
+.page-head .sub{
+  font-size:12px;color:var(--ink-3);
+  margin-left:12px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.page-head .sub b{color:var(--ink-2);font-weight:500}
+
+/* 筛选卡 */
+.filters{
+  background:var(--elevated);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px 20px 14px;
+}
+.filters .frow-head{
+  height:28px;display:flex;align-items:center;gap:10px;
+}
+.filters .frow-head .t{font-size:15px;font-weight:600}
+.filters .frow-head .sp{flex:1}
+.filters .frow-head .cnt{
+  font-size:11px;color:var(--accent);
+  background:var(--accent-soft);
+  border-radius:12px;padding:2px 10px;
+}
+.filters .frow-head .caret{color:var(--ink-3);padding-left:10px}
+.frow{
+  display:flex;align-items:center;gap:10px;
+  margin-top:10px;
+}
+.frow .lab{
+  width:40px;flex:0 0 40px;
+  font-size:11px;font-weight:600;color:var(--ink-3);
+}
+.chips{display:flex;flex-wrap:wrap;gap:6px;flex:1}
+.chip{
+  height:26px;
+  display:inline-flex;align-items:center;gap:6px;
+  padding:0 12px;
+  border-radius:7px;
+  font-size:12px;
+  background:var(--chip-bg);
+  border:1px solid var(--chip-border);
+  color:var(--ink-2);
+  white-space:nowrap;
+  transition:background .12s var(--ease),border-color .12s var(--ease),color .12s var(--ease);
+}
+.chip:hover{color:var(--ink);border-color:var(--line-2)}
+.chip.on{
+  background:var(--chip-selected-bg);
+  border-color:var(--chip-selected-border);
+  color:var(--ink);
+  font-weight:600;
+}
+.chip .mini{width:14px;height:14px;border-radius:4px;overflow:hidden;flex:0 0 auto}
+.chip .mini img{width:100%;height:100%;object-fit:cover}
+.actions{
+  display:flex;justify-content:flex-end;gap:4px;
+  margin-top:12px;
+}
+.actions button{
+  height:28px;padding:0 12px;border-radius:7px;
+  font-size:12px;color:var(--ink-3);
+  transition:background .12s var(--ease),color .12s var(--ease);
+}
+.actions button:hover{background:var(--hover);color:var(--ink)}
+.actions button.primary{color:var(--accent);font-weight:600}
+.actions button.primary:hover{background:var(--accent-soft)}
+
+/* 结果区 */
+.results{margin-top:14px}
+.results-tag{
+  display:flex;align-items:center;gap:8px;
+  font-size:12px;color:var(--ink-3);
+  margin-bottom:10px;
+}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:14px;
+}
+.card .cover{
+  aspect-ratio:3/4;
+  border-radius:10px;
+  background:var(--skeleton);
+  border:1px solid var(--line);
+  position:relative;
+  overflow:hidden;
+}
+.card .cover::after{
+  content:"";
+  position:absolute;inset:0;
+  background:linear-gradient(160deg,rgba(255,255,255,.05),transparent 45%);
+}
+.card .badge{
+  position:absolute;left:8px;bottom:8px;
+  height:20px;display:flex;align-items:center;gap:5px;
+  padding:0 7px 0 4px;
+  border-radius:99px;
+  background:rgba(0,0,0,.55);
+  backdrop-filter:blur(6px);
+  font-size:10px;color:rgba(255,255,255,.82);
+}
+.card .badge .src-ico{width:14px;height:14px;border-radius:99px}
+.card .t{
+  margin-top:7px;height:12px;border-radius:4px;
+  background:var(--skeleton);
+}
+.card .t.short{width:62%;margin-top:5px}
+
+/* 对照卡 */
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:8px}
+.compare .col > .cap{
+  font-size:12px;color:var(--ink-3);margin-bottom:8px;
+  display:flex;align-items:center;gap:8px;
+}
+.compare .col > .cap .dot{width:7px;height:7px;border-radius:99px;background:var(--ink-3)}
+.compare .col.fixed > .cap .dot{background:var(--accent)}
+
+/* 细节板 */
+.boards{display:grid;grid-template-columns:308px 308px 308px;gap:24px;margin-top:10px}
+.board .cap{font-size:12px;color:var(--ink-3);margin-bottom:10px}
+.board .frame{
+  background:var(--popup);
+  border:1px solid var(--line-2);
+  border-radius:12px;
+  padding:8px;
+  box-shadow:var(--shadow-popup);
+}
+.board .frame .picker{position:static;opacity:1;transform:none;pointer-events:auto;box-shadow:none;border:none;background:none;padding:0;width:auto}
+
+/* 落地要点 */
+.facts{margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fact{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:16px 18px;
+}
+.fact h3{font-size:13px;font-weight:600;margin-bottom:8px}
+.fact ul{list-style:none}
+.fact li{
+  font-size:12.5px;color:var(--ink-2);
+  padding-left:14px;position:relative;
+  margin-top:6px;
+}
+.fact li::before{
+  content:"";position:absolute;left:0;top:8px;
+  width:5px;height:5px;border-radius:99px;
+  background:var(--accent);opacity:.65;
+}
+.fact li b{color:var(--ink);font-weight:600}
+
+.theme-toggle{
+  position:fixed;right:26px;bottom:24px;
+  height:34px;padding:0 14px;
+  border-radius:99px;
+  background:var(--surface);
+  border:1px solid var(--line-2);
+  color:var(--ink-2);
+  font-size:12px;
+  box-shadow:var(--shadow-popup);
+  z-index:60;
+}
+.theme-toggle:hover{color:var(--ink)}
+.footnote{color:var(--ink-3);font-size:12px;margin-top:14px}
+</style>
+</head>
+<body data-theme="dark">
+<div class="sheet">
+  <h1>漫画搜索 · 源选择器重做</h1>
+  <p class="lede">把「来源」从筛选条件里抬出来，做成检索栏右侧一颗独立的源按钮，点开是带搜索的分组清单。筛选面板回归本职，只装该源的筛选组。</p>
+  <p class="meta">方案 A · <b>独立源按钮 + 弹出清单</b> ｜ 范围：漫画搜索页（探索页本次不动）｜ <b>点右上源按钮可交互</b>，右下角可切深浅色</p>
+
+  <div class="points">
+    <div class="point">
+      <div class="k">语义归位</div>
+      <div class="t">源不是筛选项</div>
+      <div class="d">换源会清结果、重置该源筛选组、用原词重搜。它换的是整个搜索场，不该和 Sort 并列、不该共用「应用筛选」。</div>
+    </div>
+    <div class="point">
+      <div class="k">可扩展</div>
+      <div class="t">26 个源也放得下</div>
+      <div class="d">清单带搜索框与分组（最近使用 / 全部源），每行图标 + 名称。不再靠横滚找站、不再靠记名字认站。</div>
+    </div>
+    <div class="point">
+      <div class="k">一步可达</div>
+      <div class="t">当前源常驻可见</div>
+      <div class="d">收起筛选面板后，源按钮仍显示图标 + 站名。换源从「展开 → 横滚找」变成一次点击。</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ 主屏 ═══════════ -->
+  <div class="section">
+    <div class="section-head">
+      <h2>主屏 · 漫画搜索</h2>
+      <span class="tag">交互原型</span>
+      <span class="tag muted">点源按钮展开清单</span>
+    </div>
+    <p class="note">检索场与源按钮同一条工具栏行；筛选卡里删掉「来源」行，只剩该源自己声明的筛选组（截图里是 Sort）。页头副标题保留当前源名与读数，它只是状态文本，不再是入口。</p>
+
+    <div class="stage">
+      <div class="win">
+        <div class="win-top">
+          <span class="traffic"></span><span class="traffic"></span><span class="traffic"></span>
+          <span class="win-title">Venera</span>
+        </div>
+        <div class="win-inner">
+
+          <div class="toolbar" id="toolbar">
+            <div class="segmented">
+              <button class="on" data-view="search">搜索</button>
+              <button data-view="discover">探索</button>
+            </div>
+            <div class="search-field">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <span class="q" id="mainQuery">自慰</span>
+              <span style="flex:1"></span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </div>
+
+            <button class="source-btn" id="sourceBtn" aria-haspopup="listbox" aria-expanded="false">
+              <span class="src-ico" id="curIcoWrap"><img src="assets/icons/picacg.png" alt=""></span>
+              <span class="nm" id="curName">Picacg</span>
+              <svg class="caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+
+            <div class="picker" id="picker" role="listbox">
+              <div class="picker-search">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                <input id="pickerInput" type="text" placeholder="搜源" autocomplete="off" spellcheck="false">
+              </div>
+              <div class="picker-list" id="pickerList"></div>
+            </div>
+          </div>
+
+          <div id="searchPane">
+            <div class="page-head">
+              <span class="ttl">漫画搜索</span>
+              <span class="sub"><b id="headSource">Picacg</b> · <span id="headCount">20 本</span> · <span id="headFilters">1 项筛选</span></span>
+            </div>
+
+            <div class="filters">
+              <div class="frow-head">
+                <span class="t">筛选条件</span>
+                <span class="sp"></span>
+                <span class="cnt">1 项已启用</span>
+                <svg class="caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+              </div>
+              <div class="frow">
+                <span class="lab">Sort</span>
+                <div class="chips">
+                  <button class="chip on">New to old</button>
+                  <button class="chip">Old to new</button>
+                  <button class="chip">Most likes</button>
+                  <button class="chip">Most nominated</button>
+                </div>
+              </div>
+              <div class="actions">
+                <button>更多筛选条件</button>
+                <button>重置</button>
+                <button class="primary">应用筛选</button>
+              </div>
+            </div>
+
+            <div class="results">
+              <div class="results-tag">
+                <span id="resultTagSource">Picacg</span>
+                <span>·</span>
+                <span>相关作品 20 本</span>
+              </div>
+              <div class="grid">
+                <div class="card">
+                  <div class="cover"><span class="badge"><span class="src-ico" id="badge0"><img src="assets/icons/picacg.png" alt=""></span><span class="badgeName" data-badge="0">Picacg</span></span></div>
+                  <div class="t"></div><div class="t short"></div>
+                </div>
+                <div class="card"><div class="cover"></div><div class="t"></div><div class="t short"></div></div>
+                <div class="card"><div class="cover"></div><div class="t"></div><div class="t short"></div></div>
+                <div class="card"><div class="cover"></div><div class="t"></div><div class="t short"></div></div>
+                <div class="card"><div class="cover"></div><div class="t"></div><div class="t short"></div></div>
+                <div class="card"><div class="cover"></div><div class="t"></div><div class="t short"></div></div>
+                <div class="card"><div class="cover"></div><div class="t"></div><div class="t short"></div></div>
+                <div class="card"><div class="cover"></div><div class="t"></div><div class="t short"></div></div>
+                <div class="card"><div class="cover"></div><div class="t"></div><div class="t short"></div></div>
+                <div class="card"><div class="cover"></div><div class="t"></div><div class="t short"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="discoverPane" style="display:none">
+            <div class="page-head">
+              <span class="ttl">探索</span>
+              <span class="sub">本次不动，保持现有探索页（控制甲板里的探索源选择维持原样）</span>
+            </div>
+            <div class="filters" style="padding:26px 20px">
+              <div style="font-size:12.5px;color:var(--ink-2);max-width:560px">
+                探索页的「探索源」是另一套管线（分区流 / 排行榜 / 分类），本次范围只改漫画搜索页的源选择。若后续要统一，可复用同一颗组件，但不在本稿验收范围内。
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <p class="footnote">演示数据：源清单与名称取自源管理开启账；「最近使用」为演示占位，落码后是真实记录。</p>
+  </div>
+
+  <!-- ═══════════ 清单三态 ═══════════ -->
+  <div class="section">
+    <div class="section-head">
+      <h2>弹出清单 · 三态</h2>
+      <span class="tag">细节</span>
+    </div>
+    <p class="note">清单一打开即聚焦搜索框：直接打字过滤，↑↓ 移动、Enter 确认、Esc 关闭。点行 = 立刻换源并重跑当前词（与现有换源口径一致），不需要再按一次按钮。</p>
+    <div class="boards">
+      <div class="board">
+        <div class="cap">默认：最近使用 + 全部源</div>
+        <div class="frame">
+          <div class="picker open" data-static data-state="default">
+            <div class="picker-search">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input type="text" placeholder="搜源" readonly>
+            </div>
+            <div class="picker-list"></div>
+          </div>
+        </div>
+      </div>
+      <div class="board">
+        <div class="cap">过滤：输入 &quot;漫画&quot; / &quot;manga&quot;</div>
+        <div class="frame">
+          <div class="picker open" data-static data-state="filter">
+            <div class="picker-search">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input type="text" value="漫画" readonly>
+            </div>
+            <div class="picker-list"></div>
+          </div>
+        </div>
+      </div>
+      <div class="board">
+        <div class="cap">键盘高亮 + 无匹配</div>
+        <div class="frame">
+          <div class="picker open" data-static data-state="empty">
+            <div class="picker-search">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input type="text" value="zzz" readonly>
+            </div>
+            <div class="picker-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="footnote">第三板同时演示两种情况：过滤到只剩一行时 ↑↓ 高亮该行；过滤零命中时给「没有匹配的源」一行，不给空白面板。</p>
+  </div>
+
+  <!-- ═══════════ 对照 ═══════════ -->
+  <div class="section">
+    <div class="section-head">
+      <h2>筛选卡 · 前 / 后</h2>
+      <span class="tag muted">只删一行</span>
+    </div>
+    <p class="note">筛选面板的其余结构（标题、计数、更多、重置、应用筛选）一律不动，只把「来源」那一行摘掉。源的入口整体迁到工具栏行。</p>
+    <div class="compare">
+      <div class="col">
+        <div class="cap"><span class="dot"></span>现状：来源与 Sort 同级，11 颗纯文字胶囊横滚</div>
+        <div class="filters">
+          <div class="frow-head">
+            <span class="t">筛选条件</span><span class="sp"></span>
+            <span class="cnt">1 项已启用</span>
+            <svg class="caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+          </div>
+          <div class="frow">
+            <span class="lab">来源</span>
+            <div class="chips" style="flex-wrap:nowrap;overflow:hidden">
+              <button class="chip on">Picacg</button>
+              <button class="chip">包子漫画</button>
+              <button class="chip">comick</button>
+              <button class="chip">拷贝漫画</button>
+              <button class="chip">拷贝漫画M</button>
+              <button class="chip">ehentai</button>
+              <button class="chip">H-Comic</button>
+              <button class="chip">禁漫天堂</button>
+              <button class="chip">MangaDex</button>
+              <button class="chip">nhentai</button>
+              <button class="chip">绅士漫畫</button>
+            </div>
+          </div>
+          <div class="frow">
+            <span class="lab">Sort</span>
+            <div class="chips">
+              <button class="chip on">New to old</button>
+              <button class="chip">Old to new</button>
+              <button class="chip">Most likes</button>
+              <button class="chip">Most nominated</button>
+            </div>
+          </div>
+          <div class="actions">
+            <button>更多筛选条件</button><button>重置</button><button class="primary">应用筛选</button>
+          </div>
+        </div>
+      </div>
+      <div class="col fixed">
+        <div class="cap"><span class="dot"></span>之后：筛选卡只剩该源的筛选组</div>
+        <div class="filters">
+          <div class="frow-head">
+            <span class="t">筛选条件</span><span class="sp"></span>
+            <span class="cnt">1 项已启用</span>
+            <svg class="caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+          </div>
+          <div class="frow">
+            <span class="lab">Sort</span>
+            <div class="chips">
+              <button class="chip on">New to old</button>
+              <button class="chip">Old to new</button>
+              <button class="chip">Most likes</button>
+              <button class="chip">Most nominated</button>
+            </div>
+          </div>
+          <div style="height:18px"></div>
+          <div class="actions">
+            <button>更多筛选条件</button><button>重置</button><button class="primary">应用筛选</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ 浅色 ═══════════ -->
+  <div class="section">
+    <div class="section-head">
+      <h2>浅色主题</h2>
+      <span class="tag muted">同一套变量</span>
+    </div>
+    <p class="note">只换色源，不改结构。accent 浅色 <b>#0A63F6</b> / 深色 <b>#0A84FF</b>，与站点墙、收藏页同一套。</p>
+    <div class="stage" id="lightStage">
+      <div class="win" id="lightWin" style="width:1000px">
+        <div class="win-top" style="margin:0 -32px">
+          <span class="traffic"></span><span class="traffic"></span><span class="traffic"></span>
+          <span class="win-title">Venera</span>
+        </div>
+        <div class="win-inner">
+          <div class="toolbar" style="position:relative">
+            <div class="segmented">
+              <button class="on">搜索</button><button>探索</button>
+            </div>
+            <div class="search-field">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <span class="q">自慰</span>
+            </div>
+            <button class="source-btn open" style="pointer-events:none">
+              <span class="src-ico"><img src="assets/icons/picacg.png" alt=""></span>
+              <span class="nm">Picacg</span>
+              <svg class="caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="picker open" style="top:56px;pointer-events:none">
+              <div class="picker-search">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                <input type="text" placeholder="搜源" readonly>
+              </div>
+              <div class="picker-list">
+                <div class="picker-group">最近使用</div>
+                <button class="picker-row sel"><span class="src-ico lg"><img src="assets/icons/picacg.png" alt=""></span><span class="nm">Picacg</span><svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></button>
+                <button class="picker-row"><span class="src-ico lg"><img src="assets/icons/ehentai.png" alt=""></span><span class="nm">ehentai</span><svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></button>
+                <button class="picker-row"><span class="src-ico lg"><img src="assets/icons/copy_manga.png" alt=""></span><span class="nm">拷贝漫画</span><svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></button>
+                <div class="picker-group">全部源</div>
+                <button class="picker-row"><span class="src-ico lg"><img src="assets/icons/picacg.png" alt=""></span><span class="nm">Picacg</span><svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></button>
+                <button class="picker-row"><span class="src-ico lg"><img src="assets/icons/baozi.png" alt=""></span><span class="nm">包子漫画</span><svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></button>
+                <button class="picker-row"><span class="src-ico lg"><img src="assets/icons/comick.png" alt=""></span><span class="nm">comick</span><svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></button>
+              </div>
+            </div>
+          </div>
+          <div class="page-head">
+            <span class="ttl">漫画搜索</span>
+            <span class="sub"><b>Picacg</b> · 20 本 · 1 项筛选</span>
+          </div>
+          <div class="filters">
+            <div class="frow-head">
+              <span class="t">筛选条件</span><span class="sp"></span>
+              <span class="cnt">1 项已启用</span>
+            </div>
+            <div class="frow">
+              <span class="lab">Sort</span>
+              <div class="chips">
+                <button class="chip on">New to old</button>
+                <button class="chip">Old to new</button>
+                <button class="chip">Most likes</button>
+                <button class="chip">Most nominated</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ 落地要点 ═══════════ -->
+  <div class="section">
+    <div class="section-head">
+      <h2>落地要点</h2>
+      <span class="tag muted">实施说明</span>
+    </div>
+
+    <div class="facts">
+      <div class="fact">
+        <h3>视觉</h3>
+        <ul>
+          <li>源按钮 36 高、9 圆角、20 图标 + 13/600 站名 + 折叠箭头；打开态描边走 accent。</li>
+          <li>清单 308 宽、12 圆角、行高 36、图标 22；分组标题 10.5 / 字距 0.08em，色 ink-3。</li>
+          <li>选中行：accent-soft 底 + 右侧对勾；悬停行 rgba 白 6%（浅色 4.5% 黑）。</li>
+          <li>无图标源退化成首字字块（与站点墙同法），不引新占位图。</li>
+        </ul>
+      </div>
+      <div class="fact">
+        <h3>交互</h3>
+        <ul>
+          <li>点源按钮开合；点面板外、Esc 关闭；打开即聚焦搜索框。</li>
+          <li>↑↓ 移动高亮、Enter 确认；过滤按站名与源键双匹配。</li>
+          <li>点行 = 换源 + 关闭 + 复用现有换源管线（清结果、重置筛选、原词重搜）。</li>
+          <li>换源后焦点回检索场，不落在已消失的清单上。</li>
+        </ul>
+      </div>
+      <div class="fact">
+        <h3>数据</h3>
+        <ul>
+          <li>清单来源不变：<b>源管理开启账</b>（enabled 过滤、原序），组件只加展示层。</li>
+          <li>图标读 <b>DesktopSourceIcons.bytesOf(key)</b>，与源管理墙同源，不另存一份。</li>
+          <li>「最近使用」新增一条本地记录（最多 5 条，换源时写入）；首次无记录时整组不摆。</li>
+          <li>搜索管线、筛选组读取、历史、速览、分页一律不动。</li>
+        </ul>
+      </div>
+      <div class="fact">
+        <h3>改动面</h3>
+        <ul>
+          <li>新增：源选择器组件（按钮 + 清单），放 <b>desktop/.../search/</b> 与现有屏同包。</li>
+          <li>改：<b>DesktopSearchScreen</b> 取新形参、删「来源」行；<b>DesktopDiscoverScreen</b> 透传。</li>
+          <li>改：壳 <b>VeneraDesktopLargeScreen</b> 一处组装（源按钮所需图标字节与最近账）。</li>
+          <li>判据：<b>DesktopSearchSourceEntryTest</b> 等点名用例同步改期望。</li>
+        </ul>
+      </div>
+    </div>
+    <p class="footnote">风险：壳的大 lambda 捕获槽已近上限（255 槽坑），新组件整颗抽成顶层纯件、状态尽量下沉到组件内部，壳只多传一份数据。</p>
+  </div>
+</div>
+
+<button class="theme-toggle" id="themeToggle">浅色</button>
+
+<script>
+(function(){
+  var SOURCES = [
+    {key:"picacg", name:"Picacg", icon:"picacg.png"},
+    {key:"baozi", name:"包子漫画", icon:"baozi.png"},
+    {key:"comick", name:"comick", icon:"comick.png"},
+    {key:"copy_manga", name:"拷贝漫画", icon:"copy_manga.png"},
+    {key:"copy_manga_multi_accounts", name:"拷贝漫画M", icon:"copy_manga.png"},
+    {key:"ehentai", name:"ehentai", icon:"ehentai.png"},
+    {key:"hcomic", name:"H-Comic", icon:"hcomic.png"},
+    {key:"jm", name:"禁漫天堂", icon:"jm.png"},
+    {key:"manga_dex", name:"MangaDex", icon:"manga_dex.png"},
+    {key:"nhentai", name:"nhentai", icon:"nhentai.png"},
+    {key:"mh18", name:"绅士漫畫", icon:"mh18.png"},
+    {key:"hitomi", name:"hitomi", icon:"hitomi.png"},
+    {key:"wnacg", name:"wnacg", icon:"wnacg.png"},
+    {key:"manhuaren", name:"漫画人", icon:"manhuaren.png"},
+    {key:"manwaba", name:"漫画吧", icon:"manwaba.png"},
+    {key:"ccc", name:"CCC", icon:"ccc.png"},
+    {key:"goda", name:"Goda", icon:"goda.png"},
+    {key:"komga", name:"Komga", icon:"komga.png"},
+    {key:"komiic", name:"Komiic", icon:"komiic.png"},
+    {key:"lanraragi", name:"Lanraragi", icon:"lanraragi.png"},
+    {key:"mxs", name:"Mxs", icon:"mxs.png"},
+    {key:"ykmh", name:"Ykmh", icon:"ykmh.png"},
+    {key:"zaimanhua", name:"再漫画", icon:"zaimanhua.png"},
+    {key:"shonen_jump_plus", name:"少年Jump+", icon:"shonen_jump_plus.png"},
+    {key:"hot_manga", name:"HotManga", icon:"hot_manga.png"},
+    {key:"gelbooru", name:"Gelbooru", icon:"gelbooru.png"}
+  ];
+  var RECENT = ["ehentai","copy_manga"];
+
+  var current = "picacg";
+
+  function esc(s){
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+  function byKey(k){
+    for(var i=0;i<SOURCES.length;i++) if(SOURCES[i].key===k) return SOURCES[i];
+    return null;
+  }
+  function iconHtml(src, cls){
+    return '<span class="src-ico '+(cls||'')+'"><img src="assets/icons/'+src+'" alt=""></span>';
+  }
+  function checkSvg(){
+    return '<svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>';
+  }
+  function rowHtml(src, selected, hl){
+    return '<button class="picker-row'+(selected?' sel':'')+(hl?' hl':'')+'" data-key="'+src.key+'">'
+      + iconHtml(src.icon,'lg')
+      + '<span class="nm">'+esc(src.name)+'</span>'
+      + checkSvg()
+      + '</button>';
+  }
+
+  /* ── 清单渲染（主屏） ── */
+  var listEl = document.getElementById('pickerList');
+  var inputEl = document.getElementById('pickerInput');
+  var picker = document.getElementById('picker');
+  var sourceBtn = document.getElementById('sourceBtn');
+  var hlIndex = -1;
+
+  function filtered(filterText){
+    var q = (filterText||"").trim().toLowerCase();
+    if(!q) return SOURCES.slice();
+    return SOURCES.filter(function(s){
+      return s.name.toLowerCase().indexOf(q) >= 0 || s.key.toLowerCase().indexOf(q) >= 0;
+    });
+  }
+
+  function renderList(){
+    var rows = filtered(inputEl.value);
+    var html = "";
+    var recents = [];
+    rows.forEach(function(s){
+      if(RECENT.indexOf(s.key) >= 0) recents.push(s);
+    });
+    // 无输入时，最近使用置顶；有输入时，扁平结果（仍保留最近在前的次序）
+    if(!inputEl.value.trim() && recents.length){
+      html += '<div class="picker-group">最近使用</div>';
+      recents.forEach(function(s, i){
+        html += rowHtml(s, s.key===current, i===hlIndex);
+      });
+      html += '<div class="picker-group">全部源</div>';
+      rows.forEach(function(s, i){
+        html += rowHtml(s, s.key===current, false);
+      });
+    } else if(rows.length){
+      rows.forEach(function(s, i){
+        html += rowHtml(s, s.key===current, i===hlIndex);
+      });
+    } else {
+      html += '<div class="picker-empty">没有匹配的源</div>';
+    }
+    listEl.innerHTML = html;
+    // 行点击
+    Array.prototype.forEach.call(listEl.querySelectorAll('.picker-row'), function(row){
+      row.addEventListener('click', function(){
+        selectSource(row.getAttribute('data-key'));
+      });
+    });
+  }
+
+  function hlRows(){
+    var rows = listEl.querySelectorAll('.picker-row');
+    if(!rows.length) return;
+    if(hlIndex < 0) hlIndex = 0;
+    if(hlIndex >= rows.length) hlIndex = rows.length - 1;
+    Array.prototype.forEach.call(rows, function(r,i){ r.classList.toggle('hl', i===hlIndex); });
+    rows[hlIndex].scrollIntoView({block:'nearest'});
+  }
+
+  function selectSource(key){
+    var src = byKey(key);
+    if(!src) return;
+    current = key;
+    // 主屏源按钮
+    document.getElementById('curIcoWrap').innerHTML = '<img src="assets/icons/'+src.icon+'" alt="">';
+    document.getElementById('curName').textContent = src.name;
+    // 页头副标题
+    document.getElementById('headSource').textContent = src.name;
+    document.getElementById('resultTagSource').textContent = src.name;
+    // 结果卡站标
+    var badgeIco = document.getElementById('badge0');
+    if(badgeIco) badgeIco.innerHTML = '<img src="assets/icons/'+src.icon+'" alt="">';
+    Array.prototype.forEach.call(document.querySelectorAll('.badgeName'), function(el){
+      el.textContent = src.name;
+    });
+    // 关闭清单
+    closePicker();
+    document.querySelector('.search-field') && document.querySelector('.search-field').classList.add('focus-pulse');
+    setTimeout(function(){
+      var f = document.querySelector('.search-field');
+      f && f.classList.remove('focus-pulse');
+    }, 600);
+  }
+
+  function openPicker(){
+    picker.classList.add('open');
+    sourceBtn.classList.add('open');
+    sourceBtn.setAttribute('aria-expanded','true');
+    hlIndex = -1;
+    renderList();
+    setTimeout(function(){ inputEl.focus(); }, 40);
+  }
+  function closePicker(){
+    picker.classList.remove('open');
+    sourceBtn.classList.remove('open');
+    sourceBtn.setAttribute('aria-expanded','false');
+    inputEl.value = "";
+  }
+
+  sourceBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    if(picker.classList.contains('open')) closePicker(); else openPicker();
+  });
+  document.addEventListener('click', function(e){
+    if(picker.classList.contains('open') && !picker.contains(e.target) && e.target!==sourceBtn){
+      closePicker();
+    }
+  });
+  inputEl.addEventListener('input', function(){ hlIndex = -1; renderList(); });
+  inputEl.addEventListener('keydown', function(e){
+    var rows = listEl.querySelectorAll('.picker-row');
+    if(e.key==='ArrowDown'){ e.preventDefault(); hlIndex = Math.min(hlIndex+1, rows.length-1); hlRows(); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); hlIndex = Math.max(hlIndex-1, 0); hlRows(); }
+    else if(e.key==='Enter'){
+      e.preventDefault();
+      if(rows.length){
+        var idx = hlIndex < 0 ? 0 : hlIndex;
+        selectSource(rows[idx].getAttribute('data-key'));
+      }
+    } else if(e.key==='Escape'){ closePicker(); sourceBtn.focus(); }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape' && picker.classList.contains('open')){ closePicker(); }
+  });
+
+  /* ── 静态三态板 ── */
+  Array.prototype.forEach.call(document.querySelectorAll('[data-static]'), function(board){
+    var state = board.getAttribute('data-state');
+    var list = board.querySelector('.picker-list');
+    if(state==='default'){
+      var html = '<div class="picker-group">最近使用</div>';
+      RECENT.forEach(function(k){ html += rowHtml(byKey(k), k===current); });
+      html += '<div class="picker-group">全部源</div>';
+      SOURCES.slice(0,8).forEach(function(s){ html += rowHtml(s, s.key===current); });
+      list.innerHTML = html;
+    } else if(state==='filter'){
+      var rows = SOURCES.filter(function(s){
+        return s.name.indexOf('漫画')>=0 || s.name.toLowerCase().indexOf('manga')>=0;
+      });
+      list.innerHTML = rows.map(function(s){ return rowHtml(s, s.key===current); }).join('');
+    } else {
+      list.innerHTML = '<div class="picker-empty">没有匹配的源</div>';
+    }
+  });
+
+  /* ── 搜索 / 探索分段 ── */
+  Array.prototype.forEach.call(document.querySelectorAll('.segmented [data-view]'), function(btn){
+    btn.addEventListener('click', function(){
+      Array.prototype.forEach.call(document.querySelectorAll('.segmented [data-view]'), function(b){ b.classList.remove('on'); });
+      btn.classList.add('on');
+      var v = btn.getAttribute('data-view');
+      document.getElementById('searchPane').style.display = v==='search' ? '' : 'none';
+      document.getElementById('discoverPane').style.display = v==='discover' ? '' : 'none';
+      // 探索页没有源按钮：藏掉它，避免误以为探索页也有这套选择器
+      sourceBtn.style.display = v==='search' ? '' : 'none';
+      if(v!=='search') closePicker();
+    });
+  });
+
+  /* ── 主题切换 ── */
+  var themeBtn = document.getElementById('themeToggle');
+  themeBtn.addEventListener('click', function(){
+    var cur = document.body.getAttribute('data-theme');
+    var next = cur==='dark' ? 'light' : 'dark';
+    document.body.setAttribute('data-theme', next);
+    themeBtn.textContent = next==='dark' ? '浅色' : '深色';
+  });
+
+  /* 搜索框呼吸提示（换源后焦点回检索场） */
+  var st = document.createElement('style');
+  st.textContent = '.focus-pulse{border-color:var(--accent-line)!important;background:var(--accent-soft)!important}';
+  document.head.appendChild(st);
+
+  renderList();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-zcode-design>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>白鲸派方向稿 · app-icon-redesign-2026-11-20</title>
+<style>
+:root {
+  --accent: #0A63F6;
+  --ink: #E8EDF6;
+  --ink-dim: #9AA7BC;
+  --bg: #12151C;
+  --card: #1A1F29;
+  --card-edge: #2A3242;
+  --chip-dark: #1F1F1F;
+  --chip-light: #F5F5F5;
+  --whale-ink: #1A1D24;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+  padding: 48px 40px 80px; max-width: 1180px; margin: 0 auto;
+}
+header h1 { font-size: 26px; font-weight: 700; letter-spacing: 1px; }
+header .sub { color: var(--ink-dim); font-size: 14px; margin-top: 10px; line-height: 1.8; }
+.badge { display: inline-block; font-size: 12px; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 2px 12px; margin-bottom: 14px; }
+.spec { margin-top: 36px; background: var(--card); border: 1px solid var(--card-edge); border-radius: 16px; padding: 24px 26px; }
+.spec h2 { font-size: 16px; font-weight: 600; }
+.spec ul { list-style: none; margin-top: 10px; }
+.spec li { font-size: 13px; color: var(--ink-dim); line-height: 1.9; padding-left: 18px; position: relative; }
+.spec li::before { content: ""; position: absolute; left: 0; top: 11px; width: 6px; height: 6px; border-radius: 2px; background: var(--accent); }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; margin-top: 22px; }
+@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } body { padding: 32px 20px 60px; } .card .stage { flex-wrap: wrap; } }
+.group { margin-top: 44px; }
+.group-title { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--card-edge); padding-bottom: 12px; }
+.group-title .no { font-size: 13px; color: var(--accent); font-weight: 700; letter-spacing: 2px; }
+.group-title h2 { font-size: 19px; font-weight: 600; }
+.group-title .desc { font-size: 13px; color: var(--ink-dim); }
+.card { background: var(--card); border: 1px solid var(--card-edge); border-radius: 16px; padding: 24px; }
+.card .stage { display: flex; align-items: center; gap: 24px; }
+.card .stage .big { filter: drop-shadow(0 10px 24px rgba(0,0,0,.45)); }
+.card .alt { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--ink-dim); font-size: 11px; }
+.card .ladder { display: flex; align-items: flex-end; gap: 18px; color: var(--ink-dim); font-size: 11px; text-align: center; }
+.card .ladder .cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.card h3 { font-size: 16px; font-weight: 600; margin-top: 18px; }
+.card h3 .tag { font-size: 12px; color: var(--accent); margin-right: 8px; font-weight: 700; }
+.card p { font-size: 13px; color: var(--ink-dim); line-height: 1.75; margin-top: 6px; }
+.card p b { color: var(--ink); font-weight: 600; }
+.dock { margin-top: 16px; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 18px; }
+.dock.dark { background: var(--chip-dark); }
+.dock.light { background: var(--chip-light); }
+.dock .label { font-size: 11px; width: 52px; flex: none; }
+.dock.dark .label { color: #7A808C; }
+.dock.light .label { color: #8A8F98; }
+.w-white { color: var(--whale-ink); --eye: #FFFFFF; }
+.w-blue { color: #FFFFFF; --eye: #0A50E8; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- 四种姿态，剪影单色走 currentColor，眼点走 --eye -->
+    <g id="whale-leap">
+      <path fill="currentColor" d="M372 190 C366 148 336 122 296 116 C246 110 204 128 176 160 C162 176 154 196 152 216 C140 200 122 184 102 176 C106 202 116 224 132 240 C112 252 96 276 92 304 C122 296 148 278 168 254 C192 288 230 308 274 310 C318 312 352 292 366 260 C374 238 376 214 372 190 Z"/>
+      <path fill="currentColor" d="M240 112 C250 92 268 84 286 88 C276 102 262 112 248 118 Z"/>
+      <path fill="currentColor" d="M316 268 C328 288 334 310 330 330 C312 318 298 298 294 280 Z"/>
+      <circle cx="296" cy="180" r="10" fill="var(--eye)"/>
+    </g>
+    <g id="whale-swim">
+      <path fill="currentColor" d="M408 224 C396 192 356 172 306 168 C250 164 196 176 160 198 C138 178 112 166 88 164 C98 186 112 204 130 216 C112 228 98 246 92 268 C118 264 142 252 162 236 C196 258 250 268 306 264 C356 260 396 246 408 224 Z"/>
+      <path fill="currentColor" d="M280 168 C288 148 304 140 320 144 C310 156 296 164 284 170 Z"/>
+      <circle cx="352" cy="206" r="9" fill="var(--eye)"/>
+    </g>
+    <g id="whale-curl">
+      <path fill="none" stroke="currentColor" stroke-width="58" stroke-linecap="round" d="M170 152 A 118 118 0 1 0 316 330"/>
+      <path fill="currentColor" d="M296 322 C310 344 334 358 362 360 C350 342 346 326 348 312 C334 322 314 326 296 322 Z"/>
+      <circle cx="326" cy="142" r="10" fill="var(--eye)"/>
+    </g>
+    <g id="whale-dive">
+      <g transform="rotate(90 256 256)">
+        <path fill="currentColor" d="M372 190 C366 148 336 122 296 116 C246 110 204 128 176 160 C162 176 154 196 152 216 C140 200 122 184 102 176 C106 202 116 224 132 240 C112 252 96 276 92 304 C122 296 148 278 168 254 C192 288 230 308 274 310 C318 312 352 292 366 260 C374 238 376 214 372 190 Z"/>
+        <path fill="currentColor" d="M240 112 C250 92 268 84 286 88 C276 102 262 112 248 118 Z"/>
+        <path fill="currentColor" d="M316 268 C328 288 334 310 330 330 C312 318 298 298 294 280 Z"/>
+        <circle cx="296" cy="180" r="10" fill="var(--eye)"/>
+      </g>
+      <circle cx="150" cy="150" r="22" fill="none" stroke="var(--eye)" stroke-width="8"/>
+      <circle cx="196" cy="108" r="11" fill="var(--eye)"/>
+      <path d="M300 292 Q 316 274 338 268" stroke="var(--eye)" stroke-width="9" stroke-linecap="round" fill="none" opacity="0.85"/>
+    </g>
+
+    <!-- 八个 symbol：四姿态 × 双底板 -->
+    <symbol id="ic-w-leap" viewBox="0 0 512 512"><rect width="512" height="512" rx="116" fill="#FFFFFF"/><rect width="512" height="512" rx="116" fill="none" stroke="#ECEFF4" stroke-width="3"/><g class="w-white" style="color:var(--whale-ink);--eye:#fff"><use href="#whale-leap"/></g></symbol>
+    <symbol id="ic-b-leap" viewBox="0 0 512 512"><rect width="512" height="512" rx="116" fill="#0A50E8"/><g style="color:#fff;--eye:#0A50E8"><use href="#whale-leap"/></g></symbol>
+    <symbol id="ic-w-swim" viewBox="0 0 512 512"><rect width="512" height="512" rx="116" fill="#FFFFFF"/><rect width="512" height="512" rx="116" fill="none" stroke="#ECEFF4" stroke-width="3"/><g style="color:var(--whale-ink);--eye:#fff"><use href="#whale-swim"/></g></symbol>
+    <symbol id="ic-b-swim" viewBox="0 0 512 512"><rect width="512" height="512" rx="116" fill="#0A50E8"/><g style="color:#fff;--eye:#0A50E8"><use href="#whale-swim"/></g></symbol>
+    <symbol id="ic-w-curl" viewBox="0 0 512 512"><rect width="512" height="512" rx="116" fill="#FFFFFF"/><rect width="512" height="512" rx="116" fill="none" stroke="#ECEFF4" stroke-width="3"/><g style="color:var(--whale-ink);--eye:#fff"><use href="#whale-curl"/></g></symbol>
+    <symbol id="ic-b-curl" viewBox="0 0 512 512"><rect width="512" height="512" rx="116" fill="#0A50E8"/><g style="color:#fff;--eye:#0A50E8"><use href="#whale-curl"/></g></symbol>
+    <symbol id="ic-w-dive" viewBox="0 0 512 512"><rect width="512" height="512" rx="116" fill="#FFFFFF"/><rect width="512" height="512" rx="116" fill="none" stroke="#ECEFF4" stroke-width="3"/><g style="color:var(--whale-ink);--eye:#fff"><use href="#whale-dive"/></g></symbol>
+    <symbol id="ic-b-dive" viewBox="0 0 512 512"><rect width="512" height="512" rx="116" fill="#0A50E8"/><g style="color:#fff;--eye:#0A50E8"><use href="#whale-dive"/></g></symbol>
+  </defs>
+</svg>
+
+<header>
+  <span class="badge">阶段 A · 派系重定向 · 白鲸派 · 待批</span>
+  <h1>白鲸派方向稿</h1>
+  <p class="sub">依主人三例截图转派系：<b>纯白（或纯色）底板 + 单色动物剪影</b>，弃渐变弃 V 主角位。四种姿态一次铺开；每案附深蓝底对照（DeepSeek 派）。判据照旧：<b>16px 清晰</b> + <b>32px 读得出是鲸</b>。</p>
+</header>
+
+<section class="spec">
+  <h2>派系规格（从主人截图解构，【估算 · 主人截图】）</h2>
+  <ul>
+    <li>底板纯色圆角方，白或深蓝，无渐变无纹理 —— 我稿的白板加了 1.5px 极淡描边，防浅色任务栏融边（真实系统亦如此，属派系固有取舍）</li>
+    <li>主体单色剪影占底板约六成，圆润有机曲线，笔画饱满无棱角</li>
+    <li>细节仅限：一颗眼点 + 一两处留白表达鳍尾结构；无阴影无描边无渐变</li>
+    <li>V 血统降级为彩蛋：跃鲸 / 沉鲸的叉尾天然是一枚倒 V，外人看鲸，自家人认 V</li>
+  </ul>
+</section>
+
+<section class="group">
+  <div class="group-title"><span class="no">W</span><h2>白鲸四姿态</h2><span class="desc">同一头鲸，四种脾气</span></div>
+  <div class="grid">
+    <div class="card" data-variant="W1">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-w-leap"/></svg>
+        <div class="alt"><svg width="56" height="56"><use href="#ic-b-leap"/></svg>深蓝底对照</div>
+        <div class="ladder">
+          <span class="cell"><svg width="48" height="48"><use href="#ic-w-leap"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-w-leap"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-w-leap"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-w-leap"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">W1</span>跃鲸</h3>
+      <p>斜上扬姿，背鳍小三角、胸鳍一片、叉尾展开 —— <b>尾叉即倒 V</b>。四案中动势最足、信息最多，也最贴 DeepSeek 那张的气质。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-w-leap"/></svg><svg width="24" height="24"><use href="#ic-w-leap"/></svg><svg width="32" height="32"><use href="#ic-w-leap"/></svg><svg width="48" height="48"><use href="#ic-w-leap"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-w-leap"/></svg><svg width="24" height="24"><use href="#ic-w-leap"/></svg><svg width="32" height="32"><use href="#ic-w-leap"/></svg><svg width="48" height="48"><use href="#ic-w-leap"/></svg></div>
+    </div>
+    <div class="card" data-variant="W2">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-w-swim"/></svg>
+        <div class="alt"><svg width="56" height="56"><use href="#ic-b-swim"/></svg>深蓝底对照</div>
+        <div class="ladder">
+          <span class="cell"><svg width="48" height="48"><use href="#ic-w-swim"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-w-swim"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-w-swim"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-w-swim"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">W2</span>平游鲸</h3>
+      <p>水平横姿，安静温和，最贴 magpie 那张的安稳劲儿。横向构图在圆角方里天生占满，16px 依然是一条干净的鲸。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-w-swim"/></svg><svg width="24" height="24"><use href="#ic-w-swim"/></svg><svg width="32" height="32"><use href="#ic-w-swim"/></svg><svg width="48" height="48"><use href="#ic-w-swim"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-w-swim"/></svg><svg width="24" height="24"><use href="#ic-w-swim"/></svg><svg width="32" height="32"><use href="#ic-w-swim"/></svg><svg width="48" height="48"><use href="#ic-w-swim"/></svg></div>
+    </div>
+    <div class="card" data-variant="W3">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-w-curl"/></svg>
+        <div class="alt"><svg width="56" height="56"><use href="#ic-b-curl"/></svg>深蓝底对照</div>
+        <div class="ladder">
+          <span class="cell"><svg width="48" height="48"><use href="#ic-w-curl"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-w-curl"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-w-curl"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-w-curl"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">W3</span>蜷月鲸</h3>
+      <p>一笔粗弯月（stroke 圆头）蜷成逗号，尾叉探出、一颗眼点 —— 抽象度最高，最贴 Qoder 的符号感。任何尺寸都不糊，但"鲸味"最淡。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-w-curl"/></svg><svg width="24" height="24"><use href="#ic-w-curl"/></svg><svg width="32" height="32"><use href="#ic-w-curl"/></svg><svg width="48" height="48"><use href="#ic-w-curl"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-w-curl"/></svg><svg width="24" height="24"><use href="#ic-w-curl"/></svg><svg width="32" height="32"><use href="#ic-w-curl"/></svg><svg width="48" height="48"><use href="#ic-w-curl"/></svg></div>
+    </div>
+    <div class="card" data-variant="W4">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-w-dive"/></svg>
+        <div class="alt"><svg width="56" height="56"><use href="#ic-b-dive"/></svg>深蓝底对照</div>
+        <div class="ladder">
+          <span class="cell"><svg width="48" height="48"><use href="#ic-w-dive"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-w-dive"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-w-dive"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-w-dive"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">W4</span>沉鲸吐泡</h3>
+      <p>W1 同一头鲸旋转下扎（同一吉祥物不同姿态，工程同源），左上两粒气泡 + 头顶一线喷气。趣味最足，气泡在 16px 退化为一点，属可弃细节。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-w-dive"/></svg><svg width="24" height="24"><use href="#ic-w-dive"/></svg><svg width="32" height="32"><use href="#ic-w-dive"/></svg><svg width="48" height="48"><use href="#ic-w-dive"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-w-dive"/></svg><svg width="24" height="24"><use href="#ic-w-dive"/></svg><svg width="32" height="32"><use href="#ic-w-dive"/></svg><svg width="48" height="48"><use href="#ic-w-dive"/></svg></div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

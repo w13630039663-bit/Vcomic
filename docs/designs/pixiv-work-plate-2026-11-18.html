@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pixiv 作品详情页 · 背板方案（2026-11-18）</title>
+<style>
+  :root{
+    --bg:#0A0B0F;
+    --panel:#111318;
+    --panel-2:#15171D;
+    --ink:#F2F3F7;
+    --ink2:#B9BCC8;
+    --ink3:#8A8E9C;
+    --line:rgba(255,255,255,.08);
+    --line-2:rgba(255,255,255,.14);
+    --accent:#8B7DF7;
+    --accent-soft:rgba(139,125,247,.16);
+    --danger:#E26D8A;
+    --ok:#3ECF8E;
+    --font:"Microsoft YaHei UI","PingFang SC","Noto Sans CJK SC",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"Cascadia Mono","JetBrains Mono",Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased}
+  .page{max-width:1560px;margin:0 auto;padding:44px 32px 110px}
+  .doc-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px 28px;margin-bottom:26px}
+  .doc-head h1{margin:0;font-size:30px;line-height:1.25;letter-spacing:.2px}
+  .doc-head h1 small{display:block;margin-top:8px;font-size:14px;font-weight:400;color:var(--ink3);letter-spacing:0}
+  .tag{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 11px;border-radius:999px;border:1px solid var(--line-2);background:var(--panel);font-size:12px;color:var(--ink2)}
+  .tag i{width:6px;height:6px;border-radius:50%;background:var(--accent);display:block}
+  .doc-meta{margin-left:auto;text-align:right;font-size:12px;color:var(--ink3);line-height:1.8}
+  .doc-meta b{color:var(--ink2);font-weight:600}
+
+  /* ── 摘要 ── */
+  .thesis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:0 0 30px}
+  .thesis .cell{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .thesis .cell b{display:block;font-size:13px;color:var(--accent);letter-spacing:.4px;margin-bottom:8px}
+  .thesis .cell p{margin:0;font-size:13.5px;line-height:1.75;color:var(--ink2)}
+  .thesis .cell p strong{color:var(--ink);font-weight:600}
+
+  /* ── 工具条 ── */
+  .toolbar{display:flex;align-items:center;gap:14px;margin:0 0 12px;flex-wrap:wrap}
+  .seg{display:inline-flex;padding:3px;border-radius:10px;background:var(--panel);border:1px solid var(--line)}
+  .seg button{appearance:none;border:0;background:transparent;color:var(--ink3);font-family:var(--font);font-size:12.5px;padding:7px 16px;border-radius:7px;cursor:pointer}
+  .seg button.on{background:#22252D;color:var(--ink)}
+  .seg button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .hint{font-size:12px;color:var(--ink3)}
+  .hint b{color:var(--ink2);font-weight:600}
+  .toggles{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:12px;color:var(--ink3)}
+  .toggles input{accent-color:var(--accent)}
+
+  /* ── 舞台缩放 ── */
+  .stage-wrap{position:relative;width:100%;max-width:1440px;margin:0 auto}
+  .window{
+    position:relative;width:1440px;height:900px;overflow:visible;
+    border-radius:14px;background:#15161B;
+    box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.06);
+    transform-origin:top left;
+    font-size:14px;
+  }
+
+  /* ── 背板（唯一表面）── */
+  .plate{position:absolute;inset:0;border-radius:14px;overflow:hidden;background:#2C2C34}
+  .plate .art{position:absolute;inset:-12%;filter:blur(56px) saturate(1.1);opacity:.95}
+  .plate .dim{position:absolute;inset:0;background:rgba(9,9,13,.34)}
+  .plate .veil{position:absolute;inset:0;background:rgba(255,255,255,.05)}
+  .plate .scrim{position:absolute;inset:0;background:linear-gradient(90deg,rgba(10,10,14,.42),rgba(10,10,14,.12) 36%,rgba(10,10,14,.16) 64%,rgba(10,10,14,.50))}
+
+  /* 示意用的"画作"：纯 CSS，避免外链 */
+  .artwork{
+    background:
+      /* 暖光 */
+      radial-gradient(48% 38% at 72% 24%,rgba(255,240,230,.95),rgba(255,240,230,0) 64%),
+      /* 紫雾 */
+      radial-gradient(38% 34% at 32% 38%,rgba(124,100,156,.85),rgba(124,100,156,0) 70%),
+      /* 冷影 */
+      radial-gradient(48% 42% at 62% 72%,rgba(54,58,90,.95),rgba(54,58,90,0) 72%),
+      /* 底暗 */
+      radial-gradient(42% 34% at 42% 88%,rgba(16,18,30,.95),rgba(16,18,30,0) 74%),
+      /* 雨纹 */
+      repeating-linear-gradient(100deg,rgba(255,255,255,.10) 0 1px,rgba(255,255,255,0) 1px 24px),
+      /* 底色 */
+      linear-gradient(160deg,#a99bc4 0%,#6c6590 34%,#3a3756 66%,#1b1c2a 100%);
+  }
+  .artwork::after{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(120% 90% at 50% 32%,rgba(0,0,0,0) 52%,rgba(10,8,18,.32) 100%);
+  }
+  .art .artwork{position:absolute;inset:0}
+
+  /* ── 顶栏 ── */
+  .titlebar{position:absolute;left:0;right:0;top:0;height:46px;display:flex;align-items:center;z-index:6}
+  .titlebar .top-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.42),rgba(0,0,0,0));pointer-events:none}
+  .titlebar .tb-left{position:relative;display:flex;align-items:center;gap:10px;padding-left:16px;min-width:0}
+  .back{width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,.10);display:grid;place-items:center;color:var(--ink);font-size:14px}
+  .crumb{font-size:12.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:420px}
+  .crumb b{color:var(--ink);font-weight:600}
+  .tb-spacer{flex:1;height:46px}
+  .tb-pill{position:relative;height:26px;padding:0 12px;border-radius:999px;background:rgba(255,255,255,.09);display:flex;align-items:center;font-size:11.5px;color:var(--ink2)}
+  .win-controls{position:relative;display:flex;height:46px;margin-left:8px}
+  .win-controls span{width:46px;display:grid;place-items:center;font-size:12px;color:var(--ink2)}
+
+  /* ── 主体三栏 ── */
+  .body{position:absolute;left:0;right:0;top:46px;bottom:0;display:flex;z-index:4}
+
+  /* 悬浮图标轨（无底色、无分隔线） */
+  .rail{width:64px;flex:0 0 64px;padding:14px 0 18px;display:flex;flex-direction:column;align-items:center;gap:6px}
+  .rail .r-logo{width:30px;height:30px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700;font-size:13px;margin-bottom:12px}
+  .rail .r-item{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;color:rgba(255,255,255,.62);font-size:15px}
+  .rail .r-item.active{background:rgba(255,255,255,.12);color:#fff}
+  .rail .r-gap{flex:1}
+  .rail .r-pet{width:40px;height:44px;border-radius:12px;background:rgba(255,255,255,.06);display:grid;place-items:center;font-size:16px}
+
+  /* 画布：无实底，只有图和悬浮控件 */
+  .canvas{position:relative;flex:1;min-width:0;display:flex;align-items:center;justify-content:center;padding:22px 26px 96px}
+  .canvas .art-frame{
+    position:relative;height:100%;aspect-ratio:3/4;max-width:100%;
+    border-radius:12px;overflow:hidden;
+    box-shadow:0 18px 50px rgba(0,0,0,.45);
+    outline:1px solid rgba(255,255,255,.10);outline-offset:-1px;
+    background:#1b1d26;
+  }
+  .canvas .art-frame .artwork{position:absolute;inset:0}
+  .canvas .art-frame .shine{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,0) 28%)}
+  .thumbs{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);display:flex;gap:10px;padding:8px 10px;border-radius:14px;background:rgba(16,17,22,.42);box-shadow:0 8px 24px rgba(0,0,0,.25)}
+  .thumbs .t{width:54px;height:54px;border-radius:9px;overflow:hidden;position:relative;outline:1px solid rgba(255,255,255,.12);outline-offset:-1px}
+  .thumbs .t .artwork{position:absolute;inset:0}
+  .thumbs .t.on{outline:2px solid var(--accent);outline-offset:-2px}
+  .page-badge{position:absolute;left:26px;bottom:26px;height:26px;padding:0 11px;border-radius:999px;background:rgba(16,17,22,.5);display:flex;align-items:center;font-size:11.5px;color:var(--ink2);letter-spacing:.4px}
+  .nav-btn{position:absolute;top:50%;transform:translateY(-50%);height:34px;border-radius:999px;background:rgba(14,15,20,.52);display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink2);box-shadow:0 6px 18px rgba(0,0,0,.24);outline:1px solid rgba(255,255,255,.09);outline-offset:-1px}
+  .nav-btn .g{font-size:15px;color:rgba(255,255,255,.9)}
+  .nav-btn.l{left:10px;padding:0 13px 0 10px}
+  .nav-btn.r{right:10px;padding:0 10px 0 13px}
+  .desc{margin-top:12px;font-size:12px;line-height:1.72;color:var(--ink2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .desc-more{margin-top:5px;font-size:11px;color:var(--accent);text-align:right}
+  .cmt-input{margin-top:10px;height:34px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);display:flex;align-items:center;padding:0 6px 0 11px;font-size:11.5px;color:var(--ink3)}
+  .cmt-input .send{margin-left:auto;height:24px;padding:0 12px;border-radius:8px;background:var(--accent);color:#fff;font-size:11px;display:grid;place-items:center}
+  .cmt-meta{margin-top:9px;display:flex;justify-content:space-between;font-size:11px;color:var(--ink3)}
+  .cmt-meta b{color:var(--ink2);font-weight:500}
+
+  /* 动作条：常驻，但图标静止 */
+  .actions{position:absolute;left:26px;bottom:68px;display:flex;gap:6px;padding:5px;border-radius:999px;background:rgba(16,17,22,.46);box-shadow:0 8px 24px rgba(0,0,0,.28);outline:1px solid rgba(255,255,255,.08);outline-offset:-1px}
+  .actions .a{height:30px;padding:0 12px;border-radius:999px;display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink2)}
+  .actions .a.primary{background:var(--accent);color:#fff}
+  .actions .a .ico{font-size:12px;line-height:1}
+
+  /* 右栏浮卡 */
+  .pane{width:392px;flex:0 0 392px;margin:12px 16px 16px 0;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+  .card{background:rgba(15,16,21,.66);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+  .card .k{font-size:10.5px;letter-spacing:1.4px;color:var(--ink3);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .card .k::before{content:"";width:3px;height:11px;border-radius:2px;background:var(--accent);display:block}
+  .who{display:flex;align-items:center;gap:10px}
+  .avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(140deg,#9a8fbd,#3c3f57);flex:0 0 38px}
+  .who .n{font-size:13.5px;font-weight:600}
+  .who .s{font-size:11.5px;color:var(--ink3);margin-top:2px}
+  .follow{margin-left:auto;height:26px;padding:0 13px;border-radius:999px;border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;font-size:11.5px;color:var(--ink2)}
+  .title{font-size:21px;line-height:1.35;font-weight:600;margin:14px 0 10px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{height:22px;padding:0 9px;border-radius:999px;background:rgba(255,255,255,.07);font-size:11px;color:var(--ink2);display:flex;align-items:center}
+  .facts{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+  .facts div{font-size:11px;color:var(--ink3)}
+  .facts div b{display:block;margin-top:3px;font-size:12.5px;color:var(--ink);font-weight:600}
+  .cmt{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--ink2)}
+  .cmt .more{font-size:11.5px;color:var(--accent)}
+  .relgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+  .relgrid .r{aspect-ratio:1/1;border-radius:10px;overflow:hidden;position:relative;outline:1px solid rgba(255,255,255,.10);outline-offset:-1px}
+  .relgrid .r .artwork{position:absolute;inset:0}
+  .relgrid .r:nth-child(2) .artwork{filter:hue-rotate(38deg) saturate(1.05)}
+  .relgrid .r:nth-child(3) .artwork{filter:hue-rotate(210deg) saturate(.9) brightness(.9)}
+  .relgrid .r:nth-child(4) .artwork{filter:hue-rotate(96deg) saturate(.85) brightness(1.05)}
+  .relgrid .r:nth-child(5) .artwork{filter:hue-rotate(280deg) saturate(1.1) brightness(.95)}
+  .relgrid .r:nth-child(6) .artwork{filter:hue-rotate(12deg) saturate(.8) brightness(1.1)}
+  .relgrid .r:nth-child(7) .artwork{filter:hue-rotate(180deg) saturate(1.05) brightness(.95)}
+  .relgrid .r:nth-child(8) .artwork{filter:hue-rotate(320deg) saturate(.9) brightness(1.08)}
+
+  /* ── 标注 ── */
+  .anno{position:absolute;inset:0;z-index:20;pointer-events:none}
+  .window:not(.show-anno) .anno{display:none}
+  .anno .dot{position:absolute;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#0A0B0F;font:700 11.5px/22px var(--mono);text-align:center;box-shadow:0 0 0 5px rgba(139,125,247,.24),0 6px 14px rgba(0,0,0,.35)}
+
+  /* 标注图例 */
+  .legend{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 18px;margin-top:18px}
+  .legend .li{display:flex;gap:10px;align-items:flex-start}
+  .legend .li i{flex:0 0 20px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#0A0B0F;font:700 11px/20px var(--mono);text-align:center;font-style:normal;margin-top:1px}
+  .legend .li b{display:block;font-size:12.5px;margin-bottom:3px}
+  .legend .li p{margin:0;font-size:11.5px;line-height:1.65;color:var(--ink3)}
+
+  /* 旧结构（对照） */
+  .before-only{display:none}
+  .window[data-view="before"] .after-only{display:none}
+  .window[data-view="before"] .before-only{display:block}
+  .window[data-view="before"] .plate{display:none}
+  .window[data-view="before"] .before-bg{position:absolute;inset:0;background:#1F1F22;border-radius:14px}
+  .window[data-view="before"] .before-slot{
+    position:absolute;left:88px;right:0;top:46px;bottom:0;
+    background:
+      radial-gradient(46% 38% at 66% 26%,rgba(120,104,150,.55),rgba(120,104,150,0) 70%),
+      radial-gradient(40% 40% at 40% 74%,rgba(44,46,66,.9),rgba(44,46,66,0) 72%),
+      #2C2C34;
+  }
+  .window[data-view="before"] .titlebar .top-scrim{display:none}
+  .window[data-view="before"] .titlebar{background:#1F1F22}
+  .window[data-view="before"] .pane .card{background:#26262B;border-color:rgba(255,255,255,.06);box-shadow:none;border-radius:8px}
+  .window[data-view="before"] .canvas{padding:0 24px 96px}
+  .seam{position:absolute;z-index:15;pointer-events:none}
+  .seam.v{top:46px;bottom:0;width:0;border-left:2px dashed var(--danger)}
+  .seam.h{left:0;right:0;height:0;border-top:2px dashed var(--danger)}
+  .seam .seam-tag{position:absolute;font-size:11px;color:#fff;background:rgba(226,109,138,.92);padding:3px 8px;border-radius:5px;white-space:nowrap;font-weight:600}
+
+  /* ── 文档区 ── */
+  .section{margin-top:44px}
+  .section h2{font-size:19px;margin:0 0 8px;letter-spacing:.2px}
+  .section .sub{font-size:13px;color:var(--ink3);line-height:1.7;margin:0 0 18px;max-width:980px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .contract{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .contract .num{font:700 11px/1 var(--mono);color:var(--accent);letter-spacing:1.6px}
+  .contract h3{font-size:15px;margin:10px 0 8px}
+  .contract p{margin:0;font-size:12.5px;line-height:1.8;color:var(--ink2)}
+  .contract p + p{margin-top:8px}
+  .contract code{font-family:var(--mono);font-size:11.5px;background:#1B1D24;border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:#CFC7FF}
+  .contract .why{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);font-size:11.5px;color:var(--ink3)}
+  .contract .why b{color:var(--ink2)}
+
+  /* 管线图 */
+  .pipe{display:grid;grid-template-columns:1fr 28px 1fr 28px 1fr 28px 1fr;align-items:stretch;gap:0;margin-top:6px}
+  .pipe .step{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .pipe .step b{display:block;font-size:12.5px;margin-bottom:6px}
+  .pipe .step span{font-size:11.5px;color:var(--ink3);line-height:1.65;display:block}
+  .pipe .arrow2{display:grid;place-items:center;color:var(--ink3);font-size:14px}
+  .pipe-note{margin-top:12px;font-size:12px;color:var(--ink3);line-height:1.8}
+  .pipe-note b{color:var(--ink2)}
+
+  /* 改动表 */
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.65}
+  th{color:var(--ink3);font-weight:600;font-size:11.5px;letter-spacing:.6px}
+  td b{font-weight:600}
+  td .old{color:#D9A6B4}
+  td .new{color:#B8E8D0}
+  tbody tr:hover{background:rgba(255,255,255,.02)}
+
+  /* 令牌表 */
+  .tokens{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .token-box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .token-box h3{font-size:12px;letter-spacing:1.2px;color:var(--ink3);margin:0 0 12px;font-weight:600}
+  .swatches{display:flex;flex-wrap:wrap;gap:10px}
+  .sw{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink2)}
+  .sw i{width:22px;height:22px;border-radius:6px;display:block;outline:1px solid rgba(255,255,255,.12);outline-offset:-1px}
+  .sw code{font-family:var(--mono);font-size:10.5px;color:var(--ink3)}
+
+  /* 验收 */
+  .checklist{display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;margin-top:4px}
+  .check{display:flex;gap:10px;font-size:12.5px;color:var(--ink2);line-height:1.7;padding:6px 0;border-bottom:1px dashed var(--line)}
+  .check b{color:var(--ink)}
+  .check .box{width:15px;height:15px;flex:0 0 15px;margin-top:2px;border-radius:4px;border:1px solid var(--line-2);background:#13151A}
+
+  .phases{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .phase{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .phase .p{font:700 11px/1 var(--mono);letter-spacing:1.6px;color:var(--accent)}
+  .phase h3{font-size:14.5px;margin:10px 0 8px}
+  .phase ul{margin:0;padding-left:18px;font-size:12.5px;line-height:1.85;color:var(--ink2)}
+  .phase .out{margin-top:10px;font-size:11.5px;color:var(--ok)}
+
+  footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink3);display:flex;gap:16px;flex-wrap:wrap}
+  @media (max-width:1100px){
+    .thesis,.grid3,.phases{grid-template-columns:1fr}
+    .pipe{grid-template-columns:1fr}
+    .pipe .arrow2{height:22px;transform:rotate(90deg)}
+    .tokens,.checklist{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="doc-head">
+    <div>
+      <span class="tag"><i></i>方案稿 · 待批</span>
+      <h1 style="margin-top:14px">pixiv 作品详情页 · 背板方案
+        <small>大图糊底不产生割裂线、静置不掉帧的页面结构 —— 2026-11-18</small>
+      </h1>
+    </div>
+    <div class="doc-meta">
+      对照：pixiv-work-redesign-2026-11-18<br>
+      前提：遵守 <b>一次烘焙 / 单一表面 / 空闲零帧</b> 三条渲染契约<br>
+      验证：用户截图 + 任务管理器复测
+    </div>
+  </header>
+
+  <div class="thesis">
+    <div class="cell"><b>结论一</b><p>糊图不是问题，<strong>实时糊</strong>才是。背板改成进页烘一次的<strong>静态位图</strong>，每帧只剩一次贴图。</p></div>
+    <div class="cell"><b>结论二</b><p>割裂线来自<strong>两块实底相接</strong>。全窗只留一张背板，顶栏、侧栏槽、内容一律不画实底，线就没有生成条件。</p></div>
+    <div class="cell"><b>结论三</b><p>静置的 6.5% / 8.1% 由<strong>常驻无限动画 × 每帧重糊</strong>相乘而成。动画按状态创建，空闲时帧钟停摆。</p></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="seg" id="seg">
+      <button class="on" data-view="after">方案</button>
+      <button data-view="before">旧结构（示意）</button>
+    </div>
+    <span class="hint">旧结构里两条虚线就是现在截图上的<strong>割裂线</strong>：24dp 内容槽内边距 + 46dp 顶栏下沿。</span>
+    <label class="toggles"><input type="checkbox" id="annoToggle" checked> 显示标注</label>
+  </div>
+
+  <!-- ══════════ 方案主图 ══════════ -->
+  <div class="stage-wrap" id="stageWrap">
+  <div class="window show-anno" data-view="after" id="win">
+
+    <div class="before-only before-bg"></div>
+    <div class="before-only before-slot"></div>
+
+    <div class="plate after-only">
+      <div class="art artwork"></div>
+      <div class="dim"></div>
+      <div class="veil"></div>
+      <div class="scrim"></div>
+    </div>
+
+    <div class="titlebar">
+      <div class="top-scrim after-only"></div>
+      <div class="tb-left">
+        <div class="back">←</div>
+        <div class="crumb"><b>ロさん</b>　/　作品</div>
+      </div>
+      <div class="tb-spacer"></div>
+      <div class="tb-pill after-only">原图档</div>
+      <div class="win-controls"><span>—</span><span>□</span><span>✕</span></div>
+    </div>
+
+    <div class="body">
+      <aside class="rail">
+        <div class="r-logo">V</div>
+        <div class="r-item">⌂</div>
+        <div class="r-item">▦</div>
+        <div class="r-item active">◈</div>
+        <div class="r-item">♡</div>
+        <div class="r-item">⇩</div>
+        <div class="r-gap"></div>
+        <div class="r-pet">◕</div>
+      </aside>
+
+      <main class="canvas">
+        <div class="art-frame">
+          <div class="artwork"></div>
+          <div class="shine"></div>
+        </div>
+        <div class="nav-btn l"><span class="g">‹</span>上一张</div>
+        <div class="nav-btn r">下一张<span class="g">›</span></div>
+        <div class="page-badge">3 / 12</div>
+        <div class="thumbs">
+          <div class="t"><div class="artwork"></div></div>
+          <div class="t"><div class="artwork" style="filter:hue-rotate(30deg)"></div></div>
+          <div class="t on"><div class="artwork" style="filter:hue-rotate(80deg)"></div></div>
+          <div class="t"><div class="artwork" style="filter:hue-rotate(160deg)"></div></div>
+          <div class="t"><div class="artwork" style="filter:hue-rotate(240deg)"></div></div>
+        </div>
+        <div class="actions">
+          <div class="a primary"><span class="ico">♥</span>收藏</div>
+          <div class="a"><span class="ico">⇩</span>下载</div>
+          <div class="a"><span class="ico">⧉</span>复制</div>
+          <div class="a"><span class="ico">↗</span>分享</div>
+        </div>
+      </main>
+
+      <aside class="pane">
+        <section class="card">
+          <div class="who">
+            <div class="avatar"></div>
+            <div>
+              <div class="n">ロさん</div>
+              <div class="s">@ro_san　·　插画</div>
+            </div>
+            <div class="follow">＋ 关注</div>
+          </div>
+          <div class="title">雨上がりの窓辺で</div>
+          <div class="chips">
+            <span class="chip">873 收藏</span>
+            <span class="chip">3.2 万 浏览</span>
+            <span class="chip">2026-11-16</span>
+          </div>
+          <div class="desc">雨の日の窓辺で、濡れた髪のまま振り返る少女。光と影のコントラストを意識して描きました。制作時間はおよそ 18 時間です。</div>
+          <div class="desc-more">展开简介</div>
+        </section>
+
+        <section class="card">
+          <div class="k">作品参数</div>
+          <div class="facts">
+            <div>尺寸<b>2048 × 2731</b></div>
+            <div>页数<b>12 页</b></div>
+            <div>画质档<b>原图</b></div>
+            <div>收藏数<b>873</b></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="k">标签</div>
+          <div class="chips">
+            <span class="chip">藍髪</span><span class="chip">雨</span><span class="chip">窓</span>
+            <span class="chip">オリジナル</span><span class="chip">女の子</span>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="k">评论</div>
+          <div class="cmt-input"><span>写下你的评论…</span><span class="send">发送</span></div>
+          <div class="cmt-meta"><b>1 条评论</b><span class="more">查看全部 →</span></div>
+        </section>
+
+        <section class="card">
+          <div class="k">相关作品</div>
+          <div class="relgrid">
+            <div class="r"><div class="artwork"></div></div>
+            <div class="r"><div class="artwork"></div></div>
+            <div class="r"><div class="artwork"></div></div>
+            <div class="r"><div class="artwork"></div></div>
+            <div class="r"><div class="artwork"></div></div>
+            <div class="r"><div class="artwork"></div></div>
+            <div class="r"><div class="artwork"></div></div>
+            <div class="r"><div class="artwork"></div></div>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <!-- 旧结构的两条线 -->
+    <div class="seam v before-only" style="left:88px">
+      <span class="seam-tag" style="left:10px;top:120px">24dp 内容槽 → 背板从这里才开始</span>
+    </div>
+    <div class="seam h before-only" style="top:46px">
+      <span class="seam-tag" style="left:360px;top:8px">顶栏实底结束 → 内容面开始</span>
+    </div>
+
+    <!-- 标注点（说明见图例） -->
+    <div class="anno">
+      <div class="dot" style="left:118px;top:102px">1</div>
+      <div class="dot" style="left:34px;top:428px">2</div>
+      <div class="dot" style="left:798px;top:80px">3</div>
+      <div class="dot" style="left:1026px;top:58px">4</div>
+      <div class="dot" style="left:1026px;top:238px">5</div>
+      <div class="dot" style="left:92px;top:784px">6</div>
+    </div>
+  </div>
+  </div>
+
+  <div class="legend" id="legend">
+    <div class="li"><i>1</i><div><b>整窗一张背板</b><p>烘焙位图直达四边；顶栏、侧轨、画布都落在同一张图上。</p></div></div>
+    <div class="li"><i>2</i><div><b>侧轨无底色</b><p>详情页收成 64dp 图标轨，不画面板，也就没有轨道右缘那条分界线。</p></div></div>
+    <div class="li"><i>3</i><div><b>画布只放图</b><p>不再叠第二层背板；四周留白直接读作空气，不留边。</p></div></div>
+    <div class="li"><i>4</i><div><b>浮卡是"看得出的边"</b><p>16dp 圆角 + 发丝边 + 投影：边是设计的一部分，不是意外接缝。</p></div></div>
+    <div class="li"><i>5</i><div><b>半透明实底</b><p>卡片靠 alpha 透出背板，不挂实时模糊，不产生第二层糊。</p></div></div>
+    <div class="li"><i>6</i><div><b>动作条静止</b><p>空闲时图标不动；只有"复制中 / 下载中"才转，结束即停。</p></div></div>
+  </div>
+
+  <!-- ══════════ 三条渲染契约 ══════════ -->
+  <section class="section">
+    <h2>三条渲染契约</h2>
+    <p class="sub">UI 怎么做都行，但这三条必须在实现里写死。它们分别对应：糊图不再每帧重算、割裂线失去生成条件、静置帧钟停摆。</p>
+    <div class="grid3">
+      <div class="contract">
+        <div class="num">C1 · BAKE ONCE</div>
+        <h3>背板烘一次</h3>
+        <p>进页时解码 <code>1/8</code> 缩略图 → Skia 一次 <code>makeBlur(σ≈12)</code> → 存成 <code>ImageBitmap</code>。绘制只做一次 <code>drawImage</code>，scale/alpha 交给 <code>graphicsLayer</code>。</p>
+        <p>缓存键：<code>url + 窗口尺寸档 + 主题</code>。换图、跨档 resize、切深浅才重烘。</p>
+        <div class="why"><b>为什么：</b>现在每画一帧都在跑全窗原尺寸 80dp 高斯；烘一次把成本从"每帧"挪到"每次换图"。</div>
+      </div>
+      <div class="contract">
+        <div class="num">C2 · ONE SURFACE</div>
+        <h3>全窗只有一个面</h3>
+        <p>背板铺到窗口四边；顶栏只压上沿渐变、侧轨不画面板、内容槽取消 24dp 内边距、画布不叠第二张背板。所有分组只靠 <strong>半透明实底 + 圆角 + 发丝边</strong> 表达。</p>
+        <div class="why"><b>为什么：</b>割裂线 = 两块不透明底色在 padding 边上相接。没有第二块实底，就没有线。</div>
+      </div>
+      <div class="contract">
+        <div class="num">C3 · ZERO IDLE FRAMES</div>
+        <h3>空闲不建动画</h3>
+        <p>任何 <code>rememberInfiniteTransition</code> 都必须包在 <code>if (busy)</code> 里；复制/下载/加载结束即销毁。加载态用静态骨架，不用 shimmer。糊图区域不参与任何每帧动画（不做缓慢缩放/呼吸/视差）。</p>
+        <div class="why"><b>为什么：</b>无限动画会让帧钟一直转，哪怕没人读它的值；帧钟一转，整窗重画一遍。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 烘焙管线 ══════════ -->
+  <section class="section">
+    <h2>背板烘焙管线</h2>
+    <p class="sub">把"效果"改成"素材"：一次性完成，之后每帧只是把一张已经糊好的位图贴上去。</p>
+    <div class="pipe">
+      <div class="step"><b>① 进页 / 换页</b><span>拿到 <code>backdropUrl</code>；先铺纯底色 <code>#2C2C34</code>，用户不会看到空白。</span></div>
+      <div class="arrow2">→</div>
+      <div class="step"><b>② 低分辨率解码</b><span>按窗口短边 / 8 取采样尺寸（1440 宽 ≈ 180px），IO 线程解码。</span></div>
+      <div class="arrow2">→</div>
+      <div class="step"><b>③ 一次高斯</b><span>Skia <code>ImageFilter.makeBlur(σ=12)</code> 烘进位图；σ 只跟采样尺寸有关。</span></div>
+      <div class="arrow2">→</div>
+      <div class="step"><b>④ 缓存 + 贴图</b><span>按 <code>url+尺寸档+主题</code> 记住；之后每帧 <code>drawImage</code>，<b>0 次高斯</b>。</span></div>
+    </div>
+    <p class="pipe-note"><b>成本对比：</b>现在是一帧一次全窗 80dp 高斯（1768×1286，σ≈80dp×密度）；烘一次约 30–60ms，之后每次绘制只是一张 180px 位图放大贴满 —— 可以忽略不计。<b>不做的事：</b>不给背板做实时 <code>backdrop-filter</code>、不做缓慢呼吸缩放、不做随鼠标视差。</p>
+  </section>
+
+  <!-- ══════════ 改动清单 ══════════ -->
+  <section class="section">
+    <h2>UI 改动清单</h2>
+    <p class="sub">按"现状 → 方案"逐条对应。前三条是去线的结构改动，后五条是视觉与静置体验。</p>
+    <table>
+      <thead><tr><th style="width:150px">位置</th><th>现状</th><th>方案</th><th style="width:230px">收益</th></tr></thead>
+      <tbody>
+        <tr><td><b>背板</b></td><td class="old">全窗实时 80dp 高斯，每帧重算</td><td class="new">进页烘一张低分辨率位图，按 URL+尺寸+主题缓存</td><td>每帧成本从高斯降为一次贴图</td></tr>
+        <tr><td><b>顶栏</b></td><td class="old">46dp 实底；或自绘一份背板副本，与内容取景对不齐</td><td class="new">不再画实底，只压上沿 42% → 0 的渐变，保面包屑可读</td><td>y=46 的横线消失；顶栏和内容同一张图</td></tr>
+        <tr><td><b>内容槽</b></td><td class="old">壳给 24dp 左右内边距，槽外是另一块实底</td><td class="new">取消内容槽内边距；内边距由各内容块自己带，背板直达左右边缘</td><td>x=24 的竖线消失；窗口观感变宽</td></tr>
+        <tr><td><b>侧栏</b></td><td class="old">264/76dp 面板，右缘有底色分界</td><td class="new">详情页收成 64dp 图标轨：无底色、无分隔线，图标直接浮在背板上</td><td>少一条竖向边界，画布多出 200px</td></tr>
+        <tr><td><b>右栏</b></td><td class="old">一整块实底 + 浅色卡片，卡片和面板两层灰</td><td class="new">只留浮卡：16dp 圆角、1px 发丝边、投影，卡间露背板；半透明实底（alpha .58）</td><td>层次清楚，边是"看得出的边"</td></tr>
+        <tr><td><b>大图</b></td><td class="old">Fit 居中，四周大块空背板</td><td class="new">保持 Fit；加 12dp 圆角 + 1px 高光描边 + 外投影，四周留白读作空气</td><td>图有"摆上去"的实体感，不糊在背景里</td></tr>
+        <tr><td><b>动作条</b></td><td class="old">复制图标常驻无限旋转</td><td class="new">常驻但静止；只有进行中才转，结束即停；收藏/下载态用颜色与对勾</td><td>去掉常驻动画，静置帧钟停摆</td></tr>
+        <tr><td><b>加载态</b></td><td class="old">转圈 + shimmer 骨架</td><td class="new">静态骨架块（无动画）；超时给"重试"，不无限转</td><td>慢网也不烧帧</td></tr>
+        <tr><td><b>补齐入口</b></td><td class="old">只有两枚无名箭头；没有作品简介；评论只有一个"展开"</td><td class="new">两侧常显「上一张 / 下一张」标签钮；简介进作品头卡（两行 + 展开）；评论卡带输入框与「发送」</td><td>详情页该有的信息与动作都留在原地</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ══════════ 令牌 ══════════ -->
+  <section class="section">
+    <h2>令牌与尺寸</h2>
+    <p class="sub">全部走既有 token，不新增色值；浅色档只换底与 ink，结构完全一致。</p>
+    <div class="tokens">
+      <div class="token-box">
+        <h3>颜色（深色档）</h3>
+        <div class="swatches">
+          <span class="sw"><i style="background:#2C2C34"></i>背板底 <code>#2C2C34</code></span>
+          <span class="sw"><i style="background:rgba(255,255,255,.05)"></i>提亮罩 <code>white 5%</code></span>
+          <span class="sw"><i style="background:rgba(15,16,21,.66)"></i>浮卡 <code>#0F1015 · 66%</code></span>
+          <span class="sw"><i style="background:rgba(255,255,255,.08)"></i>发丝边 <code>white 8%</code></span>
+          <span class="sw"><i style="background:#8B7DF7"></i>强调 <code>#8B7DF7</code></span>
+          <span class="sw"><i style="background:#F2F3F7"></i>主字 <code>#F2F3F7</code></span>
+          <span class="sw"><i style="background:#B9BCC8"></i>次字 <code>#B9BCC8</code></span>
+          <span class="sw"><i style="background:#8A8E9C"></i>三字 <code>#8A8E9C</code></span>
+        </div>
+      </div>
+      <div class="token-box">
+        <h3>尺寸 / 动效</h3>
+        <div class="facts" style="grid-template-columns:1fr 1fr 1fr">
+          <div>顶栏<b>46 dp</b></div>
+          <div>图标轨<b>64 dp</b></div>
+          <div>右栏卡<b>392 dp</b></div>
+          <div>卡圆角<b>16 dp</b></div>
+          <div>图圆角<b>12 dp</b></div>
+          <div>卡间距<b>12 dp</b></div>
+          <div>窗内边距<b>16 dp</b></div>
+          <div>动效上限<b>240 ms</b></div>
+          <div>常驻动画<b>0 条</b></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 保留能力 ══════════ -->
+  <section class="section">
+    <h2>保留能力（一项不少）</h2>
+    <p class="sub">改的是表面与重绘，不动数据与交互。</p>
+    <div class="checklist">
+      <div class="check"><span class="box"></span><span>左右翻页、页码、多页缩略图条</span></div>
+      <div class="check"><span class="box"></span><span>原图档切换与"先大图占位、原图到了再淡入"</span></div>
+      <div class="check"><span class="box"></span><span>收藏 / 下载 / 复制 / 分享四个动作及回执态</span></div>
+      <div class="check"><span class="box"></span><span>标签点击搜索、右键复制原文/译名</span></div>
+      <div class="check"><span class="box"></span><span>相关作品网格与点击跳转</span></div>
+      <div class="check"><span class="box"></span><span>返回、Esc、Alt+←、鼠标侧键</span></div>
+      <div class="check"><span class="box"></span><span>ugoira 动图播放（仅动图时逐帧，可暂停）</span></div>
+      <div class="check"><span class="box"></span><span>浅色实验档（同结构，仅换底与字色）</span></div>
+      <div class="check"><span class="box"></span><span>上一张 / 下一张（常显标签钮，不靠悬停才出现）</span></div>
+      <div class="check"><span class="box"></span><span>作品简介（两行 + 展开）</span></div>
+      <div class="check"><span class="box"></span><span>评论输入、发送与「查看全部」</span></div>
+    </div>
+  </section>
+
+  <!-- ══════════ 验收 ══════════ -->
+  <section class="section">
+    <h2>验收标准</h2>
+    <div class="checklist">
+      <div class="check"><span class="box"></span><span><b>静置 30s</b>：任务管理器 GPU &lt; 1%，CPU &lt; 1%（当前 8.1% / 6.5%）</span></div>
+      <div class="check"><span class="box"></span><span><b>无线</b>：窗左沿、顶栏下沿、右栏左缘截图逐像素无台阶</span></div>
+      <div class="check"><span class="box"></span><span><b>换图</b>：新背板 ≤ 120ms 上屏，期间只有纯底色，不闪黑</span></div>
+      <div class="check"><span class="box"></span><span><b>resize</b>：1440 / 1920 / 2560 三档来回拖，背板不拉伸变形、不出现缝</span></div>
+      <div class="check"><span class="box"></span><span><b>动画</b>：暂停后 1s 内画面完全静止；无任何元素继续动</span></div>
+      <div class="check"><span class="box"></span><span><b>两档皮肤</b>：深/浅各出一张截图对照</span></div>
+    </div>
+  </section>
+
+  <!-- ══════════ 分期 ══════════ -->
+  <section class="section">
+    <h2>实施分期</h2>
+    <div class="phases">
+      <div class="phase">
+        <div class="p">P0 · 先把占用打下来</div>
+        <h3>渲染契约</h3>
+        <ul>
+          <li>动画按 busy 创建（复制图标、卡片药丸）</li>
+          <li>背板改烘焙位图 + 缓存</li>
+          <li>顶栏/内容槽让开，单一表面</li>
+        </ul>
+        <div class="out">验：静置 GPU &lt; 1%，两条线消失</div>
+      </div>
+      <div class="phase">
+        <div class="p">P1 · 再把页面做漂亮</div>
+        <h3>浮卡化</h3>
+        <ul>
+          <li>右栏改浮卡 + 16dp 圆角 + 发丝边</li>
+          <li>侧轨收成 64dp 无底色图标轨</li>
+          <li>画布留白与动作条重排</li>
+        </ul>
+        <div class="out">验：1440 宽下画布 ≥ 900px，右栏不挤</div>
+      </div>
+      <div class="phase">
+        <div class="p">P2 · 打磨</div>
+        <h3>加载与细节</h3>
+        <ul>
+          <li>静态骨架替换 shimmer</li>
+          <li>相关作品 preview 尺寸 + 三列</li>
+          <li>浅色档对照、窗口 resize 档位</li>
+        </ul>
+        <div class="out">验：慢网/失败/超时三态都有出口</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>方案稿 · 2026-11-18</span>
+    <span>待确认后按 P0 → P1 → P2 实施</span>
+    <span>实施前不改任何代码</span>
+  </footer>
+</div>
+
+<script>
+  // 舞台等比缩放
+  const wrap = document.getElementById('stageWrap');
+  const win = document.getElementById('win');
+  function fit(){
+    const s = Math.min(1, wrap.clientWidth / 1440);
+    win.style.transform = 'scale(' + s + ')';
+    wrap.style.height = (900 * s) + 'px';
+  }
+  fit();
+  window.addEventListener('resize', fit);
+
+  // 视图切换
+  document.getElementById('seg').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-view]');
+    if (!btn) return;
+    document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('on', b === btn));
+    win.dataset.view = btn.dataset.view;
+  });
+
+  // 标注开关
+  document.getElementById('annoToggle').addEventListener('change', e => {
+    win.classList.toggle('show-anno', e.target.checked);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-zcode-design>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B2-a 画廊感注入 · 承托物三选 · app-icon-redesign-2026-11-20</title>
+<style>
+:root {
+  --accent: #0A63F6;
+  --ink: #E8EDF6;
+  --ink-dim: #9AA7BC;
+  --bg: #12151C;
+  --card: #1A1F29;
+  --card-edge: #2A3242;
+  --chip-dark: #1F1F1F;
+  --chip-light: #F5F5F5;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+  padding: 48px 40px 80px; max-width: 1180px; margin: 0 auto;
+}
+header h1 { font-size: 26px; font-weight: 700; letter-spacing: 1px; }
+header .sub { color: var(--ink-dim); font-size: 14px; margin-top: 10px; line-height: 1.8; }
+.badge { display: inline-block; font-size: 12px; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 2px 12px; margin-bottom: 14px; }
+.clarify { margin-top: 36px; background: var(--card); border: 1px solid var(--card-edge); border-radius: 16px; padding: 24px 26px; }
+.clarify h2 { font-size: 16px; font-weight: 600; }
+.clarify ul { list-style: none; margin-top: 10px; }
+.clarify li { font-size: 13px; color: var(--ink-dim); line-height: 1.9; padding-left: 18px; position: relative; }
+.clarify li::before { content: ""; position: absolute; left: 0; top: 11px; width: 6px; height: 6px; border-radius: 2px; background: var(--accent); }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; margin-top: 22px; }
+@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } body { padding: 32px 20px 60px; } .card .stage { flex-wrap: wrap; } }
+.group { margin-top: 44px; }
+.group-title { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--card-edge); padding-bottom: 12px; }
+.group-title .no { font-size: 13px; color: var(--accent); font-weight: 700; letter-spacing: 2px; }
+.group-title h2 { font-size: 19px; font-weight: 600; }
+.group-title .desc { font-size: 13px; color: var(--ink-dim); }
+.card { background: var(--card); border: 1px solid var(--card-edge); border-radius: 16px; padding: 24px; }
+.card .stage { display: flex; align-items: center; gap: 24px; }
+.card .stage .big { filter: drop-shadow(0 10px 24px rgba(0,0,0,.45)); }
+.card .ladder { display: flex; align-items: flex-end; gap: 18px; color: var(--ink-dim); font-size: 11px; text-align: center; }
+.card .ladder .cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.card h3 { font-size: 16px; font-weight: 600; margin-top: 18px; }
+.card h3 .tag { font-size: 12px; color: var(--accent); margin-right: 8px; font-weight: 700; }
+.card p { font-size: 13px; color: var(--ink-dim); line-height: 1.75; margin-top: 6px; }
+.card p b { color: var(--ink); font-weight: 600; }
+.card p .warn { color: #E8B34B; }
+.dock { margin-top: 16px; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 18px; }
+.dock.dark { background: var(--chip-dark); }
+.dock.light { background: var(--chip-light); }
+.dock .label { font-size: 11px; width: 52px; flex: none; }
+.dock.dark .label { color: #7A808C; }
+.dock.light .label { color: #8A8F98; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="gA" x1="0" y1="0" x2="0.55" y2="1">
+      <stop offset="0" stop-color="#66A6FF"/>
+      <stop offset="0.45" stop-color="#0A55F0"/>
+      <stop offset="1" stop-color="#0738C8"/>
+    </linearGradient>
+    <radialGradient id="gGlow" cx="0.5" cy="0.28" r="0.75">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.20"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="board"><rect x="0" y="0" width="512" height="512" rx="116"/></clipPath>
+  </defs>
+
+  <!-- P3 画架：V 即画架两腿，画布嵌在开口，托杆横梁 -->
+  <symbol id="ic-p3" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="116" fill="url(#gA)"/>
+    <rect width="512" height="512" rx="116" fill="url(#gGlow)"/>
+    <g clip-path="url(#board)">
+      <path d="M156 200 L256 396 L356 200" fill="none" stroke="#FFFFFF" stroke-width="80" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="186" y="176" width="140" height="108" rx="16" fill="#FFFFFF"/>
+      <path d="M200 262 Q256 240 312 262" stroke="#A9CCFF" stroke-width="14" stroke-linecap="round" fill="none"/>
+      <circle cx="300" cy="212" r="15" fill="#6E9BFF"/>
+      <path d="M216 296 L296 296" stroke="#FFFFFF" stroke-width="22" stroke-linecap="round"/>
+    </g>
+  </symbol>
+
+  <!-- P2 照片堆：V 瘦笔立于两张错层照片卡上 -->
+  <symbol id="ic-p2" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="116" fill="url(#gA)"/>
+    <rect width="512" height="512" rx="116" fill="url(#gGlow)"/>
+    <g clip-path="url(#board)">
+      <path d="M160 190 L256 380 L352 190" fill="none" stroke="#FFFFFF" stroke-width="62" stroke-linecap="round" stroke-linejoin="round"/>
+      <g transform="rotate(-7 185 428)"><rect x="110" y="380" width="150" height="96" rx="16" fill="#BFD9FF"/></g>
+      <g transform="rotate(6 290 442)"><rect x="210" y="392" width="160" height="100" rx="16" fill="#FFFFFF"/></g>
+      <path d="M236 458 Q290 438 344 458" stroke="#A9CCFF" stroke-width="12" stroke-linecap="round" fill="none"/>
+      <circle cx="322" cy="424" r="11" fill="#6E9BFF"/>
+    </g>
+  </symbol>
+
+  <!-- P5 画框：V 立于横扁画框后，尖没入框内 —— 画廊直给 -->
+  <symbol id="ic-p5" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="116" fill="url(#gA)"/>
+    <rect width="512" height="512" rx="116" fill="url(#gGlow)"/>
+    <g clip-path="url(#board)">
+      <path d="M150 170 L256 372 L362 170" fill="none" stroke="#FFFFFF" stroke-width="72" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="110" y="392" width="292" height="80" rx="24" fill="none" stroke="#FFFFFF" stroke-width="30"/>
+    </g>
+  </symbol>
+
+  <!-- 对照：书版 M3 -->
+  <symbol id="ic-m3-book" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="116" fill="url(#gA)"/>
+    <rect width="512" height="512" rx="116" fill="url(#gGlow)"/>
+    <g clip-path="url(#board)">
+      <path d="M150 186 L256 388 L362 186" fill="none" stroke="#FFFFFF" stroke-width="84" stroke-linecap="round" stroke-linejoin="round"/>
+      <path fill="#FFFFFF" d="M256 394 C242 368 210 350 168 345 C128 341 96 350 76 366 C64 376 62 390 72 400 C82 410 100 408 112 400 C150 386 200 396 256 428 Z"/>
+      <path fill="#FFFFFF" d="M256 394 C270 368 302 350 344 345 C384 341 416 350 436 366 C448 376 450 390 440 400 C430 410 412 408 400 400 C362 386 312 396 256 428 Z"/>
+      <path fill="#BFD9FF" d="M110 408 C160 398 210 404 256 432 C302 404 352 398 402 408 L402 424 C352 414 302 418 256 444 C210 418 160 414 110 424 Z"/>
+      <rect x="246" y="380" width="20" height="56" rx="9" fill="#0738C8" opacity="0.85"/>
+    </g>
+  </symbol>
+</svg>
+
+<header>
+  <span class="badge">阶段 A · 画廊感注入 · 承托物三选 · 待批</span>
+  <h1>B2-a 注入画廊感</h1>
+  <p class="sub">问题成立：书是"阅读"意象，可本仓主体是<b>画廊</b>。骨架不动（蓝渐变 + 圆笔白 V），只换底部承托物/周边意象 —— 书退场，三个画廊系候选上位。判据照旧：<b>16px 清晰</b>，画廊感这轮先看气质、再过小尺寸。</p>
+</header>
+
+<section class="clarify">
+  <h2>三个画廊意象</h2>
+  <ul>
+    <li><b>画架</b> —— V 一物两读：字母是 V，构图是画架两腿，开口嵌一幅小画。画廊 + venera 双关，最巧</li>
+    <li><b>照片堆</b> —— 两张错层照片卡承着 V：图库收藏的味道，最贴"攒了满满一墙图"的日常</li>
+    <li><b>画框</b> —— V 立在横扁画框后，尖没入框内：画廊直给，语义最浅也最稳</li>
+  </ul>
+</section>
+
+<section class="group">
+  <div class="group-title"><span class="no">P</span><h2>承托物三选</h2><span class="desc">骨架同源，意象分叉</span></div>
+  <div class="grid">
+    <div class="card" data-variant="P3">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-p3"/></svg>
+        <div class="ladder">
+          <span class="cell"><svg width="48" height="48"><use href="#ic-p3"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-p3"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-p3"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-p3"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">P3</span>画架承画</h3>
+      <p>V 即画架：两腿叉地、托杆横梁、开口嵌一幅小画（地平弧 + 一轮日）。<b>一物两读，画廊与 venera 双关</b>。16px 时画布内容退化为白块上一粒蓝点，画架仍可辨。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-p3"/></svg><svg width="24" height="24"><use href="#ic-p3"/></svg><svg width="32" height="32"><use href="#ic-p3"/></svg><svg width="48" height="48"><use href="#ic-p3"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-p3"/></svg><svg width="24" height="24"><use href="#ic-p3"/></svg><svg width="32" height="32"><use href="#ic-p3"/></svg><svg width="48" height="48"><use href="#ic-p3"/></svg></div>
+    </div>
+    <div class="card" data-variant="P2">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-p2"/></svg>
+        <div class="ladder">
+          <span class="cell"><svg width="48" height="48"><use href="#ic-p2"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-p2"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-p2"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-p2"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">P2</span>照片堆</h3>
+      <p>一蓝一白两张照片错层斜叠，白卡承住 V 尖，卡面留一小景（弧 + 点）。<b>收藏图库的味道最浓</b>；斜卡增加了活泼感，但 16px 下卡堆与 V 略挤。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-p2"/></svg><svg width="24" height="24"><use href="#ic-p2"/></svg><svg width="32" height="32"><use href="#ic-p2"/></svg><svg width="48" height="48"><use href="#ic-p2"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-p2"/></svg><svg width="24" height="24"><use href="#ic-p2"/></svg><svg width="32" height="32"><use href="#ic-p2"/></svg><svg width="48" height="48"><use href="#ic-p2"/></svg></div>
+    </div>
+    <div class="card" data-variant="P5">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-p5"/></svg>
+        <div class="ladder">
+          <span class="cell"><svg width="48" height="48"><use href="#ic-p5"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-p5"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-p5"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-p5"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">P5</span>画框装裱</h3>
+      <p>V 立于横扁画框后，尖没入框内 —— <b>被画廊装裱的 V</b>，语义最直白。 <span class="warn">诚实标注：线框 30px 在 16px 时缩到不足 1px，框几乎隐没，此案小尺寸只靠 V 主体撑。</span></p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-p5"/></svg><svg width="24" height="24"><use href="#ic-p5"/></svg><svg width="32" height="32"><use href="#ic-p5"/></svg><svg width="48" height="48"><use href="#ic-p5"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-p5"/></svg><svg width="24" height="24"><use href="#ic-p5"/></svg><svg width="32" height="32"><use href="#ic-p5"/></svg><svg width="48" height="48"><use href="#ic-p5"/></svg></div>
+    </div>
+    <div class="card" data-variant="book-ref">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-m3-book"/></svg>
+        <div class="ladder">
+          <span class="cell"><svg width="48" height="48"><use href="#ic-m3-book"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-m3-book"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-m3-book"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-m3-book"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">对照</span>书版（上轮 M3）</h3>
+      <p>阅读意象版，留作对照 —— 主人指出的问题就在它：书只讲"读"，不讲"画廊"。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-m3-book"/></svg><svg width="24" height="24"><use href="#ic-m3-book"/></svg><svg width="32" height="32"><use href="#ic-m3-book"/></svg><svg width="48" height="48"><use href="#ic-m3-book"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-m3-book"/></svg><svg width="24" height="24"><use href="#ic-m3-book"/></svg><svg width="32" height="32"><use href="#ic-m3-book"/></svg><svg width="48" height="48"><use href="#ic-m3-book"/></svg></div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

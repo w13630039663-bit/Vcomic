@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-zcode-design>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B2 开卷承字 · 优化轮 · app-icon-redesign-2026-11-20</title>
+<style>
+:root {
+  --accent: #0A63F6;
+  --ink: #E8EDF6;
+  --ink-dim: #9AA7BC;
+  --bg: #12151C;
+  --card: #1A1F29;
+  --card-edge: #2A3242;
+  --chip-dark: #1F1F1F;
+  --chip-light: #F5F5F5;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+  padding: 48px 40px 80px; max-width: 1180px; margin: 0 auto;
+}
+header h1 { font-size: 26px; font-weight: 700; letter-spacing: 1px; }
+header .sub { color: var(--ink-dim); font-size: 14px; margin-top: 10px; line-height: 1.8; }
+.badge { display: inline-block; font-size: 12px; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 2px 12px; margin-bottom: 14px; }
+.diag { margin-top: 36px; background: var(--card); border: 1px solid var(--card-edge); border-radius: 16px; padding: 24px 26px; }
+.diag h2 { font-size: 16px; font-weight: 600; }
+.diag ul { list-style: none; margin-top: 10px; }
+.diag li { font-size: 13px; color: var(--ink-dim); line-height: 1.9; padding-left: 18px; position: relative; }
+.diag li::before { content: ""; position: absolute; left: 0; top: 11px; width: 6px; height: 6px; border-radius: 2px; background: var(--accent); }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; margin-top: 22px; }
+@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } body { padding: 32px 20px 60px; } .card .stage { flex-wrap: wrap; } }
+.group { margin-top: 44px; }
+.group-title { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--card-edge); padding-bottom: 12px; }
+.group-title .no { font-size: 13px; color: var(--accent); font-weight: 700; letter-spacing: 2px; }
+.group-title h2 { font-size: 19px; font-weight: 600; }
+.group-title .desc { font-size: 13px; color: var(--ink-dim); }
+.card { background: var(--card); border: 1px solid var(--card-edge); border-radius: 16px; padding: 24px; }
+.card .stage { display: flex; align-items: center; gap: 26px; }
+.card .stage .big { filter: drop-shadow(0 10px 24px rgba(0,0,0,.45)); }
+.card .ladder { display: flex; align-items: flex-end; gap: 18px; color: var(--ink-dim); font-size: 11px; text-align: center; }
+.card .ladder .cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.card h3 { font-size: 16px; font-weight: 600; margin-top: 18px; }
+.card h3 .tag { font-size: 12px; color: var(--accent); margin-right: 8px; font-weight: 700; }
+.card p { font-size: 13px; color: var(--ink-dim); line-height: 1.75; margin-top: 6px; }
+.card p b { color: var(--ink); font-weight: 600; }
+.dock { margin-top: 16px; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 18px; }
+.dock.dark { background: var(--chip-dark); }
+.dock.light { background: var(--chip-light); }
+.dock .label { font-size: 11px; width: 52px; flex: none; }
+.dock.dark .label { color: #7A808C; }
+.dock.light .label { color: #8A8F98; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="gA" x1="0" y1="0" x2="0.55" y2="1">
+      <stop offset="0" stop-color="#66A6FF"/>
+      <stop offset="0.45" stop-color="#0A55F0"/>
+      <stop offset="1" stop-color="#0738C8"/>
+    </linearGradient>
+    <radialGradient id="gGlow" cx="0.5" cy="0.28" r="0.75">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.20"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="board"><rect x="0" y="0" width="512" height="512" rx="116"/></clipPath>
+  </defs>
+
+  <!-- 原版对照 -->
+  <symbol id="ic-b2-orig" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="116" fill="url(#gA)"/>
+    <rect width="512" height="512" rx="116" fill="url(#gGlow)"/>
+    <g clip-path="url(#board)">
+      <path d="M92 128 L188 128 L256 330 L324 128 L420 128 L298 408 L214 408 Z" fill="#FFFFFF"/>
+      <path d="M84 376 C150 346 216 350 254 384 L254 436 C216 404 150 400 84 428 Z" fill="#FFFFFF"/>
+      <path d="M428 376 C362 346 298 350 260 384 L260 436 C298 404 362 400 428 428 Z" fill="#DCE8FF"/>
+      <rect x="254" y="384" width="6" height="52" fill="#0A55F0" opacity="0.55"/>
+    </g>
+  </symbol>
+
+  <!-- B2-a 厚书承尖：书页起翘加厚，双层页缘，中缝楔形刻深，V 尖底经典化 -->
+  <symbol id="ic-b2a" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="116" fill="url(#gA)"/>
+    <rect width="512" height="512" rx="116" fill="url(#gGlow)"/>
+    <g clip-path="url(#board)">
+      <path d="M104 128 L196 128 L256 328 L314 128 L408 128 L256 408 Z" fill="#FFFFFF"/>
+      <path d="M256 400 C236 372 200 356 150 354 C110 353 84 362 66 376 L66 398 C110 382 180 392 256 424 Z" fill="#FFFFFF"/>
+      <path d="M256 400 C276 372 312 356 362 354 C402 353 428 362 446 376 L446 398 C402 382 332 392 256 424 Z" fill="#FFFFFF"/>
+      <path d="M256 424 C200 400 140 396 92 408 L92 426 C150 412 208 416 256 440 Z" fill="#BFD9FF"/>
+      <path d="M256 424 C312 400 372 396 420 408 L420 426 C362 412 304 416 256 440 Z" fill="#BFD9FF"/>
+      <path d="M246 384 L266 384 L262 436 L250 436 Z" fill="#0738C8" opacity="0.8"/>
+    </g>
+  </symbol>
+
+  <!-- B2-b 翻页进行时：左页平摊承尖，右页大幅翻扬，不对称动势 -->
+  <symbol id="ic-b2b" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="116" fill="url(#gA)"/>
+    <rect width="512" height="512" rx="116" fill="url(#gGlow)"/>
+    <g clip-path="url(#board)">
+      <path d="M104 116 L196 116 L256 316 L314 116 L408 116 L256 392 Z" fill="#FFFFFF"/>
+      <path d="M256 384 C286 342 336 306 398 296 C430 291 448 304 444 324 C438 352 398 372 352 382 C318 389 284 392 256 384 Z" fill="#C9DCFF"/>
+      <path d="M256 384 C284 340 332 306 392 298" stroke="#FFFFFF" stroke-width="6" opacity="0.6" fill="none"/>
+      <path d="M256 384 C222 360 152 350 78 366 L78 400 C152 388 222 396 256 420 Z" fill="#FFFFFF"/>
+      <path d="M256 420 C204 402 148 398 100 408 L100 424 C156 414 212 416 256 434 Z" fill="#BFD9FF"/>
+      <path d="M248 372 L264 372 L262 428 L250 428 Z" fill="#0738C8" opacity="0.8"/>
+    </g>
+  </symbol>
+
+  <!-- B2-c 宽台轻点：书横铺近满幅三层阶梯，V 窄化轻点书脊 -->
+  <symbol id="ic-b2c" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="116" fill="url(#gA)"/>
+    <rect width="512" height="512" rx="116" fill="url(#gGlow)"/>
+    <g clip-path="url(#board)">
+      <path d="M118 120 L204 120 L256 306 L308 120 L394 120 L256 396 Z" fill="#FFFFFF"/>
+      <path d="M256 392 C210 364 140 356 60 372 L60 396 C140 380 210 388 256 414 Z" fill="#FFFFFF"/>
+      <path d="M256 392 C302 364 372 356 452 372 L452 396 C372 380 302 388 256 414 Z" fill="#FFFFFF"/>
+      <path d="M256 414 C210 394 150 388 88 398 L88 412 C156 402 214 406 256 426 Z" fill="#BFD9FF"/>
+      <path d="M256 414 C302 394 362 388 424 398 L424 412 C356 402 298 406 256 426 Z" fill="#BFD9FF"/>
+      <path d="M120 430 C180 420 230 424 256 434 C282 424 332 420 392 430 C332 428 282 432 256 442 C230 432 180 428 120 430 Z" fill="#8FB0F0" opacity="0.9"/>
+      <path d="M248 390 L264 390 L258 440 L252 440 Z" fill="#0738C8" opacity="0.75"/>
+    </g>
+  </symbol>
+</svg>
+
+<header>
+  <span class="badge">阶段 A · 优化轮 · B2 方向 · 待批</span>
+  <h1>B2「开卷承字」优化稿</h1>
+  <p class="sub">主人已定 B2 方向。本轮三个变体各治一个弱点，判据不变：<b>16px 下 V 清晰</b>，另加一条：<b>32px 下要读得出"书"</b>。</p>
+</header>
+
+<section class="diag">
+  <h2>原版 B2 的三个病</h2>
+  <ul>
+    <li>书页太扁太平，弧度不足 —— 大尺寸下读作两道弧线，读不出书</li>
+    <li>中缝只有 6px 细条 —— "对开"结构感缺失</li>
+    <li>V 是梯形平底，尖没入书缝的边界含糊 —— "承"字逻辑立不住</li>
+  </ul>
+</section>
+
+<section class="group">
+  <div class="group-title"><span class="no">R</span><h2>优化变体</h2><span class="desc">同一方向，三种解法</span></div>
+  <div class="grid">
+    <div class="card" data-variant="B2-a">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-b2a"/></svg>
+        <div class="ladder">
+          <span class="cell"><svg width="64" height="64"><use href="#ic-b2a"/></svg>64</span>
+          <span class="cell"><svg width="48" height="48"><use href="#ic-b2a"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-b2a"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-b2a"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-b2a"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">B2-a</span>厚书承尖</h3>
+      <p><b>治"书不像书"。</b>保留原构图逻辑：页端上翘 24px、页厚加到 22px、下层再垫一叠淡蓝页、中缝改楔形深蓝。V 改经典尖底，尖端没入书缝。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-b2a"/></svg><svg width="24" height="24"><use href="#ic-b2a"/></svg><svg width="32" height="32"><use href="#ic-b2a"/></svg><svg width="48" height="48"><use href="#ic-b2a"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-b2a"/></svg><svg width="24" height="24"><use href="#ic-b2a"/></svg><svg width="32" height="32"><use href="#ic-b2a"/></svg><svg width="48" height="48"><use href="#ic-b2a"/></svg></div>
+    </div>
+    <div class="card" data-variant="B2-b">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-b2b"/></svg>
+        <div class="ladder">
+          <span class="cell"><svg width="64" height="64"><use href="#ic-b2b"/></svg>64</span>
+          <span class="cell"><svg width="48" height="48"><use href="#ic-b2b"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-b2b"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-b2b"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-b2b"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">B2-b</span>翻页进行时</h3>
+      <p><b>治"构图太静"。</b>不对称：左页平摊承住 V 尖，右页大幅向右上翻扬，页背淡蓝+内缘白描。阅读"进行中"的动感最强，代价是 16px 下右页退化成一块亮斑。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-b2b"/></svg><svg width="24" height="24"><use href="#ic-b2b"/></svg><svg width="32" height="32"><use href="#ic-b2b"/></svg><svg width="48" height="48"><use href="#ic-b2b"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-b2b"/></svg><svg width="24" height="24"><use href="#ic-b2b"/></svg><svg width="32" height="32"><use href="#ic-b2b"/></svg><svg width="48" height="48"><use href="#ic-b2b"/></svg></div>
+    </div>
+    <div class="card" data-variant="B2-c">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-b2c"/></svg>
+        <div class="ladder">
+          <span class="cell"><svg width="64" height="64"><use href="#ic-b2c"/></svg>64</span>
+          <span class="cell"><svg width="48" height="48"><use href="#ic-b2c"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-b2c"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-b2c"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-b2c"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">B2-c</span>宽台轻点</h3>
+      <p><b>治"重心失衡"。</b>书横铺近满幅成"台"，白页+淡蓝页缘+封底弧三层阶梯；V 窄化、底尖轻点书脊，只入缝 4px，接触明确不糊边。三案中最稳、图库气质最足。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-b2c"/></svg><svg width="24" height="24"><use href="#ic-b2c"/></svg><svg width="32" height="32"><use href="#ic-b2c"/></svg><svg width="48" height="48"><use href="#ic-b2c"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-b2c"/></svg><svg width="24" height="24"><use href="#ic-b2c"/></svg><svg width="32" height="32"><use href="#ic-b2c"/></svg><svg width="48" height="48"><use href="#ic-b2c"/></svg></div>
+    </div>
+    <div class="card" data-variant="B2-orig">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-b2-orig"/></svg>
+        <div class="ladder">
+          <span class="cell"><svg width="64" height="64"><use href="#ic-b2-orig"/></svg>64</span>
+          <span class="cell"><svg width="48" height="48"><use href="#ic-b2-orig"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-b2-orig"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-b2-orig"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-b2-orig"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">原版</span>开卷承字（对照）</h3>
+      <p>第一轮原案，留作对照。病如上：书扁、缝细、V 平底。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-b2-orig"/></svg><svg width="24" height="24"><use href="#ic-b2-orig"/></svg><svg width="32" height="32"><use href="#ic-b2-orig"/></svg><svg width="48" height="48"><use href="#ic-b2-orig"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-b2-orig"/></svg><svg width="24" height="24"><use href="#ic-b2-orig"/></svg><svg width="32" height="32"><use href="#ic-b2-orig"/></svg><svg width="48" height="48"><use href="#ic-b2-orig"/></svg></div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

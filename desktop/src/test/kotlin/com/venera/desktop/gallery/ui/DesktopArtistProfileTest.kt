@@ -1,0 +1,297 @@
+package com.venera.desktop.gallery.ui
+
+import com.venera.compose.gallery.data.GalleryPost
+import com.venera.compose.gallery.data.GallerySite
+import com.venera.compose.gallery.domain.GalleryRanking
+import com.venera.compose.gallery.domain.GalleryRankings
+import com.venera.compose.gallery.domain.GallerySearchMerge
+import com.venera.compose.gallery.domain.GalleryTagFilter
+import java.io.File
+import java.time.LocalDate
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * 桌面 批 19 · 画师单人页的尺子。
+ *
+ * 两条主线：① **口径不许多造一条**（查询串、18 那张预算都得是对岸的）；
+ * ② **这一屏是单腿的**，所以任何"三站"式的整块措辞都不许出现在它身上。
+ */
+class DesktopArtistProfileTest {
+
+    private val uiDir = File(DesktopSourceTree.repoRoot, "desktop/src/main/kotlin/com/venera/desktop/gallery/ui")
+    private val today = LocalDate.of(2026, 10, 7)
+    private val target = DesktopArtistTarget(GallerySite.YANDERE, "kiki")
+
+    private fun code(name: String): String = DesktopSourceTree.codeText(DesktopSourceTree.desktopUiSource(name))
+
+    /** ① 查询串整颗转交对岸，桌面一手都不写。 */
+    @Test
+    fun 查询串不许桌面自拼() {
+        val policy = code("DesktopArtistProfilePolicy.kt")
+        assertTrue("算式没转交对岸那颗：" + policy.contains("GalleryRankings.searchQuery("), policy.contains("GalleryRankings.searchQuery("))
+        // 站方后缀是对岸那一处钉着的，桌面这边出现它的字面量就是"手抄了一份"。
+        listOf("order:score", "sort:score:desc", "date:").forEach { suffix ->
+            assertEquals("桌面这边自己写了 $suffix", 0, policy.split(suffix).size - 1)
+        }
+    }
+
+    /** ② 真跑：与对岸算式同参调用必须逐字相等，而排序后缀真的带上了。 */
+    @Test
+    fun 查询串与对岸算式逐字相等() {
+        // 逐站走的是**桌面接了线的那几站**（[DESKTOP_GALLERY_SITES]），不摊枚举全集：
+        // pixiv进了枚举但桌面不接它，而画师页那把尺要算排序后缀 ——
+        // `GalleryRanking.suffix(PIXIV)` 现在交的是"没接线"那句抛（不是 else 悄悄回 yande.re 那串）。
+        DESKTOP_GALLERY_SITES.forEach { site ->
+            val t = DesktopArtistTarget(site, "kiki")
+            val mine = desktopArtistProfileQuery(t, today)
+            val theirs = GalleryRankings.searchQuery(
+                site = site,
+                filters = listOf(GalleryTagFilter("kiki")),
+                ranking = GalleryRanking.ALL,
+                anchor = null,
+                todayUtc = today,
+            )
+            assertEquals("${site.displayName} 的查询串与对岸算式不一样", theirs, mine)
+            assertTrue("查询串里丢了标签名：$mine", mine.contains("kiki"))
+        }
+        val all = DESKTOP_GALLERY_SITES.map { desktopArtistProfileQuery(DesktopArtistTarget(it, "kiki"), today) }
+        assertTrue("三站里没有一站带 order:score：$all", all.any { it.contains("order:score") })
+        assertTrue("三站里没有一站带 sort:score:desc：$all", all.any { it.contains("sort:score:desc") })
+    }
+
+    /** ③ 一次取几张不是桌面造的数字。 */
+
+    /** ④ 单腿形状：这一屏不许念"三站"，也不许多收一枚站点。 */
+    @Test
+    fun 单人页是单腿的所以不许念三站() {
+        // ⚠️ 扫**代码行**：类注释里"这一屏不念三站那套词"这句话本身就该出现（它是口径），
+        // 而违例的形状是**代码或屏上文案**里真把一站说成三站。
+        listOf("DesktopArtistProfilePolicy.kt", "DesktopArtistProfilePane.kt").forEach { name ->
+            val text = code(name)
+            assertEquals("$name 的代码或屏上文案里出现了「三站」", 0, text.split("三站").size - 1)
+        }
+        assertEquals(
+            "目的地多带了别的东西（它只能是一站 + 一个名字）",
+            2,
+            // 钉**构造器参数数**而不是字段数：`::class.members` 要 kotlin-reflect（桌面测试的 classpath 上没有，
+            // 第一版在那里直接抛 KotlinReflectionNotSupportedError —— 判据自己炸掉不是判据红），
+            // 而 `declaredFields` 会连编译器自己生成的那枚一起数进来（实测数出 3）。
+            DesktopArtistTarget::class.java.constructors.single().parameterCount,
+        )
+    }
+
+    /** ⑤ 三句话各一句：发了没答上 / 答上了零张 / 整条链出事，不许塌成一句沉默。 */
+    /** ⑥ 名单那一行的箭头真有目的地了，屏上"没有单人页"那句随上架一起下架。 */
+    /** ⑦ 别名那一层今天不在这条路上：零张时不猜、不换名重搜。 */
+    @Test
+    fun 零张时不自动换别名重搜() {
+        // 同样只看代码行：类注释里点名"别名这一层今天不在这条路上"是要的（§12 一号原则要求缺席点名）。
+        listOf("DesktopArtistProfilePolicy.kt", "DesktopArtistProfilePane.kt").forEach { name ->
+            val text = code(name)
+            listOf("别名", "alias", "Alias").forEach { word ->
+                assertEquals("$name 的取数那一路掺进了 $word（批次 J 今天不在这屏做）", 0, text.split(word).size - 1)
+            }
+        }
+        // 校验桌面画师页刻意不接入别名重搜边界，若后续接入须同步更新禁用列表。
+        val named = DesktopSourceTree.desktopMainSources()
+            .flatMap { file -> DesktopSourceTree.codeLinesOf(file).filter { it.contains("GalleryArtistAlias") } }
+        assertTrue("对照失效：`GalleryArtistAlias` 那颗件不在桌面树里了（那这一条禁串就是恒真装饰）", named.isNotEmpty())
+    }
+
+    /**
+     * ⑧ 墙是现成那颗，而且不许被包进纵向滚动（整屏崩那两条不变式之一）。
+     *
+     * ⚠️ 这一条从前还钉过"屏上不许出现「下一页」" —— 批 21 把续页接上之后那句**成了假话**，
+     * 按"它要防的事"改判：它防的从来不是那三个字，而是**摆一枚按下去什么都不发生的按钮**。
+     * 那一件事今天由 ⑫ 钉（到底要消失、不许留灰钮），所以这里只留墙面与不变式那两条。
+     * 这是 §0 坑 ㉖ 的**第九次**，而且红在上一批刚写的判据自己身上 —— 同族的旧账。
+     */
+    /** ⑩ 目的地那条"取第一站"的规矩要真跑数得出来（形状判据抓不到取错站这种错）。 */
+    @Test
+    fun 多站的行取第一站而零站的行不摆入口() {
+        val two = GallerySite.entries.take(2)
+        val target = requireNotNull(desktopArtistProfileTarget("kiki", two)) { "两站的行取不到目的地" }
+        assertEquals("取的不是那一行的第一站", two.first(), target.site)
+        assertEquals("名字丢了", "kiki", target.name)
+        assertEquals("零站的那种行该交回 null（屏上整枚不摆）", null, desktopArtistProfileTarget("kiki", emptyList()))
+    }
+
+    /**
+     * ⑨ 段头那一句：点名站与名字，而**过期的那句边界不许回来**。
+     *
+     * 批 19 到这里钉的是"段头必须念『这一屏今天不接续页』"，那是当时的边界。
+     * 续页接上之后同一件事换了主语：段头**不许再承诺一件已经做到的事**，
+     * 而"这一屏说了什么"仍然要上屏（不是只住在文档里）。
+     */
+    /**
+     * ⑪ 续页**吃共享那颗持有件**，桌面这边不另造一份页码账。
+     *
+     * 这一条是 §0 坑 ㉓ 那一族的正面版：共享面 `nextPagesForAppend` 从第一天起就写着
+     * "缺席的腿从第 1 页补"，而发现屏从前手抄了一份 `page + 1`，后果是**某一页的图永久漏掉**
+     * （不崩、不红字，屏上只写"这一站没答上"）。这一屏今天只有一条腿，抄一份看起来更无害 ——
+     * 而"只有一条腿所以可以手抄"正是那一批开始时的想法。
+     */
+    /**
+     * ⑫ 那枚「下一页」要**真接上取数**，而到底时**消失**而不是变成按不动的灰钮。
+     *
+     * 批 19 的 ⑧ 防的就是这一格，只是那时没有东西可防。今天钉三样：
+     * 文案走那颗件（不许在屏上写死一串）、可见性吃 `atEnd`（判据在共享那颗持有件上，桌面不重述）、
+     * 不许留一枚 `enabled = false` 的按钮（那是"假开关"最省事的写法，而它比没有按钮更坏）。
+     */
+    /**
+     * ⑬ 页尾那三档各说一句，而"没取成"那一句必须**替已经摆出来的那些张担保**。
+     *
+     * 第三句不是修辞：续页失败时第一页还在屏上，如果只说"下一页没取成"，
+     * 用户读到的就是"这一屏坏了"，然后他会整屏重进 —— 而重进会把已经看过的那一批换掉。
+     */
+    @Test
+    fun 页尾三档各一句而失败那句替旧张数担保() {
+        assertEquals("Idle 那一档不该有话说（页尾就是那枚按钮）", null, desktopGalleryMoreReading(DesktopGalleryMorePhase.Idle, taken = 18, unit = "张"))
+        val loading = requireNotNull(desktopGalleryMoreReading(DesktopGalleryMorePhase.Loading, taken = 18, unit = "张"))
+        val failed = requireNotNull(desktopGalleryMoreReading(DesktopGalleryMorePhase.Failed("timeout"), taken = 18, unit = "张"))
+        val end = desktopArtistEndReading(target, taken = 36)
+        assertTrue("加载那句没说清在取什么：$loading", loading.contains("加载中"))
+        assertTrue("失败那句没点名归档原因：$failed", failed.contains("网络超时"))
+        assertTrue("失败那句把原串透传上屏了：$failed", !failed.contains("timeout"))
+        assertTrue("失败那句没替已显示内容担保：$failed", failed.contains("已显示内容保留"))
+        assertTrue("到底那句没点名是哪一站：$end", end.contains("yande.re"))
+        assertTrue("到底那句没报今天一共摆了几张：$end", end.contains("36"))
+        assertNotEquals("三句塌成一句了", loading, failed)
+        assertNotEquals("到底与失败塌成一句了", end, failed)
+    }
+
+    /**
+     * ⑭ 「一页 18 张」这枚预算在**两处**必须是同一枚常量：发出去要几页的 limit，
+     * 与"回来的张数算不算到底"那把尺。两处写成两个数的那一种漂法是想得出的：
+     * 要 18 张而按 20 判到底 ⇒ 每一页都被判成到底，那枚按钮在第一页之后就消失。
+     *
+     * 这里不扫字面形状（那是坑 ㉖），而是**真跑**共享那颗到底判据：
+     * 满一页不算到底、少一张就算到底 —— 用的正是这一屏发出去的那枚 limit。
+     */
+    @Test
+    fun 到底那把尺吃的就是发出去的那枚预算() {
+        val site = GallerySite.YANDERE
+        val full = GallerySearchMerge.exhaustedSites(mapOf(site to DESKTOP_ARTIST_SLOT_SIZE)) { DESKTOP_ARTIST_SLOT_SIZE }
+        val short = GallerySearchMerge.exhaustedSites(mapOf(site to DESKTOP_ARTIST_SLOT_SIZE - 1)) { DESKTOP_ARTIST_SLOT_SIZE }
+        assertTrue("满一页就被判成到底（那枚按钮第一页之后就会消失）：$full", full.isEmpty())
+        assertEquals("少一张却没被判成到底（会一直要同一页）：$short", setOf(site), short.toSet())
+        // 对照：这一屏**只有一处**发车点（与第 N 轮共用一颗函数），所以 limit 只写一次。
+        val pane = code("DesktopArtistProfilePane.kt")
+        assertEquals(
+            "取数那一路被写成了两份（两条路各写一份取数就是「第一页能翻而续页判据漂」的成因）",
+            1,
+            pane.split("searchPosts(").size - 1,
+        )
+    }
+
+    /** ⑮ 新页尾那几句仍然是**单腿**的措辞：不许借多站那套词。 */
+    @Test
+    fun 新页尾那几句不许借多站措辞() {
+        val readings = listOf(
+            requireNotNull(desktopGalleryMoreReading(DesktopGalleryMorePhase.Loading, taken = 18, unit = "张")),
+            requireNotNull(desktopGalleryMoreReading(DesktopGalleryMorePhase.Failed("x"), taken = 18, unit = "张")),
+            desktopArtistEndReading(target, taken = 18),
+            desktopGalleryMoreLabel(18, unit = "张"),
+        )
+        readings.forEach { line ->
+            listOf("各站", "每站", "这一轮发出去的标签", "三站").forEach { multiLeg ->
+                assertTrue("那句借了多站的措辞（$multiLeg）：$line", !line.contains(multiLeg))
+            }
+        }
+    }
+
+    /**
+     * ⑯ 那一屏的**状态形状**跟着换：`Ready` 交回的是那颗持有件，而不是裸张数表。
+     *
+     * 为什么这一条要单独钉：续页最省事的错法是"再取一页然后 `posts + 新的`"，
+     * 那样去重键（`seenKeys`）与逐腿页码都不会更新 ⇒ 站方第 2 页与第 1 页重叠时
+     * **同一张图会摆两遍**，而屏上那句"取回 N 张"数的是两遍。
+     */
+    @Test
+    fun 状态交回的是那颗持有件() {
+        val pane = code("DesktopArtistProfilePane.kt")
+        val policy = code("DesktopArtistProfilePolicy.kt")
+        assertTrue("Ready 那档交回的还是裸张数表（去重键与页码没人记）：$pane", pane.contains("Ready(val batch: DesktopGalleryBatch"))
+        // 锚定完整表达式而非仅标识符 seenKeys，防止被改成 emptySet() 时测试假绿。
+        assertTrue("追加那一步没带上这一批已有的去重键（同一张图会摆两遍）", policy.contains("seenKeys = base.seenKeys"))
+    }
+
+    /**
+     * ⑰ 真跑：两页重叠一张 ⇒ 追加之后**一张不摆两遍**。
+     *
+     * 这一条是批 21 那条文本判据（`seenKeys = base.seenKeys`）的**升级**：扰动第一次跑出绿之后
+     * 才看清，"去重键要带上"这件事不该只靠扫一行字 —— 而它又不该要一颗整只的 fake `GalleryPorts`，
+     * 所以把"一页回来后怎么落地"抽成一颗不发网络的 [desktopArtistBatchAfter]，判据直接真跑它。
+     */
+    @Test
+    fun 两页重叠那一张不摆两遍() {
+        val site = GallerySite.YANDERE
+        val query = "anmi"
+        val first = (1L..18L).map { postOf(site, it) }
+        // 第二页与第一页**重叠一张**（站方翻页不保证边界稳定，这是常态不是意外）。
+        val second = (18L..35L).map { postOf(site, it) }
+        val base = DesktopGalleryBatch(seed = 0L, queries = mapOf(site to query))
+        val after1 = desktopArtistBatchAfter(base, DesktopArtistTarget(site, "anmi"), page = 1, posts = first, answered = true, reason = null)
+        assertEquals("第一页就丢了张数", 18, after1.posts.size)
+        val after2 = desktopArtistBatchAfter(after1, DesktopArtistTarget(site, "anmi"), page = 2, posts = second, answered = true, reason = null)
+        assertEquals("重叠那一张被摆了两遍（去重键没吃上一批已有的）", 35, after2.posts.size)
+        assertEquals(
+            "屏上有重复条目",
+            after2.posts.size,
+            after2.posts.map { it.uid }.distinct().size,
+        )
+        assertEquals("页码账没记到第 2 页", mapOf(site to 2), after2.pageBySite)
+        assertTrue("那一页到底了却没被记上（下一笔还会去要它）", after2.sitesDone.isEmpty())
+    }
+
+    /** ⑱ 真跑：那一笔**没答上**时，页码不前进、原因要点名、不许被算成到底。 */
+    @Test
+    fun 没答上那一笔不推进页码也不算到底() {
+        val site = GallerySite.YANDERE
+        val target = DesktopArtistTarget(site, "anmi")
+        val base = DesktopGalleryBatch(seed = 0L, queries = mapOf(site to "anmi"))
+        val ok = desktopArtistBatchAfter(base, target, 1, (1L..18L).map { postOf(site, it) }, answered = true, reason = null)
+        val flaky = desktopArtistBatchAfter(ok, target, 2, emptyList(), answered = false, reason = "timeout")
+        assertEquals("没答上的一页把张数改了", ok.posts, flaky.posts)
+        assertEquals("没答上的那一页被记进页码账了（那一页的图就永久漏掉）", mapOf(site to 1), flaky.pageBySite)
+        assertTrue("没答上却没留下原因：" + flaky.failures, flaky.failures[site] == "timeout")
+        assertTrue("缺席被算成到底了（一次抖动就永久不再问这一站）", !flaky.atEnd)
+        assertEquals("到底判据没通过时，下一笔还要得到那一页的号", 2, desktopArtistNextPage(flaky, target, "anmi"))
+    }
+
+    /** ⑲ 真跑：回来的张数**不足一页**才算到底，而到底之后不再要页（那枚按钮该消失）。 */
+    @Test
+    fun 不足一页才算到底而到底之后不再要页() {
+        val site = GallerySite.YANDERE
+        val target = DesktopArtistTarget(site, "anmi")
+        val base = DesktopGalleryBatch(seed = 0L, queries = mapOf(site to "anmi"))
+        val full = desktopArtistBatchAfter(base, target, 1, (1L..18L).map { postOf(site, it) }, answered = true, reason = null)
+        assertTrue("满一页被判成到底（那枚按钮第一页之后就没了）：" + full.sitesDone, !full.atEnd)
+        assertEquals(1, desktopArtistNextPage(full, target, "anmi").let { if (it == null) -1 else 1 })
+        val tail = desktopArtistBatchAfter(full, target, 2, (19L..23L).map { postOf(site, it) }, answered = true, reason = null)
+        assertTrue("少一张却没被判成到底（会一直要同一页）：" + tail.sitesDone, tail.atEnd)
+        assertEquals("到底了还在要下一笔", null, desktopArtistNextPage(tail, target, "anmi"))
+    }
+
+    /** ⑳ 真跑：第一笔要的是第 1 页，而**没标签 / 没发过车**那两种形状不在这儿（屏上另有两句）。 */
+    @Test
+    fun 第一笔要的就是第一页() {
+        val site = GallerySite.YANDERE
+        val target = DesktopArtistTarget(site, "anmi")
+        val fresh = DesktopGalleryBatch(seed = 0L, queries = mapOf(site to "anmi"))
+        assertEquals(1, desktopArtistNextPage(fresh, target, "anmi"))
+        // 对照：`queries` 空的那种批次（这一屏压根没发车）不该被说成"到底"。
+        assertTrue("空 queries 被判成到底（那是空屏不是看完）", !DesktopGalleryBatch(seed = 0L).atEnd)
+    }
+
+    private fun postOf(site: GallerySite, id: Long) = GalleryPost(
+        site = site,
+        id = id,
+        tags = "anmi",
+        previewUrl = "https://img/$site-$id.jpg",
+        fileExt = "jpg",
+    )
+}

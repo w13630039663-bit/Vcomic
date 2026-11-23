@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-zcode-design>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>应用图标重设计 · 方案稿 · app-icon-redesign-2026-11-20</title>
+<style>
+:root {
+  --accent: #0A63F6;
+  --accent-deep: #083AC8;
+  --ink: #E8EDF6;
+  --ink-dim: #9AA7BC;
+  --bg: #12151C;
+  --card: #1A1F29;
+  --card-edge: #2A3242;
+  --chip-dark: #1F1F1F;
+  --chip-light: #F5F5F5;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+  padding: 48px 40px 80px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+header h1 { font-size: 26px; font-weight: 700; letter-spacing: 1px; }
+header .sub { color: var(--ink-dim); font-size: 14px; margin-top: 10px; line-height: 1.8; }
+.badge {
+  display: inline-block; font-size: 12px; color: var(--accent);
+  border: 1px solid var(--accent); border-radius: 999px; padding: 2px 12px; margin-bottom: 14px;
+}
+.group { margin-top: 52px; }
+.group-title { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--card-edge); padding-bottom: 12px; }
+.group-title .no { font-size: 13px; color: var(--accent); font-weight: 700; letter-spacing: 2px; }
+.group-title h2 { font-size: 19px; font-weight: 600; }
+.group-title .desc { font-size: 13px; color: var(--ink-dim); }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; margin-top: 22px; }
+@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } body { padding: 32px 20px 60px; } .card .stage { flex-wrap: wrap; } }
+.card { background: var(--card); border: 1px solid var(--card-edge); border-radius: 16px; padding: 24px; }
+.card .stage { display: flex; align-items: center; gap: 26px; }
+.card .stage .big { filter: drop-shadow(0 10px 24px rgba(0,0,0,.45)); }
+.card .ladder { display: flex; align-items: flex-end; gap: 18px; color: var(--ink-dim); font-size: 11px; text-align: center; }
+.card .ladder .cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.card h3 { font-size: 16px; font-weight: 600; margin-top: 18px; }
+.card h3 .tag { font-size: 12px; color: var(--accent); margin-right: 8px; font-weight: 700; }
+.card p { font-size: 13px; color: var(--ink-dim); line-height: 1.75; margin-top: 6px; }
+.dock { margin-top: 16px; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 18px; }
+.dock.dark { background: var(--chip-dark); }
+.dock.light { background: var(--chip-light); }
+.dock .label { font-size: 11px; width: 52px; flex: none; }
+.dock.dark .label { color: #7A808C; }
+.dock.light .label { color: #8A8F98; }
+.now { margin-top: 52px; background: var(--card); border: 1px solid var(--card-edge); border-radius: 16px; padding: 26px; }
+.now .wrap { display: flex; align-items: center; gap: 30px; }
+.now img { width: 108px; height: 108px; border-radius: 24px; }
+.now h2 { font-size: 18px; font-weight: 600; }
+.now ul { margin: 10px 0 0 0; list-style: none; }
+.now li { font-size: 13px; color: var(--ink-dim); line-height: 1.9; padding-left: 18px; position: relative; }
+.now li::before { content: ""; position: absolute; left: 0; top: 11px; width: 6px; height: 6px; border-radius: 2px; background: var(--accent); }
+footer { margin-top: 48px; border-top: 1px solid var(--card-edge); padding-top: 20px; font-size: 13px; color: var(--ink-dim); line-height: 2; }
+footer b { color: var(--ink); }
+mark { background: rgba(10,99,246,.18); color: var(--ink); border-radius: 4px; padding: 0 5px; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="gA" x1="0" y1="0" x2="0.55" y2="1">
+      <stop offset="0" stop-color="#66A6FF"/>
+      <stop offset="0.45" stop-color="#0A55F0"/>
+      <stop offset="1" stop-color="#0738C8"/>
+    </linearGradient>
+    <linearGradient id="gC" x1="0" y1="0" x2="0.55" y2="1">
+      <stop offset="0" stop-color="#4E86F0"/>
+      <stop offset="0.5" stop-color="#0A3AD0"/>
+      <stop offset="1" stop-color="#072BA8"/>
+    </linearGradient>
+    <radialGradient id="gGlow" cx="0.5" cy="0.28" r="0.75">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.20"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="board"><rect x="0" y="0" width="512" height="512" rx="116"/></clipPath>
+  </defs>
+
+  <!-- A1 峡湾跃鲸：V 为海面，鲸跃于 V 口上沿，开口内两道水线 -->
+  <symbol id="ic-a1" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="116" fill="url(#gA)"/>
+    <rect width="512" height="512" rx="116" fill="url(#gGlow)"/>
+    <g clip-path="url(#board)">
+      <path d="M92 168 L188 168 L256 348 L324 168 L420 168 L302 440 L212 440 Z" fill="#FFFFFF"/>
+      <path d="M204 134 C214 98 248 78 284 84 C306 88 320 100 328 114 C332 122 330 130 322 132 C290 146 240 148 210 142 C204 140 202 138 204 134 Z" fill="#FFFFFF"/>
+      <path d="M322 118 C336 104 348 98 358 100 C352 112 344 120 336 124 C346 130 350 138 348 148 C336 144 326 136 320 128 Z" fill="#FFFFFF"/>
+      <path d="M244 146 L236 166 L262 152 Z" fill="#FFFFFF"/>
+      <circle cx="232" cy="112" r="6" fill="#0738C8"/>
+      <path d="M196 316 Q256 296 316 316" stroke="#FFFFFF" stroke-width="11" stroke-linecap="round" fill="none" opacity="0.92"/>
+      <path d="M224 344 Q256 330 288 344" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" fill="none" opacity="0.55"/>
+    </g>
+  </symbol>
+
+  <!-- A2 尾藏开口：正 V 主体，开口内一枚倒 V 鲸尾鳍，尾即小 V -->
+  <symbol id="ic-a2" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="116" fill="url(#gA)"/>
+    <rect width="512" height="512" rx="116" fill="url(#gGlow)"/>
+    <g clip-path="url(#board)">
+      <path d="M92 150 L188 150 L256 330 L324 150 L420 150 L302 424 L212 424 Z" fill="#FFFFFF"/>
+      <path d="M214 194 L256 282 L298 194 C296 224 284 252 268 268 C262 274 250 274 244 268 C228 252 216 224 214 194 Z" fill="#BFD9FF"/>
+      <path d="M226 314 Q256 302 286 314" stroke="#BFD9FF" stroke-width="9" stroke-linecap="round" fill="none" opacity="0.7"/>
+    </g>
+  </symbol>
+
+  <!-- B1 卷角页：V 主体，右下一枚翻卷便签页 -->
+  <symbol id="ic-b1" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="116" fill="url(#gA)"/>
+    <rect width="512" height="512" rx="116" fill="url(#gGlow)"/>
+    <g clip-path="url(#board)">
+      <path d="M92 150 L188 150 L256 330 L324 150 L420 150 L302 424 L212 424 Z" fill="#FFFFFF"/>
+      <g transform="rotate(-8 386 386)">
+        <rect x="332" y="332" width="104" height="104" rx="20" fill="#8FB4FF"/>
+        <rect x="320" y="320" width="104" height="104" rx="20" fill="#FFFFFF"/>
+        <path d="M320 424 L320 380 L364 424 Z" fill="#0A55F0"/>
+      </g>
+    </g>
+  </symbol>
+
+  <!-- B2 开卷承字：底部对开书，V 底尖没入书缝 -->
+  <symbol id="ic-b2" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="116" fill="url(#gA)"/>
+    <rect width="512" height="512" rx="116" fill="url(#gGlow)"/>
+    <g clip-path="url(#board)">
+      <path d="M92 128 L188 128 L256 330 L324 128 L420 128 L298 408 L214 408 Z" fill="#FFFFFF"/>
+      <path d="M84 376 C150 346 216 350 254 384 L254 436 C216 404 150 400 84 428 Z" fill="#FFFFFF"/>
+      <path d="M428 376 C362 346 298 350 260 384 L260 436 C298 404 362 400 428 428 Z" fill="#DCE8FF"/>
+      <rect x="254" y="384" width="6" height="52" fill="#0A55F0" opacity="0.55"/>
+    </g>
+  </symbol>
+
+  <!-- C1 错色 V：纯几何平底 V，右笔浅蓝错色 -->
+  <symbol id="ic-c1" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="116" fill="url(#gC)"/>
+    <rect width="512" height="512" rx="116" fill="url(#gGlow)"/>
+    <g clip-path="url(#board)">
+      <path d="M92 150 L188 150 L256 330 L324 150 L420 150 L300 418 L212 418 Z" fill="#FFFFFF"/>
+      <path d="M324 150 L420 150 L300 418 L256 330 Z" fill="#A9CCFF" opacity="0.9"/>
+    </g>
+  </symbol>
+
+  <!-- C2 地平弧光：V 居中上移，脚下两道渐隐弧光 -->
+  <symbol id="ic-c2" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="116" fill="url(#gC)"/>
+    <rect width="512" height="512" rx="116" fill="url(#gGlow)"/>
+    <g clip-path="url(#board)">
+      <path d="M92 122 L188 122 L256 302 L324 122 L420 122 L300 390 L212 390 Z" fill="#FFFFFF"/>
+      <path d="M120 430 A 260 260 0 0 1 392 430" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" fill="none" opacity="0.95"/>
+      <path d="M170 452 A 220 220 0 0 1 342 452" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" fill="none" opacity="0.5"/>
+    </g>
+  </symbol>
+</svg>
+
+<header>
+  <span class="badge">阶段 A · 方案稿 · 待批</span>
+  <h1>应用图标重设计</h1>
+  <p class="sub">名字保留 <mark>venera-</mark> 前缀，V 字母作为身份锚点延续；舍弃上游的月亮、双翼、粉丝带，换成桌面版自己的意象。每案给出尺寸阶梯（112→16px）与深浅任务栏双态，判据一条：<b>16px 下 V 必须清晰可辨</b>。</p>
+</header>
+
+<section class="now">
+  <div class="wrap">
+    <img src="current-venera-icon.png" alt="现有图标">
+    <div>
+      <h2>现状 · 上游原版</h2>
+      <ul>
+        <li>五个元素同贴：V、月亮、星、双翼、粉丝带 —— 小尺寸互相黏连</li>
+        <li>翅膀与月是上游身份符号，与本仓独立目标相抵</li>
+        <li>蓝色基调与 V 字形保留价值最高</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="group">
+  <div class="group-title"><span class="no">A</span><h2>鲸系</h2><span class="desc">V 与鲸尾两个意象，贴合收藏夹主人（笑）</span></div>
+  <div class="grid">
+    <div class="card" data-variant="A1">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-a1"/></svg>
+        <div class="ladder">
+          <span class="cell"><svg width="64" height="64"><use href="#ic-a1"/></svg>64</span>
+          <span class="cell"><svg width="48" height="48"><use href="#ic-a1"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-a1"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-a1"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-a1"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">A1</span>峡湾跃鲸</h3>
+      <p>V 字顶边即海面，一头流线鲸跃在 V 口上沿，开口内两道水线。叙事最足，但鲸在 16px 退化为一枚白点，靠水线撑住构图。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-a1"/></svg><svg width="24" height="24"><use href="#ic-a1"/></svg><svg width="32" height="32"><use href="#ic-a1"/></svg><svg width="48" height="48"><use href="#ic-a1"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-a1"/></svg><svg width="24" height="24"><use href="#ic-a1"/></svg><svg width="32" height="32"><use href="#ic-a1"/></svg><svg width="48" height="48"><use href="#ic-a1"/></svg></div>
+    </div>
+    <div class="card" data-variant="A2">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-a2"/></svg>
+        <div class="ladder">
+          <span class="cell"><svg width="64" height="64"><use href="#ic-a2"/></svg>64</span>
+          <span class="cell"><svg width="48" height="48"><use href="#ic-a2"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-a2"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-a2"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-a2"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">A2</span>尾藏开口</h3>
+      <p>鲸尾本身就是一枚倒 V，嵌进正 V 的开口里，双 V 嵌套，一笔不多。全案小尺寸生存能力最强，意象藏在细节里，外人只看到一枚利落的 V。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-a2"/></svg><svg width="24" height="24"><use href="#ic-a2"/></svg><svg width="32" height="32"><use href="#ic-a2"/></svg><svg width="48" height="48"><use href="#ic-a2"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-a2"/></svg><svg width="24" height="24"><use href="#ic-a2"/></svg><svg width="32" height="32"><use href="#ic-a2"/></svg><svg width="48" height="48"><use href="#ic-a2"/></svg></div>
+    </div>
+  </div>
+</section>
+
+<section class="group">
+  <div class="group-title"><span class="no">B</span><h2>阅读系</h2><span class="desc">页与书，漫画阅读器的本行</span></div>
+  <div class="grid">
+    <div class="card" data-variant="B1">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-b1"/></svg>
+        <div class="ladder">
+          <span class="cell"><svg width="64" height="64"><use href="#ic-b1"/></svg>64</span>
+          <span class="cell"><svg width="48" height="48"><use href="#ic-b1"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-b1"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-b1"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-b1"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">B1</span>卷角页</h3>
+      <p>V 主体不变，右下一枚双层翻卷便签页，斜贴呼应 V 右笔的动势。页双层+折角在 32px 仍可辨，16px 退化成 V 脚边一小块亮斑。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-b1"/></svg><svg width="24" height="24"><use href="#ic-b1"/></svg><svg width="32" height="32"><use href="#ic-b1"/></svg><svg width="48" height="48"><use href="#ic-b1"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-b1"/></svg><svg width="24" height="24"><use href="#ic-b1"/></svg><svg width="32" height="32"><use href="#ic-b1"/></svg><svg width="48" height="48"><use href="#ic-b1"/></svg></div>
+    </div>
+    <div class="card" data-variant="B2">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-b2"/></svg>
+        <div class="ladder">
+          <span class="cell"><svg width="64" height="64"><use href="#ic-b2"/></svg>64</span>
+          <span class="cell"><svg width="48" height="48"><use href="#ic-b2"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-b2"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-b2"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-b2"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">B2</span>开卷承字</h3>
+      <p>底部一本对开书，V 底尖没入书缝、自纸面升起。左右页一白一淡蓝区分朝向，中缝压一道深蓝。构图重心偏低，稳；16px 时书退化为一道底弧。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-b2"/></svg><svg width="24" height="24"><use href="#ic-b2"/></svg><svg width="32" height="32"><use href="#ic-b2"/></svg><svg width="48" height="48"><use href="#ic-b2"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-b2"/></svg><svg width="24" height="24"><use href="#ic-b2"/></svg><svg width="32" height="32"><use href="#ic-b2"/></svg><svg width="48" height="48"><use href="#ic-b2"/></svg></div>
+    </div>
+  </div>
+</section>
+
+<section class="group">
+  <div class="group-title"><span class="no">C</span><h2>极简系</h2><span class="desc">去意象，纯形，Fluent 质感</span></div>
+  <div class="grid">
+    <div class="card" data-variant="C1">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-c1"/></svg>
+        <div class="ladder">
+          <span class="cell"><svg width="64" height="64"><use href="#ic-c1"/></svg>64</span>
+          <span class="cell"><svg width="48" height="48"><use href="#ic-c1"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-c1"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-c1"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-c1"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">C1</span>错色 V</h3>
+      <p>只有一枚平底 V：左笔纯白，右笔浅蓝错色制造厚度错觉，底尖收平带出几何感。任何尺寸都不糊，代价是没有可讲的故事。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-c1"/></svg><svg width="24" height="24"><use href="#ic-c1"/></svg><svg width="32" height="32"><use href="#ic-c1"/></svg><svg width="48" height="48"><use href="#ic-c1"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-c1"/></svg><svg width="24" height="24"><use href="#ic-c1"/></svg><svg width="32" height="32"><use href="#ic-c1"/></svg><svg width="48" height="48"><use href="#ic-c1"/></svg></div>
+    </div>
+    <div class="card" data-variant="C2">
+      <div class="stage">
+        <svg class="big" width="112" height="112"><use href="#ic-c2"/></svg>
+        <div class="ladder">
+          <span class="cell"><svg width="64" height="64"><use href="#ic-c2"/></svg>64</span>
+          <span class="cell"><svg width="48" height="48"><use href="#ic-c2"/></svg>48</span>
+          <span class="cell"><svg width="32" height="32"><use href="#ic-c2"/></svg>32</span>
+          <span class="cell"><svg width="24" height="24"><use href="#ic-c2"/></svg>24</span>
+          <span class="cell"><svg width="16" height="16"><use href="#ic-c2"/></svg>16</span>
+        </div>
+      </div>
+      <h3><span class="tag">C2</span>地平弧光</h3>
+      <p>V 居中上移，脚下两道渐隐弧光托底，画廊射灯的气质。弧光贴脚不穿字，16px 时第二道隐去、第一道收成 V 脚一条亮线。</p>
+      <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-c2"/></svg><svg width="24" height="24"><use href="#ic-c2"/></svg><svg width="32" height="32"><use href="#ic-c2"/></svg><svg width="48" height="48"><use href="#ic-c2"/></svg></div>
+      <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-c2"/></svg><svg width="24" height="24"><use href="#ic-c2"/></svg><svg width="32" height="32"><use href="#ic-c2"/></svg><svg width="48" height="48"><use href="#ic-c2"/></svg></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <b>落码预告（获批后执行）</b><br>
+  ① 首选案定稿后输出多尺寸 ICO（16/24/32/48/64/128/256）与透明 PNG；② 替换三处接入点：jpackage 打包、Inno 安装器、应用内窗口图标（`packaging/` 与 `src/main/resources/`）；③ 是否连带改资产文件名（venera_icon → 新名）视最终命名定，属可选动作；④ 纯视觉资产替换，不触碰任何业务逻辑与打包流程结构。
+</footer>
+
+</body>
+</html>

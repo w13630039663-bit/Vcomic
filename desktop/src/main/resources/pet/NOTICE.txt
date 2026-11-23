@@ -1,0 +1,34 @@
+侧栏角色状态帧 · pet_*.png
+===========================
+
+来源：https://github.com/A8Chann/dsh-pet-live2d
+原始文件：dsh-live2d-pet/docs/looks.jpg（2×3 表情 / 姿势展示拼图）
+          dsh-live2d-pet/docs/preview.png（早期单张待机图，已由本批统一重裁取代）
+许可：CC BY-NC-SA 4.0
+      https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh
+
+版权人
+------
+- 上善无形：鲸鱼娘角色形象原作，原创 OC「溟月」
+  https://www.pixiv.net/users/62155430
+- ZipZipPipe：加入 DeepSeek 元素的女仆鲸鱼娘二次设计
+  https://www.pixiv.net/users/18604994
+- 氵六青：Live2D 模型（绑定、动作、表情）
+  https://space.bilibili.com/11272072
+
+改编说明
+--------
+从 2×3 表情拼图裁出六帧（待机 / 脸红 / 开心 / 眨眼 / 困惑 / 忙），
+去除深色背景、等比缩放并统一贴到 320×274 透明画布、底部对齐。
+六帧文件：pet_idle.png / pet_love.png / pet_happy.png /
+          pet_tap.png / pet_dizzy.png / pet_busy.png
+
+使用条件
+--------
+仅限非商业使用；本改编资源同样以 CC BY-NC-SA 4.0 分发。
+署名、协议链接与改编说明必须随资源保留。
+
+未引入
+------
+插件代码（MIT）、提示音音色设计（BSD-3-Clause）、
+Live2D Cubism Core（Live2D 株式会社专有，本仓库不含）均未随本资源引入。

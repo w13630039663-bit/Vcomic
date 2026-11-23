@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixiv 首页视觉与架构重构 · 3 种方案实时对比</title>
+  <style>
+    :root {
+      --bg-host: #121214;
+      --bg-bento: #1a1a20;
+      --bg-card: #24242d;
+      --bg-card-hover: #2f2f3b;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.22);
+      --border-img-inset: rgba(255, 255, 255, 0.10);
+      --text-1: #f3f3f6;
+      --text-2: #9e9ea8;
+      --text-3: #6e6e78;
+      --accent: #0096fa;
+      --gold: #f59e0b;
+      --radius-bento: 16px;
+      --radius-card: 10px;
+      --radius-pill: 999px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif; }
+    body { background-color: var(--bg-host); color: var(--text-1); padding: 20px 28px 60px; max-width: 1720px; margin: 0 auto; -webkit-font-smoothing: antialiased; }
+
+    /* 控制栏 */
+    .top-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border-subtle); flex-wrap: wrap; gap: 12px; }
+    .toolbar-left { display: flex; align-items: center; gap: 12px; }
+    .page-title { font-size: 17px; font-weight: 700; letter-spacing: -0.2px; }
+    .tab-pills { display: flex; gap: 6px; background: rgba(255,255,255,0.05); padding: 4px; border-radius: var(--radius-pill); border: 1px solid var(--border-subtle); }
+    .tab-pill { background: transparent; color: var(--text-2); border: none; padding: 6px 14px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 150ms ease-out; }
+    .tab-pill.active { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(0,150,250,0.3); }
+    .tab-pill:hover:not(.active) { color: var(--text-1); background: rgba(255,255,255,0.08); }
+
+    /* 容器基座 */
+    .bento-container { background: var(--bg-bento); border: 1px solid var(--border-subtle); border-radius: var(--radius-bento); padding: 16px; position: relative; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .section-title { font-size: 15px; font-weight: 700; color: var(--text-1); display: flex; align-items: center; gap: 6px; }
+    .section-badge { font-size: 11px; background: rgba(255,255,255,0.08); padding: 2px 7px; border-radius: 4px; color: var(--text-2); font-weight: 500; }
+
+    /* 方案模式切换 */
+    .view-mode { display: none; }
+    .view-mode.active { display: block; animation: fadeIn 200ms ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ==============================================================
+       方案 B：榜首王座 Bento（Hero 是每日 #1 作品，画师带 3 联缩略图）
+       ============================================================== */
+    .throne-grid { display: grid; grid-template-columns: 2fr 1.05fr; gap: 16px; margin-bottom: 20px; }
+    .throne-hero { position: relative; height: 460px; border-radius: var(--radius-card); overflow: hidden; cursor: pointer; border: 1px solid var(--border-subtle); transition: transform 150ms ease-out, border-color 150ms; }
+    .throne-hero:hover { transform: translateY(-2px); border-color: var(--border-hover); }
+    .throne-hero img { width: 100%; height: 100%; object-fit: cover; }
+    .throne-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.92) 100%); display: flex; flex-direction: column; justify-content: flex-end; padding: 24px; }
+    .throne-rank-badge { align-self: flex-start; background: linear-gradient(90deg, #f59e0b, #d97706); color: #000; font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 4px; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 10px rgba(245,158,11,0.4); }
+    .throne-title { font-size: 24px; font-weight: 800; line-height: 1.3; margin-bottom: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.6); }
+    .throne-author { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #ddd; }
+    .throne-author img { width: 28px; height: 28px; border-radius: 50%; }
+
+    /* 画师 3 联卡片（保留真实数据！） */
+    .artist-trio-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; transition: all 150ms ease; }
+    .artist-trio-card:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
+    .artist-trio-header { display: flex; justify-content: space-between; align-items: center; }
+    .artist-info-box { display: flex; align-items: center; gap: 10px; }
+    .artist-info-box img { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
+    .trio-thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .trio-thumbs img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; transition: transform 150ms; cursor: pointer; outline: 1px solid var(--border-img-inset); outline-offset: -1px; }
+    .trio-thumbs img:hover { transform: scale(1.04); }
+
+    /* ==============================================================
+       方案 A：左仓右流分栏（Master-Detail Split：吞吐量之王）
+       ============================================================== */
+    .split-layout { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
+    .left-cockpit { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 20px; max-height: calc(100vh - 40px); overflow-y: auto; padding-right: 4px; }
+    .left-cockpit::-webkit-scrollbar { width: 4px; }
+    .left-cockpit::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+    .sticky-stream-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; position: sticky; top: 0; background: var(--bg-host); padding: 8px 0; z-index: 10; }
+    .stream-tabs { display: flex; gap: 8px; }
+    .stream-tab { background: var(--bg-bento); color: var(--text-2); border: 1px solid var(--border-subtle); padding: 6px 14px; border-radius: var(--radius-pill); font-size: 13px; font-weight: 600; cursor: pointer; }
+    .stream-tab.active { background: var(--bg-card); color: var(--text-1); border-color: var(--border-hover); }
+
+    /* 瀑布流 */
+    .masonry-wall { columns: 4 220px; column-gap: 12px; }
+    .wall-card { break-inside: avoid; margin-bottom: 12px; border-radius: 8px; overflow: hidden; background: var(--bg-card); border: 1px solid var(--border-subtle); cursor: pointer; transition: transform 150ms ease-out, border-color 150ms; }
+    .wall-card:hover { transform: translateY(-3px); border-color: var(--border-hover); }
+    .wall-card:active { transform: scale(0.96); }
+    .wall-card img { width: 100%; height: auto; display: block; outline: 1px solid var(--border-img-inset); outline-offset: -1px; }
+
+    /* 按钮通用 */
+    .btn-follow { background: var(--accent); color: #fff; border: none; font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: var(--radius-pill); cursor: pointer; }
+    .btn-follow:hover { opacity: 0.9; }
+    .tag-chip { background: var(--bg-card); border: 1px solid var(--border-subtle); color: var(--text-1); font-size: 11px; padding: 4px 10px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; gap: 4px; margin: 3px; cursor: pointer; }
+    .tag-chip:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
+
+    /* 方案 0（线框原型）直接复用 */
+    .cards-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+    .work-thumb-card { border-radius: 8px; overflow: hidden; background: var(--bg-card); border: 1px solid var(--border-subtle); cursor: pointer; }
+    .work-thumb-card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
+    .work-thumb-card .info { padding: 8px; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  </style>
+</head>
+<body>
+
+  <!-- 顶部控制条 -->
+  <div class="top-toolbar">
+    <div class="toolbar-left">
+      <div class="page-title">Pixiv 首页视觉架构 · 深度重构方案选型</div>
+    </div>
+    <div class="tab-pills">
+      <button class="tab-pill active" onclick="switchView('viewB', this)">方案 B：榜首王座 Bento（推荐 · 社区艺术张力）</button>
+      <button class="tab-pill" onclick="switchView('viewA', this)">方案 A：左仓右流分栏（极客 · 吞吐效率之王）</button>
+      <button class="tab-pill" onclick="switchView('view0', this)">方案 0：图二标准线框（常规保守 Bento）</button>
+    </div>
+  </div>
+
+  <!-- ==============================================================
+       方案 B：榜首王座 Bento（将全站每日最高赞作品奉为 Hero，保留画师 3 联缩略图）
+       ============================================================== -->
+  <div id="viewB" class="view-mode active">
+    
+    <!-- 顶部王座看板 -->
+    <div class="throne-grid">
+      <!-- 冠军巨幅 Hero -->
+      <div class="bento-container" style="padding: 12px;">
+        <div class="throne-hero">
+          <img src="https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1400&q=85" alt="每日榜首">
+          <div class="throne-overlay">
+            <div class="throne-rank-badge">👑 #1 DAILY RANKING · 今日日榜冠军</div>
+            <div class="throne-title">秋の静寂と狐の祈り (6.8万收藏)</div>
+            <div class="throne-author">
+              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60">
+              <span>秋月マコト (@akizuki_art) · 关注</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧：真实画师 3 联作品展台 + 趋势标签 -->
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="bento-container" style="flex: 1;">
+          <div class="section-header">
+            <div class="section-title">推荐画师 <span class="section-badge">真实代表作</span></div>
+            <span style="font-size: 11px; color: var(--text-2); cursor: pointer;">换一批 ↻</span>
+          </div>
+
+          <!-- 画师 1：带 3 联真实代表作 -->
+          <div class="artist-trio-card">
+            <div class="artist-trio-header">
+              <div class="artist-info-box">
+                <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80">
+                <div>
+                  <div style="font-size: 12px; font-weight: 700;">ひろ瀬</div>
+                  <div style="font-size: 11px; color: var(--text-3);">12.8万粉丝</div>
+                </div>
+              </div>
+              <button class="btn-follow">关注</button>
+            </div>
+            <div class="trio-thumbs">
+              <img src="https://images.unsplash.com/photo-1563089145-599997674d42?w=200">
+              <img src="https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=200">
+              <img src="https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=200">
+            </div>
+          </div>
+
+          <!-- 画师 2：带 3 联真实代表作 -->
+          <div class="artist-trio-card" style="margin-bottom: 0;">
+            <div class="artist-trio-header">
+              <div class="artist-info-box">
+                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80">
+                <div>
+                  <div style="font-size: 12px; font-weight: 700;">Noyu</div>
+                  <div style="font-size: 11px; color: var(--text-3);">8.4万粉丝</div>
+                </div>
+              </div>
+              <button class="btn-follow">关注</button>
+            </div>
+            <div class="trio-thumbs">
+              <img src="https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=200">
+              <img src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=200">
+              <img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=200">
+            </div>
+          </div>
+        </div>
+
+        <div class="bento-container">
+          <div class="section-title" style="margin-bottom: 8px;">热门趋势标签</div>
+          <div>
+            <span class="tag-chip">#女の子 (42)</span>
+            <span class="tag-chip">#オリジナル (31)</span>
+            <span class="tag-chip">#東方Project (19)</span>
+            <span class="tag-chip">#学園アイドルマスター (15)</span>
+            <span class="tag-chip">#魔法少女 (12)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 中部新作通栏 -->
+    <div class="bento-container" style="margin-bottom: 20px;">
+      <div class="section-header">
+        <div class="section-title">关注新作 <span class="section-badge">今日更新 30 张</span></div>
+        <div style="font-size: 12px; color: var(--accent); cursor: pointer;">全屏浏览 ›</div>
+      </div>
+      <div class="cards-row">
+        <div class="work-thumb-card"><img src="https://images.unsplash.com/photo-1563089145-599997674d42?w=400"><div class="info">雨の日の帰り道</div></div>
+        <div class="work-thumb-card"><img src="https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=400"><div class="info">青い空と白い雲</div></div>
+        <div class="work-thumb-card"><img src="https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=400"><div class="info">夕暮れ時のカフェ</div></div>
+        <div class="work-thumb-card"><img src="https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=400"><div class="info">星降る夜の約束</div></div>
+        <div class="work-thumb-card"><img src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=400"><div class="info">光の回廊と白猫</div></div>
+      </div>
+    </div>
+
+    <!-- 底部：为你推荐瀑布流 -->
+    <div class="bento-container">
+      <div class="section-header">
+        <div class="section-title">为你推荐 <span class="section-badge">自适应自然画幅</span></div>
+      </div>
+      <div class="masonry-wall">
+        <div class="wall-card"><img src="https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=500"></div>
+        <div class="wall-card"><img src="https://images.unsplash.com/photo-1563089145-599997674d42?w=500"></div>
+        <div class="wall-card"><img src="https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=500"></div>
+        <div class="wall-card"><img src="https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500"></div>
+        <div class="wall-card"><img src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=500"></div>
+        <div class="wall-card"><img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==============================================================
+       方案 A：左仓右流分栏（Master-Detail Split：吞吐效率之王）
+       ============================================================== -->
+  <div id="viewA" class="view-mode">
+    <div class="split-layout">
+      <!-- 左侧固定驾驶舱 -->
+      <div class="left-cockpit">
+        <!-- Pixivision 特辑小卡 -->
+        <div class="bento-container" style="padding: 12px;">
+          <div class="section-header" style="margin-bottom: 8px;">
+            <div class="section-title" style="font-size: 13px;">精选特辑 · Pixivision</div>
+          </div>
+          <div style="border-radius: 8px; overflow: hidden; position: relative; height: 140px;">
+            <img src="https://images.unsplash.com/photo-1534447677768-be436bb09401?w=500" style="width: 100%; height: 100%; object-fit: cover;">
+            <div style="position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.8)); display: flex; align-items: flex-end; padding: 10px; font-size: 12px; font-weight: 700;">《学园偶像大师》粉丝画作特辑</div>
+          </div>
+        </div>
+
+        <!-- 推荐画师（保留 3 联缩略图） -->
+        <div class="bento-container" style="padding: 12px;">
+          <div class="section-header" style="margin-bottom: 8px;">
+            <div class="section-title" style="font-size: 13px;">推荐创作者</div>
+            <span style="font-size: 11px; color: var(--text-2);">刷新</span>
+          </div>
+          <div class="artist-trio-card" style="padding: 8px; margin-bottom: 8px;">
+            <div class="artist-trio-header">
+              <div class="artist-info-box">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60" style="width: 28px; height: 28px;">
+                <span style="font-size: 12px; font-weight: 600;">ひろ瀬</span>
+              </div>
+              <button class="btn-follow" style="padding: 2px 8px;">关注</button>
+            </div>
+            <div class="trio-thumbs" style="gap: 4px;">
+              <img src="https://images.unsplash.com/photo-1563089145-599997674d42?w=150">
+              <img src="https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=150">
+              <img src="https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=150">
+            </div>
+          </div>
+          <div class="artist-trio-card" style="padding: 8px; margin-bottom: 0;">
+            <div class="artist-trio-header">
+              <div class="artist-info-box">
+                <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=60" style="width: 28px; height: 28px;">
+                <span style="font-size: 12px; font-weight: 600;">Noyu</span>
+              </div>
+              <button class="btn-follow" style="padding: 2px 8px;">关注</button>
+            </div>
+            <div class="trio-thumbs" style="gap: 4px;">
+              <img src="https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=150">
+              <img src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=150">
+              <img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=150">
+            </div>
+          </div>
+        </div>
+
+        <!-- 热门标签 -->
+        <div class="bento-container" style="padding: 12px;">
+          <div class="section-title" style="font-size: 13px; margin-bottom: 6px;">探索标签</div>
+          <div>
+            <span class="tag-chip">#女の子</span>
+            <span class="tag-chip">#オリジナル</span>
+            <span class="tag-chip">#東方Project</span>
+            <span class="tag-chip">#学園アイドルマスター</span>
+            <span class="tag-chip">#魔法少女</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧全屏瀑布流大墙 -->
+      <div>
+        <div class="sticky-stream-header">
+          <div class="stream-tabs">
+            <button class="stream-tab active">为你推荐 (280+)</button>
+            <button class="stream-tab">关注新作 (30)</button>
+            <button class="stream-tab">全站排行榜</button>
+          </div>
+          <div style="font-size: 12px; color: var(--text-2);">首屏直达 · 零下滑损耗</div>
+        </div>
+
+        <div class="masonry-wall" style="columns: 5 210px;">
+          <div class="wall-card"><img src="https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500"></div>
+          <div class="wall-card"><img src="https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=500"></div>
+          <div class="wall-card"><img src="https://images.unsplash.com/photo-1563089145-599997674d42?w=500"></div>
+          <div class="wall-card"><img src="https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=500"></div>
+          <div class="wall-card"><img src="https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500"></div>
+          <div class="wall-card"><img src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=500"></div>
+          <div class="wall-card"><img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500"></div>
+          <div class="wall-card"><img src="https://images.unsplash.com/photo-1534447677768-be436bb09401?w=500"></div>
+          <div class="wall-card"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500"></div>
+          <div class="wall-card"><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==============================================================
+       方案 0：图二常规 Bento (对照组)
+       ============================================================== -->
+  <div id="view0" class="view-mode">
+    <div style="font-size: 13px; color: var(--text-2); margin-bottom: 12px; background: rgba(255,255,255,0.05); padding: 8px 14px; border-radius: 6px;">
+      💡 此处为 1:1 复刻用户图二的线框原型（Top Bento: Pixivision + 推荐画师无缩略图 + 热门标签；Mid: 5卡关注新作；Bottom: 推荐）。
+    </div>
+    <!-- 顶部布局：左精选 (68%) + 右侧栏 (32%) -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px;">
+      <div class="bento-container" style="height: 440px; display: flex; flex-direction: column;">
+        <div class="section-header"><div class="section-title">精选作品 / Pixivision</div></div>
+        <div style="flex: 1; border-radius: 8px; overflow: hidden; position: relative; margin-bottom: 10px;">
+          <img src="https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1000" style="width: 100%; height: 100%; object-fit: cover;">
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 14px; background: linear-gradient(transparent, rgba(0,0,0,0.8)); font-size: 18px; font-weight: 700;">专题主视觉</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; height: 110px;">
+          <div style="background: var(--bg-card); border-radius: 8px; overflow: hidden;"><img src="https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400" style="width: 100%; height: 100%; object-fit: cover;"></div>
+          <div style="background: var(--bg-card); border-radius: 8px; overflow: hidden;"><img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400" style="width: 100%; height: 100%; object-fit: cover;"></div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px; height: 440px;">
+        <div class="bento-container" style="flex: 1.4;">
+          <div class="section-title" style="margin-bottom: 10px;">推荐画师 (纯文字列表)</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="background: var(--bg-card); padding: 8px; border-radius: 6px; display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; gap: 8px; align-items: center;"><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=50" style="width: 32px; height: 32px; border-radius: 6px;"><span>ひろ瀬</span></div>
+              <button class="btn-follow">关注</button>
+            </div>
+            <div style="background: var(--bg-card); padding: 8px; border-radius: 6px; display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; gap: 8px; align-items: center;"><img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=50" style="width: 32px; height: 32px; border-radius: 6px;"><span>Noyu</span></div>
+              <button class="btn-follow">关注</button>
+            </div>
+          </div>
+        </div>
+        <div class="bento-container" style="flex: 1;">
+          <div class="section-title" style="margin-bottom: 8px;">热门标签</div>
+          <div><span class="tag-chip">女の子</span><span class="tag-chip">東方</span><span class="tag-chip">ロリ</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="bento-container" style="margin-bottom: 20px;">
+      <div class="section-title" style="margin-bottom: 12px;">关注新作 (单行 5 卡)</div>
+      <div class="cards-row">
+        <div class="work-thumb-card"><img src="https://images.unsplash.com/photo-1563089145-599997674d42?w=400"><div class="info">作品 1</div></div>
+        <div class="work-thumb-card"><img src="https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=400"><div class="info">作品 2</div></div>
+        <div class="work-thumb-card"><img src="https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=400"><div class="info">作品 3</div></div>
+        <div class="work-thumb-card"><img src="https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=400"><div class="info">作品 4</div></div>
+        <div class="work-thumb-card"><img src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=400"><div class="info">作品 5</div></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function switchView(viewId, btn) {
+      document.querySelectorAll('.view-mode').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-pill').forEach(el => el.classList.remove('active'));
+      document.getElementById(viewId).classList.add('active');
+      btn.classList.add('active');
+    }
+  </script>
+</body>
+</html>

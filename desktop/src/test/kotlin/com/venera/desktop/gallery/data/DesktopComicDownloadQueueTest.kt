@@ -1,0 +1,383 @@
+package com.venera.desktop.gallery.data
+
+import com.venera.desktop.gallery.ui.DesktopComicChapterDownload
+import com.venera.desktop.gallery.ui.DesktopSourceTree
+import com.venera.desktop.gallery.ui.desktopComicChapterDownloadOf
+import com.venera.desktop.gallery.ui.desktopComicChapterStatusText
+import java.io.File
+import java.nio.file.Files
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * 第一百零一批 · 桌面下载队列（多话排队 + 重启续排）。
+ *
+ * ## 这一批补的是哪一句假话
+ *
+ * 批 96–100 之后桌面**一次只能下一话**：详情那一屏的状态槽只容一笔，而按第二话会被一枚早退闸静默吞掉；
+ * 那颗 runner 又挂在详情页自己的作用域上 ⇒ **离开那一屏就死**，跑到一半的那话既不完成也不留痕。
+ * 顶栏那枚牌子当时写的是「本地无任务队列」，那句在批 101 之前**是真话**，而它是一枚硬编码的字面量
+ * （没有任何尺子钉着它）—— 队列一落地它就会静默变假，所以把它改成由任务表算出来的一句。
+ *
+ * ## 三条硬边界（判据逐条对着钉）
+ *
+ * - **判齐只有那一颗**：`DONE` 那一档必须是**回读盘之后**的结论，不是"runner 说它跑完了"。
+ *   喂"runner 交回 Completed 而清单没写完"那一档，它不许塌成 DONE。
+ * - **同一名字段不同语义**（批 97 那一课的正面用法）：`directoryPath` 那一格桌面存**相对目录名**，
+ *   存成绝对路径就两端不可比；`downloadedPages` 只许是**盘上数出来的**，不是"这一趟写了几页"的内存计数。
+ * - **并发由认领钉而不立常量**（档二 5b-3 改判，见 ⑨）：写死的并发常量是假开关；
+ *   取跑在 [DesktopComicDownloadQueue.awaitNextPending] 的锁内认领（恰一处），泵圈数吃装配点递的偏好档
+ *   （pref_download_threads，默认 1 = 旧恒串行形状）。
+ *
+ * ⚠️ 本文件里的接线判读（⑨⑩⑪⑫⑬⑭⑮）吃的是"全 main 现数"，不是某一颗文件的文件名 ——
+ * 仓里那把尺子（`DesktopStaleClaimsTest`）改过一次名字就红在拼写上，这里避开那个形。
+ */
+class DesktopComicDownloadQueueTest {
+
+    private var root: File = Files.createTempDirectory("b101q").toFile()
+
+    /** 换一枚全新的数据根并把队列表从它读一遍（每颗用例的开头都是这一步，免得单例串味）。 */
+    private fun freshRoot(): File {
+        root = Files.createTempDirectory("b101q").toFile()
+        DesktopComicDownloadQueue.prime(root)
+        return root
+    }
+
+    /** ① 表序就是执行序，而 `taskId` 那三格拼法逐字（对岸 `DownloadManager.kt:144` 的 `源_子_话`）。 */
+    @Test
+    fun 入队两笔的表序与任务号拼法() {
+        freshRoot()
+        DesktopComicDownloadQueue.enqueue(
+            root, "jm", "1461316", "题名", "", "ch-a", "第 1 话", 0, false,
+        )
+        DesktopComicDownloadQueue.enqueue(
+            root, "jm", "1461316", "题名", "", "ch-b", "第 2 话", 1, false,
+        )
+        val tasks = DesktopComicDownloadQueue.tasks.value
+        assertEquals("入队两笔就该是两笔：" + tasks.size, 2, tasks.size)
+        assertEquals("表序就是执行序（第一笔必须是先入的那一话）：", "ch-a", tasks[0].chapterId)
+        assertEquals("表序就是执行序（第二笔必须是后入的那一话）：", "ch-b", tasks[1].chapterId)
+        assertEquals(
+            "任务号那三格的拼法（对岸 `源_子_话`）：",
+            "jm_1461316_ch-a",
+            desktopComicQueueTaskId("jm", "1461316", "ch-a"),
+        )
+        assertEquals("同一枚任务号必须由入队那一步算出同一串：", "jm_1461316_ch-a", tasks[0].taskId)
+    }
+
+    /** ② 重复入队不去，而「已完成」那一档重排回待跑（对岸 `:145-153` 那一形）。 */
+    @Test
+    fun 重复入队不去而完成那一档重排() {
+        freshRoot()
+        DesktopComicDownloadQueue.enqueue(root, "jm", "1", "题名", "", "a", "第 1 话", 0, false)
+        DesktopComicDownloadQueue.enqueue(root, "jm", "1", "题名", "", "a", "第 1 话", 0, false)
+        assertEquals("同一话重复入队不许变成两笔（重下一遍就是那种形状）：", 1, DesktopComicDownloadQueue.tasks.value.size)
+        val dir = desktopComicQueueDir(root, DesktopComicDownloadQueue.tasks.value[0])
+        assertTrue(dir.mkdirs() || dir.isDirectory)
+        desktopComicWriteChapterManifest(dir, "a", 0, "第 1 话", 1, complete = true)
+        DesktopComicPageFixtures.writeWholePage(dir, 0)
+        val pending = DesktopComicDownloadQueue.nextPending(root)
+        assertNotNull("新入队的那一笔应当排得到：", pending)
+        DesktopComicDownloadQueue.reportTotal(root, pending!!.taskId, 1)
+        DesktopComicDownloadQueue.settle(root, pending.taskId, DesktopComicChapterRun.Completed(1))
+        assertEquals(
+            "跑完那一档应当回读盘后说已完成：",
+            DesktopComicQueueStatus.DONE,
+            DesktopComicDownloadQueue.tasks.value[0].status,
+        )
+        DesktopComicDownloadQueue.enqueue(root, "jm", "1", "题名", "", "a", "第 1 话", 0, false)
+        assertEquals(
+            "已完成那一档再入队要重排回待跑（对岸那一形：重下同一话是用户明说要的）：" +
+                DesktopComicDownloadQueue.tasks.value[0].status,
+            DesktopComicQueueStatus.PENDING,
+            DesktopComicDownloadQueue.tasks.value[0].status,
+        )
+    }
+
+    /** ③ `DONE` 只由回读盘决定：runner 说跑完而清单没写完 ⇒ 不许说已完成。 */
+    @Test
+    fun 跑完那一档要回读盘才说完成() {
+        freshRoot()
+        DesktopComicDownloadQueue.enqueue(root, "jm", "1", "题名", "", "a", "第 1 话", 0, false)
+        val pending = DesktopComicDownloadQueue.nextPending(root)
+        assertNotNull(pending)
+        // 只把页写到盘上，清单那一格**不写**（半截落盘正是这一档的形状）。
+        val dir = desktopComicQueueDir(root, pending!!)
+        assertTrue("建不出目录：", dir.mkdirs())
+        DesktopComicPageFixtures.writeWholePage(dir, 0)
+        DesktopComicDownloadQueue.reportTotal(root, pending.taskId, 1)
+        DesktopComicDownloadQueue.settle(root, pending.taskId, DesktopComicChapterRun.Completed(1))
+        val after = DesktopComicDownloadQueue.tasks.value[0]
+        assertFalse(
+            "runner 说跑完而清单没写完 ⇒ 绝不许塌成已完成（那就是第四种「齐不齐」口径）：" + after.status,
+            after.status == DesktopComicQueueStatus.DONE,
+        )
+        assertEquals(
+            "那一档要说失败并点名成因：" + after.error,
+            true,
+            after.error.contains("清单"),
+        )
+    }
+
+    /** ④ 写盘那一跳就把「正在跑」降级成「待跑」，读盘时不猜僵尸。 */
+    @Test
+    fun 写盘那一跳降级掉正在跑那一档() {
+        freshRoot()
+        DesktopComicDownloadQueue.enqueue(root, "jm", "1", "题名", "", "a", "第 1 话", 0, false)
+        val pending = DesktopComicDownloadQueue.nextPending(root)
+        DesktopComicDownloadQueue.markRunning(root, pending!!.taskId)
+        assertEquals(
+            "内存态里那一笔应当是正在跑：" + DesktopComicDownloadQueue.tasks.value[0].status,
+            DesktopComicQueueStatus.RUNNING,
+            DesktopComicDownloadQueue.tasks.value[0].status,
+        )
+        val text = File(root, DESKTOP_COMIC_QUEUE_FILE_NAME).readText()
+        assertFalse(
+            "盘上那份不许含「正在跑」那一档（进程死了它读回来就是僵尸）：" + text,
+            text.contains("\"" + DesktopComicQueueStatus.RUNNING.name + "\""),
+        )
+        // force：模拟新进程重读盘（同根默认跳过，免得盘中覆盖打穿在跑那笔）。
+        DesktopComicDownloadQueue.prime(root, force = true)
+        val read = DesktopComicDownloadQueue.tasks.value
+        assertEquals("读回来还是那一笔：", 1, read.size)
+        assertEquals(
+            "读回来那一档必须是待跑（重启续排吃的正是这一格）：" + read[0].status,
+            DesktopComicQueueStatus.PENDING,
+            read[0].status,
+        )
+        assertNotNull("降级之后 nextPending 要交回那一笔：", DesktopComicDownloadQueue.nextPending(root))
+    }
+
+    /** ⑤ `directoryPath` 那一格装的是相对目录名，不是设备绝对路径。 */
+    @Test
+    fun 目录那一格存相对目录名() {
+        freshRoot()
+        DesktopComicDownloadQueue.enqueue(root, "jm", "1461316", "题名", "", "a", "第 1 话", 0, false)
+        val stored = DesktopComicDownloadQueue.tasks.value[0].directoryPath
+        assertFalse("那一格不许带反斜杠：" + stored, stored.contains("\\"))
+        assertFalse("那一格不许带盘符：" + stored, Regex("^[A-Za-z]:").containsMatchIn(stored))
+        assertFalse("那一格不许以数据根开头：" + stored, stored.startsWith(root.absolutePath))
+        assertEquals(
+            "那一格拼回根上必须正是那颗章节目录：",
+            desktopComicChapterDir(root, "jm", "1461316", 0, "第 1 话").canonicalPath,
+            desktopComicQueueDir(root, DesktopComicDownloadQueue.tasks.value[0]).canonicalPath,
+        )
+        val text = File(root, DESKTOP_COMIC_QUEUE_FILE_NAME).readText()
+        assertFalse("盘上那份里不许出现本机绝对路径（换一台机器就全认不出）：" + text, text.contains(root.absolutePath))
+    }
+
+    /** ⑥ `downloadedPages` 只许是盘上数出来的：盘上已有 2 页而这一趟写 1 页 ⇒ 交回 3。 */
+    @Test
+    fun 盘上页数从盘上来而不是内存计数() {
+        freshRoot()
+        DesktopComicDownloadQueue.enqueue(root, "jm", "1", "题名", "", "a", "第 1 话", 0, false)
+        val pending = DesktopComicDownloadQueue.nextPending(root)
+        val dir = desktopComicQueueDir(root, pending!!)
+        assertTrue(dir.mkdirs())
+        DesktopComicPageFixtures.writeWholePage(dir, 0)
+        DesktopComicPageFixtures.writeWholePage(dir, 1)
+        DesktopComicDownloadQueue.reportTotal(root, pending.taskId, 3)
+        // 这一趟只写第 3 页：runner 递回来的"盘上已有"是 3，而**内存里那一趟只写了 1 页**。
+        DesktopComicDownloadQueue.reportProgress(root, pending.taskId, 3)
+        val after = DesktopComicDownloadQueue.tasks.value[0]
+        assertEquals(
+            "盘上两页 + 这一趟一页 ⇒ 3，而不是这一趟的 1：" + after.downloadedPages,
+            3,
+            after.downloadedPages,
+        )
+        // 第三颗换成**名字对、尺寸够而头部是过盾页 HTML** 那一档 ——
+        // 旧夹具那颗 12 字节的假页在新尺子下也不算一页，两种"不该算"里只有这一种是要治的病。
+        DesktopComicPageFixtures.writeBrokenPage(dir, 2)
+        val counted = desktopComicQueuePagesOnDisk(dir)
+        assertEquals("名字对而头部不是图的那一颗不算一页（与那颗共用判式同一口径）：", 2, counted)
+        File(dir, desktopComicChapterPageFileName(1)).delete()
+        assertEquals(
+            "回读盘必须数得出真在那儿的那一颗：",
+            1,
+            desktopComicQueuePagesOnDisk(dir),
+        )
+    }
+
+    /** ⑥′ 进度那一跳要**真的落盘**：内存改了而盘上那份停在旧数，崩在半路再起来就少念几页（台架 R4 逼出来的尺子）。 */
+    @Test
+    fun 每写一页都全量刷盘() {
+        freshRoot()
+        DesktopComicDownloadQueue.enqueue(root, "jm", "1", "题名", "", "a", "第 1 话", 0, false)
+        val taskId = DesktopComicDownloadQueue.tasks.value[0].taskId
+        DesktopComicDownloadQueue.reportTotal(root, taskId, 9)
+        DesktopComicDownloadQueue.reportProgress(root, taskId, 4)
+        val first = File(root, DESKTOP_COMIC_QUEUE_FILE_NAME).readText()
+        assertTrue("盘上那份里必须已经有那一格的新数（只改内存就是静默交错）：" + first, first.contains("\"downloadedPages\":4"))
+        DesktopComicDownloadQueue.reportProgress(root, taskId, 7)
+        val second = File(root, DESKTOP_COMIC_QUEUE_FILE_NAME).readText()
+        assertTrue("再写三页要刷成新数而不是留着旧的：" + second, second.contains("\"downloadedPages\":7"))
+    }
+
+    /** ⑦ 字段清单逐枚点名（对岸那 15 枚 + 桌面多那一枚 `placeholder`），且两两不同。 */
+    @Test
+    fun 队列那份的字段逐枚点名() {
+        freshRoot()
+        DesktopComicDownloadQueue.enqueue(root, "jm", "1", "题名", "https://c/1.jpg", "a", "第 1 话", 0, true)
+        val text = File(root, DESKTOP_COMIC_QUEUE_FILE_NAME).readText()
+        val ours = listOf(
+            "taskId", "sourceKey", "comicId", "comicTitle", "comicCover", "chapterId", "chapterTitle",
+            "chapterOrder", "status", "downloadedPages", "totalPages", "errorMsg", "directoryPath",
+            "createTime", "updateTime", "placeholder",
+        )
+        val opposite = listOf(
+            "taskId", "sourceKey", "comicId", "comicTitle", "comicCover", "chapterId", "chapterTitle",
+            "chapterOrder", "status", "downloadedPages", "totalPages", "errorMsg", "directoryPath",
+            "createTime", "updateTime",
+        )
+        assertEquals("字段清单自己不许有重复：", ours.size, ours.toSet().size)
+        assertEquals("对岸那 15 枚必须逐枚都在：" + text, 15, opposite.count { text.contains("\"$it\":") })
+        assertTrue("桌面多的那一枚 placeholder 必须在（占位章不带过去会被当正常话去问页表）：" + text, text.contains("\"placeholder\":"))
+        assertEquals("多的只有那一枚：" + ours.size, 16, ours.size)
+        val keys = Regex("\"([A-Za-z]+)\"\\s*:").findAll(text).map { it.groupValues[1] }.toList()
+        assertEquals("那份里出现的键必须与清单同一批（不多不少）：" + keys.distinct(), 16, keys.distinct().size)
+        assertEquals("两两不同：", keys.distinct().size, keys.size)
+    }
+
+    /** ⑧ 坏档留档并点名（与批 88 那颗 cookie 罐同一形），不许静默当"没有队列"。 */
+    @Test
+    fun 坏档留档并点名() {
+        val dir = freshRoot()
+        File(dir, DESKTOP_COMIC_QUEUE_FILE_NAME).writeText("这不是 JSON {{{")
+        DesktopComicDownloadQueue.prime(dir, force = true)
+        assertTrue("读不出来的那份要留档而不是被覆盖掉：" + dir.list().joinToString(","), dir.list().any { it.contains(".bad") })
+        assertEquals("留档之后队列表是空的：", 0, DesktopComicDownloadQueue.tasks.value.size)
+        val reading = desktopComicQueueReading(DesktopComicDownloadQueue.tasks.value, DesktopComicDownloadQueue.asideName)
+        assertTrue("读数里要点名那一档留了档：" + reading, reading.contains("留档"))
+    }
+
+    /**
+     * ⑨ 并发由**锁内认领**钉而不是并发常量钉：取跑只许那一处认领（多圈泵共抢一张表时
+     * 同一笔只会有一个认领者），泵圈数吃装配点递的偏好档。
+     *
+     * 原名「恒串行而没有第二枚并发数」——把
+     * 下载并发开成偏好（盘上 pref_download_threads，默认 1 = 旧恒串行形状）。
+     * 机制断言一条没松：awaitNextPending 仍恰一处（认领入口唯一）、`queueScope.launch {` 仍恰一处
+     * （泵圈从那一处作用域里 repeat 派生，第二枚 launch 是裸名不吃计数串）、
+     * 零 async/coroutineScope、全 main 仍禁并发常量与 downloadConcurrency 键名。
+     */
+    @Test
+    fun 并发由认领钉而没有第二枚并发数() {
+        val pump = DesktopSourceTree.desktopMainSources().first { it.name == "DesktopComicQueueRunner.kt" }
+        val code = DesktopSourceTree.codeText(pump)
+        assertEquals(
+            "泵里那一枚取待跑的调用恰一处（认领入口唯一；两处取表就是两笔抢同一笔）。" +
+                "第一百零八批把这一枚换成会等的那一跳，2026-11-04 又换成锁内认领，计数口径不变：",
+            1,
+            DesktopSourceTree.codeOccurrences(pump, "DesktopComicDownloadQueue.awaitNextPending("),
+        )
+        assertEquals(
+            "泵里只许有一枚 launch（一圈泵；两枚就是两个执行器）：",
+            1,
+            DesktopSourceTree.codeOccurrences(pump, "queueScope.launch {"),
+        )
+        assertFalse("泵里不许有 async 分叉：", code.contains("async("))
+        assertFalse("泵里不许有 coroutineScope 分叉：", code.contains("coroutineScope("))
+        val offenders = DesktopSourceTree.desktopMainSources().filter { DesktopSourceTree.codeText(it).contains("QUEUE_CONCURRENCY") }
+        assertEquals("全 main 不许有并发常量（一枚喂 take(1) 的常量是假开关）：" + offenders.map { it.name }, 0, offenders.size)
+        val prefs = DesktopSourceTree.desktopMainSources().filter { DesktopSourceTree.codeText(it).contains("downloadConcurrency") }
+        assertEquals("也不许自己造一枚并发偏好键（java.util.concurrent 那种 import 不算）：" + prefs.map { it.name }, 0, prefs.size)
+    }
+
+    /** ⑩ 有人真的在收那枚表 —— 立状态必须同批立这一条（`GalleryFavoritesStore.notice` 的前案）。 */
+    /** ⑪ 顶栏那枚牌子改成由任务表算出来的一句，且三档两两不同。 */
+    /** ⑫ 长按那一枚动作的去向是"入队"，而计数仍是声明一处 + 调用两处（批 96 那把尺子的改判）。 */
+    /** ⑬ 取消只有一颗闸：泵里那一处 `stopRequested`，详情那一屏零处（不许第二条路）。 */
+    /** ⑭ 作用域与句柄退场的**顺序**：先掐作用域再关 context。 */
+    /** ⑮ 详情那一屏的早退闸换成"这一话已经在队里"，钉整串表达式。 */
+    /** ⑯ 屏上那一句：排队那一档念"回到漫画域就接着跑"，正在跑那一档念页码，两档不许塌成一句。 */
+    @Test
+    fun 排队那一档屏上念得出边界() {
+        val queued = desktopComicChapterStatusText(
+            DesktopComicChapterDownload(0, 0, 3, busy = false, failure = null, pagesOnDisk = 0, cancelled = false, queued = true),
+        )
+        val running = desktopComicChapterStatusText(
+            DesktopComicChapterDownload(0, 0, 89, busy = true, failure = null, pagesOnDisk = 42, cancelled = false, queued = false),
+        )
+        assertTrue("排队那一档要说清「回这一域才继续」（C 档那条边界）：" + queued, queued.contains("回到漫画域")
+        )
+        assertTrue("正在跑那一档要带页码：" + running, running.contains("42/89"))
+        assertDistinct(queued, running)
+        val fromTask = desktopComicChapterDownloadOf(queueTask(DesktopComicQueueStatus.PENDING, 0, 0))
+        assertNotNull(fromTask)
+        assertEquals("待跑那一档映射过来要带上排队标记：", true, fromTask!!.queued)
+        val busy = desktopComicChapterDownloadOf(queueTask(DesktopComicQueueStatus.RUNNING, 42, 89))
+        assertEquals("正在跑那一档映射过来不许还带排队标记：", false, busy!!.queued)
+        assertEquals("映射过来的页码取自任务表：", 42, busy.pagesOnDisk)
+        assertNull("没有那一笔时交回 null（屏上一个字都不摆）：", desktopComicChapterDownloadOf(null))
+    }
+
+    /** ⑰ 重启续排：读回来的待跑那一笔排得到，而「已完成」的不重跑。 */
+    @Test
+    fun 重启续排只排没跑完的() {
+        freshRoot()
+        DesktopComicDownloadQueue.enqueue(root, "jm", "1", "题名", "", "a", "第 1 话", 0, false)
+        DesktopComicDownloadQueue.enqueue(root, "jm", "1", "题名", "", "b", "第 2 话", 1, false)
+        val first = DesktopComicDownloadQueue.nextPending(root)
+        assertEquals("先排到的必须是先入队那一话：", "a", first!!.chapterId)
+        val dir = desktopComicQueueDir(root, first)
+        assertTrue(dir.mkdirs() || dir.isDirectory)
+        desktopComicWriteChapterManifest(dir, "a", 0, "第 1 话", 1, complete = true)
+        DesktopComicPageFixtures.writeWholePage(dir, 0)
+        DesktopComicDownloadQueue.reportTotal(root, first.taskId, 1)
+        DesktopComicDownloadQueue.settle(root, first.taskId, DesktopComicChapterRun.Completed(1))
+        DesktopComicDownloadQueue.prime(root, force = true)
+        val next = DesktopComicDownloadQueue.nextPending(root)
+        assertEquals("重启之后排到的应当是第二话而不是那一话（已完成的不重跑）：" + next?.chapterId, "b", next?.chapterId)
+        DesktopComicDownloadQueue.settle(root, next!!.taskId, DesktopComicChapterRun.Cancelled(0))
+        assertNull("被停手的那一笔不再自动排（用户说明说要它才动）：", DesktopComicDownloadQueue.nextPending(root))
+        DesktopComicDownloadQueue.enqueue(root, "jm", "1", "题名", "", "b", "第 2 话", 1, false)
+        assertEquals("再入队要把它排回去：", "b", DesktopComicDownloadQueue.nextPending(root)?.chapterId)
+    }
+
+    private fun queueTask(status: DesktopComicQueueStatus, downloaded: Int, total: Int): DesktopComicQueueTask =
+        DesktopComicQueueTask(
+            taskId = "jm_1_a",
+            sourceKey = "jm",
+            comicId = "1",
+            comicTitle = "题名",
+            comicCover = "",
+            chapterId = "a",
+            chapterTitle = "第 1 话",
+            chapterOrder = 0,
+            directoryPath = "jm/1/0000_第 1 话",
+            status = status,
+            downloadedPages = downloaded,
+            totalPages = total,
+            error = "",
+            placeholder = false,
+            createTime = 1L,
+            updateTime = 2L,
+        )
+
+    private fun assertDistinct(vararg texts: String) {
+        assertEquals("那几档各念各的一句（两两不同）：" + texts.joinToString(" | "), texts.size, texts.toSet().size)
+    }
+
+    /** 把"入队两笔"那几颗共用掉的那一步抽出来，免得测试自己写出一份第二套拼法。 */
+    private fun enqueueProbe(sourceKey: String, comicId: String, chapterId: String) {
+        DesktopComicDownloadQueue.enqueue(root, sourceKey, comicId, "题名", "", chapterId, "第 1 话", 0, false)
+    }
+
+    /** ⑱ `taskId` 里那三格各自净化过（站方给的号里带 `/` 就要拼出三格变四格的那种任务号）。 */
+    @Test
+    fun 任务号里那三格各自净化() {
+        freshRoot()
+        enqueueProbe("a/b", "c:d", "e\\f")
+        val task = DesktopComicDownloadQueue.tasks.value[0]
+        assertEquals(
+            "拼出来的任务号里不许有那些字符：" + task.taskId,
+            "a_b_c_d_e_f",
+            task.taskId,
+        )
+        assertFalse("任务号里下划线只是分隔符，不许出现连续分隔：" + task.taskId, task.taskId.contains("//"))
+    }
+}

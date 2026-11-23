@@ -1,0 +1,231 @@
+// 宽屏档通栏悬浮部件的唯一宽度口径（最大 540dp，左右各留 24dp 边距），避免各页面阈值漂移。
+package com.venera.compose.components
+
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.venera.compose.ui.tokens.VeneraSpacing
+
+/** 宽屏档判定阈值（小于该宽度视为紧凑手机档）。 */
+private val WideScreenWidthThreshold = 600.dp
+
+/** 扩展宽屏档判定阈值。 */
+private val WideScreenExpandedThreshold = 1300.dp
+
+/**
+ * 大屏档位：master `targetFormContext` 返回的 0 / 2 / 3 三态（跳过 1，那是 0→2 的动画中间态）。
+ *
+ * ⚠️ **名字是 MD3 的，阈值不是 MD3 的。**
+ * MD3 官方断点是 compact <600 / medium 600–839 / **expanded ≥840**；
+ * 本枚举取 **600 / 1300**，抄的是 master 的 `changePoint` 与 `changePoint2`。
+ * 本项目要对标的第一方是 Flutter master，不是 MD3 —— 看到 `Expanded` 不要按 840 判。
+ */
+enum class WideScreenLayoutMode { Compact, Medium, Expanded }
+
+/**
+ * 断点判定 —— **吃屏幕宽**（不是网格/容器实测宽）。
+ *
+ * 两类宽度回答的是不同问题，别混：「该换布局了吗」是设备形态的粗粒度判断，屏幕宽正是这个语义，
+ * 且照 master（`context.width` = `MediaQuery.size.width`）才可能与官方一致；
+ * 「该排几列」才用实测宽，那一条已经收口在 `ComicPresentationPolicy`，不要退回去。
+ *
+ * 比较符取 `>`：**恰好 600dp 归 `Compact`（仍算手机档）**。
+ * 这一点三方一致，别改成 `>=`：① master `nav:251` 原文 `if (width > changePoint) target = 2`，
+ * 600dp 上官方给的是底部胶囊而非侧栏；② 本仓既有单测 `wideScreenChromeMaxWidth(600.dp)`
+ * 断言返回 `null`（手机档无上限），改判会连带把 chrome 收口口径翻掉；
+ * ③ master 在 600 处三种写法并存（`>` 3 处 / `<` 9 处 / `>=` 1 处），
+ * 且 `consts.dart:1` 的注释与 `nav:251` 的代码互相矛盾 —— 那是官方的边界缺陷，不照抄。
+ *
+ * ⚠️ master 那 9 处 `<` 判的是 AppBar 用 shadow 还是 blur，与导航形态无关，
+ * 不构成「600 必须是手机」的独立证据；真正的依据是 `nav:251` 本身。
+ */
+fun wideScreenLayoutMode(screenWidth: Dp): WideScreenLayoutMode = when {
+    screenWidth > WideScreenExpandedThreshold -> WideScreenLayoutMode.Expanded
+    screenWidth > WideScreenWidthThreshold -> WideScreenLayoutMode.Medium
+    else -> WideScreenLayoutMode.Compact
+}
+
+/** master `_kFoldedSideBarWidth`（`navigation_bar.dart:132`）。 */
+private val FoldedSideBarWidth = 72.dp
+
+/** master `_kSideBarWidth`（`navigation_bar.dart:134`）。 */
+private val ExpandedSideBarWidth = 224.dp
+
+/**
+ * 侧栏宽度。抄的是 master 插值公式的**稳态值**，不是插值本身：
+ * `nav:310-312` 在 `value = 2/3` 时内容内缩算出来恰好等于 72 / 224，
+ * 即「内容内缩 == 侧栏宽」是这两条路线的自洽性保证。
+ */
+fun sideBarWidthFor(mode: WideScreenLayoutMode): Dp = when (mode) {
+    WideScreenLayoutMode.Compact -> 0.dp
+    WideScreenLayoutMode.Medium -> FoldedSideBarWidth
+    WideScreenLayoutMode.Expanded -> ExpandedSideBarWidth
+}
+
+/**
+ * 页面内容为底部导航预留的净留白。
+ *
+ * **批次 2 起三档分值**：Compact 76 / Medium 0 / Expanded 0。
+ *
+ * 为什么侧栏档归 0：master 在 `value >= 2` 时把整条底栏连同 overlay 层一起消失
+ * （`nav:933` `shouldShowAppBar = controller.value < 2` ⇒ false，`:972-974` 提前 return），
+ * 底栏不存在 ⇒ 没有需要避让的对象。留 76dp 会在侧栏档留下一条永远填不满的空空白。
+ *
+ * ⚠️ 归 0 的**前提是底栏真的不渲染**，两者必须同一颗提交落地。
+ * 批次 1 曾把三档都设 76 作中间态（那时底栏仍无条件渲染，提前归 0 会让平板档
+ * 最后一行内容被悬浮底栏压住 —— 只在侧栏档出现、手机档全好、回归测试抓不到）。
+ * 批次 2 的 [VeneraSideBar] 接管了侧栏档的导航，`Navigation.kt` 的底栏门同步加上了
+ * 档位判断 ⇒ 前提已成立。**若将来回退侧栏落地，必须同时把这两档改回 76。**
+ *
+ * 前提从「档位」细化为 `sideBarActive`（见 [sideBarReplacesBottomBar]）。
+ * 液态玻璃档在宽窗**保留**底栏 ⇒ 该档必须回到 76dp 留白，否则最后一行会被悬浮栏压住
+ * （正是本条 KDoc 上半段记的那个「只在宽窗出现、手机档全好」的失败模式）。
+ * 「底栏渲染 ⟺ 留白 76」这条不变量由 `sideBarActive` 一个布尔同时驱动两侧，未被削弱。
+ */
+fun bottomBarClearanceFor(
+    mode: WideScreenLayoutMode,
+    /**
+     * 本档是否真的由侧栏接管导航。默认值 = 「侧栏档就用侧栏」，与批次 2 既有行为逐值相同。
+     *
+     * ⚠️这条不再是 `mode` 的纯函数：用户要求液态玻璃档**横屏也保留底部悬浮栏**，
+     * 于是「宽窗是否换侧栏」改由导航栏样式轴决定（见 [sideBarReplacesBottomBar]）。
+     * 参数化而不是在这里直读样式，是为了让本文件不反向依赖 `data.prefs`（策略层不认识偏好枚举）。
+     */
+    sideBarActive: Boolean = mode != WideScreenLayoutMode.Compact,
+    dockedSelected: Boolean = false,
+): Dp = when {
+    sideBarActive -> 0.dp
+    dockedSelected -> 54.dp
+    else -> VeneraSpacing.bottomBarClearance
+}
+
+/**
+ * 宽窗下是否由左侧栏替代底部导航栏。
+ *
+ * **用户新增的第二档选择**：原先把「宽窗 ⇒ 换侧栏」写死成几何必然
+ * （`Navigation.kt` 的 `useSideBar = layoutMode != Compact`），导致液态玻璃栏在横屏/平板上
+ * 被无条件顶掉、设置里那一项在宽窗形同虚设。现在判据收口在这里，两种样式各自成立：
+ *
+ *  - `MD3` → 宽窗换侧栏，手机档用悬浮底栏。**与改动前逐像素一致**（这句"默认"已过期：
+ *    `cd0e1bd` 起应用默认是 `LIQUID_GLASS`，见 `VeneraPreferences.kt:419`）。
+ *  - `LIQUID_GLASS` → 无论宽窄都保留底部悬浮栏（横屏一样能用玻璃栏）。**这是今天的新默认**。
+ */
+fun sideBarReplacesBottomBar(
+    mode: WideScreenLayoutMode,
+    liquidGlassSelected: Boolean,
+): Boolean = mode != WideScreenLayoutMode.Compact && !liquidGlassSelected
+
+/**
+ * 传给 [VeneraSideBar] 的**有效档位**：侧栏不接管时一律降为 `Compact`，
+ * 让该组件走它自己的「直通 content」分支。
+ *
+ * 为什么需要这一层（我自己改动里抓到的一个真 bug）：
+ * `VeneraSideBar` 的短路判据是 `mode == Compact`。引入样式轴后，
+ * 「宽窗 + 液态玻璃」这一格 `useSideBar == false` 而 `layoutMode` 仍是 Medium/Expanded ——
+ * 若照旧传 `layoutMode`，侧栏**和**底部玻璃栏会同时渲染（两套导航叠在一屏上）。
+ *
+ * 收口在这里而不是在 `Navigation.kt` 写 `if (useSideBar) layoutMode else Compact`：
+ * 本文件的既有契约是「档位判定只有一处」，调用点不该再自己分叉一次。
+ */
+fun sideBarModeFor(
+    mode: WideScreenLayoutMode,
+    sideBarActive: Boolean,
+): WideScreenLayoutMode = if (sideBarActive) mode else WideScreenLayoutMode.Compact
+
+/**
+ * 阅读型内容列的最大宽度（设置 / 详情 / 表单这类「一行一行读」的页面）。
+ *
+ * 为什么需要它：`wideScreenChromeMaxWidth` 只收口了**通栏悬浮件**（底栏 540、抽屉 400），
+ * 页面内容此前没有任何宽度口径 —— 1707dp 的平板上设置页单列列表横跨 2560px、
+ * 开关被拉到 2182px 宽，这是排查里最明显的一条。
+ *
+ * **Compact 返回 `null`**，与 [wideScreenChromeMaxWidth] 同一约定：手机档一个像素都不改
+ * （硬约束「我们调的都是大屏版，别动手机版」）。调用点必须显式处理 null 分支。
+ *
+ * 取值依据（不是新造数）：
+ *  - 720dp ≈ 中文正文 45~50 字/行，是「一行读得完」的上限档；
+ *  - 840dp = MD3 官方 expanded 断点，也是 master 抽屉定宽 400 的两倍余量。
+ *  两者都落在既有断点语义内，没有引入第三套断点。
+ */
+fun contentMaxWidthFor(mode: WideScreenLayoutMode): Dp? = when (mode) {
+    WideScreenLayoutMode.Compact -> null
+    WideScreenLayoutMode.Medium -> 720.dp
+    WideScreenLayoutMode.Expanded -> 840.dp
+}
+
+/**
+ * 图片墙列数 —— 画廊墙 / 每日推荐 / 画廊收藏 / 图片收藏四处共用这一把。
+ *
+ * 每列预算 200dp 不是新造数：本仓详情页预览格早就照 master 钉了
+ * `SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 200)`
+ * （见 `ComicPresentationPolicy.comicPreviewColumnCount`），这里沿同一把尺，
+ * 连"向上取整"的方向也一致（保证算出来的格宽不超预算，而不是刚好超）。
+ *
+ * ⚠️ **手机档恒等于 2，不参与预算计算** —— 这是硬约束
+ * （「现在调的都是大屏版，别动手机版」）的实现，别拿 `ceil` 的裸结果替它：
+ * 425dp 以上的手机（大屏机/折叠屏合起）裸算会得 3 列，等于悄悄改了手机版。
+ * 侧栏档下限取 3 = 今天 `if (wide) 3 else 2` 的原值 ⇒ **列数只许比今天多，
+ * 任何宽度都不会因为这次改动变得比现在更大**（画廊卡是 staggered 网格，
+ * 格子高度跟着宽度走，减列就等于放大卡片）。
+ *
+ * 宽度传**窗口宽**（`screenWidthDp`），不传物理屏宽：分屏与自由窗口下两者不等；
+ * 再减掉本档侧栏占掉的 [sideBarWidthFor] 与网格自己的左右内边距 ——
+ * 侧栏是这一轮新出现的扣项，忘了减就会在宽窗上多排一列、卡片被挤窄。
+ */
+/**
+ * 图片墙网格的左右内边距合计 = 页面横向内边距 × 2。
+ *
+ * 存在的理由只有一条：**让单测与生产用同一个表达式**。此前测试传字面量 `24.dp`、
+ * 生产传 `VeneraSpacing.screenHorizontal * 2`，两者今天恰好相等（12×2），
+ * 于是谁改 `screenHorizontal` 都不会红 —— 列数回归就这么溜过去。
+ * 现在四颗页与本文件的用例都从这里取值，改 token 会同时改变读数，用例随即要求留痕。
+ */
+fun imageWallHorizontalPadding(): Dp = VeneraSpacing.screenHorizontal * 2
+
+fun imageWallColumnCount(
+    windowWidth: Dp,
+    mode: WideScreenLayoutMode,
+    horizontalContentPadding: Dp,
+): Int {
+    if (mode == WideScreenLayoutMode.Compact) return 2
+    val available = (windowWidth - sideBarWidthFor(mode) - horizontalContentPadding).value.coerceAtLeast(0f)
+    return kotlin.math.ceil(available / 200f).toInt().coerceAtLeast(3)
+}
+
+/**
+ * 宽屏档判定（平板 / 横向宽窗）：阈值唯一收口在本文件，
+ * 组件内需要按档位换几何（如分段控制器加高）时只许调这个，不得各自抄 600。
+ *
+ * 保留签名、只改函数体：现有消费点全部只调列数/尺寸，没有一处结构分支，
+ * 它们要的是一个「是不是宽屏」的布尔，不需要档位 —— 一处都不用改。
+ * 出现第一个需要区分 `Medium` / `Expanded` 的消费点时再一次性替换掉它们。
+ */
+@Deprecated(
+    "改用 wideScreenLayoutMode() 拿档位；本函数只是「!= Compact」的别名，" +
+        "保留是为了让只关心是否宽屏的消费点零改动。",
+    ReplaceWith("wideScreenLayoutMode(screenWidth) != WideScreenLayoutMode.Compact"),
+    level = DeprecationLevel.WARNING,
+)
+fun isWideScreen(screenWidth: Dp): Boolean =
+    wideScreenLayoutMode(screenWidth) != WideScreenLayoutMode.Compact
+
+/** master `_kGlassBarMaxWidth`。 */
+private val WideScreenMaxWidth = 540.dp
+
+/** master `_kGlassBarHorizontalPadding` × 2。 */
+private val WideScreenSideBudget = 48.dp
+
+/**
+ * 宽屏档的收口宽度；**手机档返回 `null`**，表示"各部件沿用现有几何、一字不改"。
+ *
+ * 返回 null 而不是返回一个等于满宽的数，是为了让调用点必须显式处理手机分支 ——
+ * 避免出现"手机档也被某个上限悄悄改掉"这种回不去的观感回归。
+ */
+fun wideScreenChromeMaxWidth(screenWidth: Dp): Dp? =
+    if (screenWidth > WideScreenWidthThreshold) {
+        minOf(WideScreenMaxWidth, screenWidth - WideScreenSideBudget)
+    } else {
+        null
+    }
+
+/** 抽屉内容限宽：master `scaffold.dart:662,727` 给章节目录与阅读设置抽屉的定宽。 */
+val WideScreenDrawerWidth = 400.dp

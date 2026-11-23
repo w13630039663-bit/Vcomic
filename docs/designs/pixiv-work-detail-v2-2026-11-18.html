@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pixiv 作品详情页 v2 — 纯暗画布 + 局部玻璃方案稿</title>
+<style>
+  :root {
+    --bg-canvas: #0e1014;
+    --bg-sidebar: rgba(22, 24, 29, 0.84);
+    --bg-elevated: rgba(255, 255, 255, 0.05);
+    --bg-elevated-hover: rgba(255, 255, 255, 0.09);
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-image: rgba(255, 255, 255, 0.10);
+    --text-primary: #f3f4f6;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+    --accent: #60a5fa;
+    --accent-bg: rgba(96, 165, 250, 0.16);
+    --primary-btn: #93c5fd;
+    --primary-btn-text: #0b1220;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
+    background: var(--bg-canvas);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 顶部极简标题栏 */
+  .titlebar {
+    height: 40px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-subtle);
+    background: rgba(14, 16, 20, 0.92);
+    flex-shrink: 0;
+  }
+  .titlebar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .back-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: background 150ms ease-out, transform 150ms ease-out;
+  }
+  .back-btn:hover { background: var(--bg-elevated-hover); }
+  .back-btn:active { transform: scale(0.96); }
+
+  /* 主体双栏 */
+  .workspace {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+  }
+
+  /* 左侧纯暗画布区 */
+  .stage {
+    flex: 1;
+    position: relative;
+    background: var(--bg-canvas);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 32px 88px;
+    min-width: 0;
+  }
+
+  .stage-toolbar {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    display: flex;
+    gap: 6px;
+    z-index: 10;
+  }
+  .pill-toggle {
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-subtle);
+    background: rgba(22, 24, 29, 0.85);
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 150ms ease-out;
+  }
+  .pill-toggle.active {
+    color: var(--accent);
+    border-color: rgba(96, 165, 250, 0.4);
+    background: var(--accent-bg);
+  }
+  .pill-toggle:active { transform: scale(0.96); }
+
+  .artwork-frame {
+    position: relative;
+    max-width: 100%;
+    max-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .artwork-img {
+    max-height: calc(100vh - 160px);
+    max-width: 100%;
+    border-radius: 8px;
+    outline: 1px solid var(--border-image);
+    outline-offset: -1px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+    object-fit: contain;
+    background: #16181d;
+  }
+
+  /* 悬停左右翻页钮 */
+  .nav-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    border: 1px solid var(--border-subtle);
+    background: rgba(22, 24, 29, 0.78);
+    color: var(--text-primary);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    opacity: 0.85;
+    transition: background 150ms ease-out, transform 150ms ease-out;
+  }
+  .nav-arrow:hover { background: rgba(38, 42, 52, 0.95); opacity: 1; }
+  .nav-arrow:active { transform: translateY(-50%) scale(0.96); }
+  .nav-arrow.prev { left: 20px; }
+  .nav-arrow.next { right: 20px; }
+
+  /* 底部同心圆缩略图条：内圆角 8px + 内边距 6px = 外圆角 14px */
+  .thumb-dock {
+    position: absolute;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 14px;
+    background: rgba(22, 24, 29, 0.88);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border-subtle);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  }
+  .page-counter {
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+    padding: 0 6px;
+  }
+  .thumb-item {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: #232730;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    color: var(--text-secondary);
+    transition: transform 150ms ease-out, border-color 150ms ease-out;
+  }
+  .thumb-item.active {
+    border-color: var(--accent);
+    color: var(--text-primary);
+  }
+  .thumb-item:active { transform: scale(0.96); }
+
+  /* 右侧一体化局部毛玻璃侧栏 */
+  .sidebar {
+    width: 380px;
+    flex-shrink: 0;
+    background: var(--bg-sidebar);
+    backdrop-filter: blur(24px);
+    border-left: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .sidebar-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .section {
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .section:last-child { border-bottom: none; padding-bottom: 0; }
+
+  .work-title {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.35;
+    margin-bottom: 4px;
+  }
+  .work-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 14px;
+  }
+
+  .artist-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--bg-elevated);
+    margin-bottom: 14px;
+  }
+  .artist-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #f43f5e, #6366f1);
+  }
+  .artist-name { font-size: 13px; font-weight: 600; }
+  .artist-badge {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 1px;
+  }
+  .follow-btn {
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-elevated-hover);
+    color: var(--text-primary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: transform 150ms ease-out;
+  }
+  .follow-btn:active { transform: scale(0.96); }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .stat-cell {
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: var(--bg-elevated);
+  }
+  .stat-val {
+    font-size: 14px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-lbl {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+  }
+
+  .tags-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .tag-chip {
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    font-size: 12px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background 150ms ease-out, transform 150ms ease-out;
+  }
+  .tag-chip:hover { background: var(--bg-elevated-hover); }
+  .tag-chip:active { transform: scale(0.96); }
+
+  /* 空评论折叠为单行 */
+  .comment-collapsed {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* 相关作品 3 列紧凑网格 */
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .related-card {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    background: #1f232b;
+    outline: 1px solid var(--border-image);
+    outline-offset: -1px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 150ms ease-out;
+  }
+  .related-card:hover { transform: translateY(-2px); }
+  .related-card:active { transform: scale(0.96); }
+  .page-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    padding: 1px 5px;
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.68);
+    font-size: 10px;
+    color: #fff;
+  }
+
+  /* 吸底操作栏 */
+  .sidebar-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border-subtle);
+    background: rgba(18, 20, 25, 0.92);
+    display: flex;
+    gap: 8px;
+  }
+  .btn-primary {
+    flex: 1;
+    height: 38px;
+    border-radius: 10px;
+    border: none;
+    background: var(--primary-btn);
+    color: var(--primary-btn-text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 150ms ease-out, opacity 150ms ease-out;
+  }
+  .btn-primary:active { transform: scale(0.96); }
+  .btn-secondary {
+    height: 38px;
+    padding: 0 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 150ms ease-out, transform 150ms ease-out;
+  }
+  .btn-secondary:hover { background: var(--bg-elevated-hover); }
+  .btn-secondary:active { transform: scale(0.96); }
+</style>
+</head>
+<body>
+  <header class="titlebar">
+    <div class="titlebar-left">
+      <button class="back-btn" title="返回">←</button>
+      <span>Crob.フェロー · NTEからナナリ</span>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- 左侧纯暗画布 -->
+    <section class="stage">
+      <div class="stage-toolbar">
+        <button class="pill-toggle active">单图</button>
+        <button class="pill-toggle">网格全览 (6P)</button>
+      </div>
+
+      <button class="nav-arrow prev" title="上一张">‹</button>
+      <div class="artwork-frame">
+        <div class="artwork-img" style="width: 460px; height: 680px; display: grid; place-items: center; color: #6b7280; font-size: 13px;">
+          主图展示区（纯暗画布 + 1px 纯白半透明内描边）
+        </div>
+      </div>
+      <button class="nav-arrow next" title="下一张">›</button>
+
+      <div class="thumb-dock">
+        <span class="page-counter">1 / 6</span>
+        <div class="thumb-item active">P1</div>
+        <div class="thumb-item">P2</div>
+        <div class="thumb-item">P3</div>
+        <div class="thumb-item">P4</div>
+        <div class="thumb-item">P5</div>
+        <div class="thumb-item">P6</div>
+      </div>
+    </section>
+
+    <!-- 右侧一体化局部毛玻璃侧栏 -->
+    <aside class="sidebar">
+      <div class="sidebar-scroll">
+        <div class="section">
+          <h1 class="work-title">NTEからナナリ</h1>
+          <div class="work-meta">多图 · 6P · 2026-05-30 14:57</div>
+
+          <div class="artist-row">
+            <div class="artist-info">
+              <div class="avatar"></div>
+              <div>
+                <div class="artist-name">Crob.フェロー</div>
+                <div class="artist-badge">画师主页</div>
+              </div>
+            </div>
+            <button class="follow-btn">+ 关注</button>
+          </div>
+
+          <div class="stats-row">
+            <div class="stat-cell">
+              <div class="stat-val">2,258</div>
+              <div class="stat-lbl">浏览</div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-val">195</div>
+              <div class="stat-lbl">收藏</div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-val">05-30</div>
+              <div class="stat-lbl">发布</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><span>作品标签</span></div>
+          <div class="tags-wrap">
+            <span class="tag-chip">NevernesstoEverness</span>
+            <span class="tag-chip">NTE</span>
+            <span class="tag-chip">ナナリ(NTE)</span>
+            <span class="tag-chip">Nanally</span>
+            <span class="tag-chip">humanoid</span>
+            <span class="tag-chip">cat ears</span>
+            <span class="tag-chip">尾巴</span>
+            <span class="tag-chip">兽耳</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="comment-collapsed">
+            <span>评论</span>
+            <span>暂无评论</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head">
+            <span>相关作品</span>
+            <span style="font-weight: 400; color: var(--text-muted);">30 张</span>
+          </div>
+          <div class="related-grid">
+            <div class="related-card"></div>
+            <div class="related-card"></div>
+            <div class="related-card"><span class="page-badge">25P</span></div>
+            <div class="related-card"></div>
+            <div class="related-card"><span class="page-badge">27P</span></div>
+            <div class="related-card"></div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="sidebar-footer">
+        <button class="btn-primary">下载全部 (6P)</button>
+        <button class="btn-secondary">收藏</button>
+        <button class="btn-secondary" title="复制链接">🔗</button>
+      </footer>
+    </aside>
+  </main>
+</body>
+</html>

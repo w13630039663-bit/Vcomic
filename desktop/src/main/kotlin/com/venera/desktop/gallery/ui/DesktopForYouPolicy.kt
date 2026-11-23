@@ -1,0 +1,69 @@
+package com.venera.desktop.gallery.ui
+
+import com.venera.compose.gallery.data.GalleryFavorite
+import com.venera.compose.gallery.data.GallerySite
+import com.venera.compose.gallery.domain.GalleryRecommendation
+import com.venera.compose.gallery.domain.GalleryRecommendations
+import com.venera.compose.gallery.domain.GallerySearch
+import com.venera.compose.gallery.domain.GalleryTagFilter
+
+internal class DesktopForYouPlan(
+    /** 每站抽到的那一档（原样交回共享那颗的产物，桌面不加工）。 */
+    val perSite: Map<GallerySite, GalleryRecommendation>,
+    /** **发得出去**的站 → 那一串。空表 = 这一轮一笔都不该发。 */
+    val queries: Map<GallerySite, String>,
+) {
+    /** 只要有一站抽得出标签就该发车 —— 少一站由 [silentSites] 去说，不该把整屏报空。 */
+    val canDispatch: Boolean get() = queries.isNotEmpty()
+
+    /** 这一轮没发出去的站（逐站点名用，次序恒为枚举自然序）。 */
+    val silentSites: List<GallerySite> get() = GallerySite.entries.filter { it !in queries.keys }
+
+    /** 这一站为什么没发出去；发得出去给 `null`。 */
+    fun reasonFor(site: GallerySite): String? = when (val rec = perSite[site]) {
+        is GalleryRecommendation.Tags -> null
+        GalleryRecommendation.NoSeeds -> "${site.displayName}：暂无收藏"
+        GalleryRecommendation.NoUsableTags -> "${site.displayName}：标签已屏蔽"
+        null -> "${site.displayName}：暂无数据"
+    }
+
+    /**
+     * 整屏一条都发不出去时该说的那一句。
+     *
+     * ⚠️ 两档的**优先次序**是判据：`NoUsableTags` 盖过 `NoSeeds`。
+     * 反过来写会让"有收藏却被我们滤光"那一档念成"快去收藏" —— 用户照做了还是空的，
+     * 而那句引导就成了错的诊断。
+     *
+     * ⚠️ 那句**不许写死站点数目**：`GallerySite` 今天是三枚（yande.re / Gelbooru / Safebooru），
+     * 写"两站"就是又埋一条会过期的读数（同一族教训见 §22.3 那条活了四批的说明）。
+     */
+    val blankScreenReason: String? get() = when {
+        canDispatch -> null
+        perSite.values.any { it is GalleryRecommendation.NoUsableTags } ->
+            "有收藏，但标签已屏蔽"
+        else -> "还没有可推荐的收藏，先收藏几张图"
+    }
+}
+
+/**
+ * 收藏 → 每站的抽样与那一串。
+ *
+ * @param seed 本轮种子。**只从调用点进来**（桌面这一屏的种子归 pane 持有），
+ *   同一颗种子必须交回同一串 —— 组合重建时不换序是这一屏能"点进去再返回还在原处"的前提。
+ * @param isBlocked 黑名单判据，由调用点把屏蔽规则那一份接进来（桌面走 `contentGuard`）。
+ *   **必填、不给默认值**：带默认值时"漏传"不报错，而漏传的形状正好是"屏蔽规则不参与抽样"，
+ *   且屏上那句「是我们的判据空」会永远走不到（同一族规矩：漏传不报错的新参数一律必填）。
+ *   单测要"什么都不挡"就显式传 `{ false }`。
+ */
+internal fun desktopForYouPlan(
+    favourites: List<GalleryFavorite>,
+    seed: Long,
+    isBlocked: (String) -> Boolean,
+): DesktopForYouPlan {
+    val perSite = GalleryRecommendations.recommendBySite(favourites, seed, isBlocked)
+    val queries = perSite.mapNotNull { (site, rec) ->
+        val tags = (rec as? GalleryRecommendation.Tags)?.tags ?: return@mapNotNull null
+        site to GallerySearch.queryOf(tags.map { GalleryTagFilter(it) })
+    }.toMap()
+    return DesktopForYouPlan(perSite = perSite, queries = queries)
+}

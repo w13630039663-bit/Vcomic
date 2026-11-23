@@ -1,0 +1,1585 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-zcode-design data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>画廊浮动卡片 — 方案稿 v2</title>
+  <style>
+    :root {
+      /* 画布与表面层级 Token（对齐 GalleryTokens 深色档） */
+      --bg-canvas: #090C10;
+      --bg-toolbar: rgba(15, 19, 27, 0.86);
+      --surface-card-top: #171D29;
+      --surface-card-bot: #11151E;
+      --surface-card-hover-top: #1E2636;
+      --surface-card-hover-bot: #151A26;
+      --surface-elevated: #161B26;
+      --surface-subtle: #1B2130;
+      --surface-glass: rgba(14, 18, 26, 0.84);
+      --surface-scrim: rgba(10, 13, 18, 0.74);
+      --surface-scrim-strong: rgba(10, 13, 18, 0.92);
+      --surface-chip: rgba(12, 16, 24, 0.62);
+      --surface-menu: rgba(20, 25, 36, 0.96);
+
+      /* 文本层级 */
+      --text-primary: #ECF0F8;
+      --text-secondary: #96A0B5;
+      --text-tertiary: #68738A;
+      --text-on-accent: #FFFFFF;
+      --text-on-glass: #F2F5FA;
+
+      /* 强调色与状态色 */
+      --accent-primary: #4D9FFF;
+      --accent-soft: rgba(77, 159, 255, 0.14);
+      --accent-border: rgba(77, 159, 255, 0.28);
+      --accent-glow: rgba(77, 159, 255, 0.42);
+      --status-favorite: #E26D8A;
+      --status-favorite-soft: rgba(226, 109, 138, 0.18);
+      --status-favorite-border: rgba(226, 109, 138, 0.42);
+      --status-success: #3ECF8E;
+      --status-success-soft: rgba(62, 207, 142, 0.18);
+      --status-danger: #F28B82;
+      --status-danger-soft: rgba(242, 139, 130, 0.14);
+
+      /* 同心圆角几何：Outer(15px) = Inner(10px) + Padding(5px) */
+      --radius-card-outer: 15px;
+      --card-tray-padding: 5px;
+      --radius-card-inner: 10px;
+      --radius-badge: 5px;
+      --radius-pill: 999px;
+      --radius-menu: 12px;
+      --radius-menu-item: 8px;
+
+      /* 边框与追光参数 */
+      --card-border-top: rgba(255, 255, 255, 0.22);
+      --card-border-mid: rgba(255, 255, 255, 0.08);
+      --card-border-bot: rgba(255, 255, 255, 0.03);
+      --card-border-spotlight: rgba(255, 255, 255, 0.52);
+      --card-top-specular: rgba(255, 255, 255, 0.34);
+      --card-inner-ring: rgba(255, 255, 255, 0.09);
+      --card-inner-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.42), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      --glass-border: rgba(255, 255, 255, 0.18);
+      --glass-hover: rgba(255, 255, 255, 0.16);
+      --chip-border: rgba(255, 255, 255, 0.68);
+      --sheen-color: rgba(255, 255, 255, 0.12);
+      --sheen-edge: rgba(255, 255, 255, 0.03);
+      --mask-solid: #000000;
+
+      /* 站点胶囊：常态克制中性 -> 悬停唤醒上色 */
+      --pill-rest-bg: rgba(255, 255, 255, 0.05);
+      --pill-rest-border: rgba(255, 255, 255, 0.09);
+      --pill-rest-text: #8A94A8;
+
+      /* 双层悬浮阴影（解决现行版暗色零投影痛点） */
+      --shadow-rest:
+        0 6px 16px -4px rgba(0, 0, 0, 0.62),
+        0 2px 5px -1px rgba(0, 0, 0, 0.45);
+      --shadow-hover:
+        0 24px 48px -10px rgba(0, 0, 0, 0.88),
+        0 10px 22px -6px rgba(0, 0, 0, 0.65);
+      --shadow-dock:
+        0 10px 24px -4px rgba(0, 0, 0, 0.62),
+        0 2px 6px rgba(0, 0, 0, 0.40);
+      --shadow-badge: 0 4px 10px rgba(0, 0, 0, 0.28);
+      --shadow-v1-light: 0 2px 6px rgba(15, 23, 42, 0.08);
+      --shadow-v1-light-hover: 0 10px 20px rgba(15, 23, 42, 0.14);
+      --glint-v1: rgba(255, 255, 255, 0.15);
+      --shadow-menu: 0 18px 40px rgba(0, 0, 0, 0.68);
+      --shadow-seg: 0 1px 4px rgba(0, 0, 0, 0.25);
+      --ambient-opacity: 0.34;
+
+      /* 动效曲线与字族 */
+      --ease-spring: cubic-bezier(0.22, 1.28, 0.36, 1);
+      --ease-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
+      --dur-hover: 260ms;
+      --dur-pop: 220ms;
+      --lift-distance: -6px;
+      --tilt-max: 5;
+
+      --font-sans: "Segoe UI Variable", "PingFang SC", "Microsoft YaHei UI", system-ui, -apple-system, sans-serif;
+    }
+
+    html[data-theme="light"] {
+      --bg-canvas: #EEF1F6;
+      --bg-toolbar: rgba(255, 255, 255, 0.88);
+      --surface-card-top: #FFFFFF;
+      --surface-card-bot: #F7F9FC;
+      --surface-card-hover-top: #FFFFFF;
+      --surface-card-hover-bot: #FDFEFF;
+      --surface-elevated: #E4E9F2;
+      --surface-subtle: #DCE2EE;
+      --surface-glass: rgba(20, 25, 36, 0.84);
+      --surface-menu: rgba(255, 255, 255, 0.96);
+
+      --text-primary: #151E2C;
+      --text-secondary: #525E75;
+      --text-tertiary: #8490A5;
+
+      --accent-primary: #0A63F6;
+      --accent-soft: rgba(10, 99, 246, 0.11);
+      --accent-border: rgba(10, 99, 246, 0.24);
+      --status-favorite: #C2436A;
+      --status-favorite-soft: rgba(194, 67, 106, 0.12);
+      --status-success: #1E9E63;
+      --status-danger: #D64545;
+
+      --card-border-top: rgba(255, 255, 255, 0.95);
+      --card-border-mid: rgba(21, 30, 44, 0.10);
+      --card-border-bot: rgba(21, 30, 44, 0.15);
+      --card-border-spotlight: rgba(10, 99, 246, 0.48);
+      --card-top-specular: rgba(255, 255, 255, 1);
+      --card-inner-ring: rgba(21, 30, 44, 0.08);
+      --card-inner-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.10), inset 0 0 0 1px rgba(15, 23, 42, 0.07);
+      --sheen-color: rgba(255, 255, 255, 0.42);
+      --sheen-edge: rgba(255, 255, 255, 0.08);
+
+      --pill-rest-bg: rgba(21, 30, 44, 0.05);
+      --pill-rest-border: rgba(21, 30, 44, 0.10);
+      --pill-rest-text: #637089;
+
+      --shadow-rest:
+        0 6px 16px -6px rgba(15, 23, 42, 0.10),
+        0 2px 4px -1px rgba(15, 23, 42, 0.06),
+        0 0 0 1px rgba(15, 23, 42, 0.06);
+      --shadow-hover:
+        0 24px 44px -12px rgba(15, 23, 42, 0.20),
+        0 10px 20px -6px rgba(15, 23, 42, 0.10),
+        0 0 0 1px rgba(10, 99, 246, 0.18);
+      --shadow-menu: 0 16px 36px rgba(15, 23, 42, 0.18);
+      --shadow-seg: 0 1px 4px rgba(15, 23, 42, 0.08);
+      --ambient-opacity: 0.24;
+    }
+
+    html[data-elevation="deep"] {
+      --lift-distance: -9px;
+      --tilt-max: 7;
+      --ambient-opacity: 0.48;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      background: var(--bg-canvas);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      transition: background 220ms var(--ease-smooth), color 220ms var(--ease-smooth);
+    }
+
+    /* 顶部控制栏 */
+    .shell-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: var(--bg-toolbar);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--card-border-mid);
+    }
+    .shell-header-inner {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 14px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .title-group h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.3;
+    }
+    .title-group p {
+      margin: 2px 0 0;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+    }
+
+    .toolbar-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    .segmented {
+      display: inline-flex;
+      padding: 3px;
+      border-radius: 10px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--card-border-mid);
+      gap: 2px;
+    }
+    .seg-btn {
+      border: 0;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: background 150ms var(--ease-smooth), color 150ms var(--ease-smooth);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .seg-btn:hover { color: var(--text-primary); }
+    .seg-btn.active {
+      background: var(--surface-card-top);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-seg);
+    }
+    .toggle-pill {
+      border: 1px solid var(--card-border-mid);
+      background: var(--surface-elevated);
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 500;
+      padding: 7px 12px;
+      border-radius: 9px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: border-color 150ms, color 150ms, background 150ms;
+    }
+    .toggle-pill:hover {
+      color: var(--text-primary);
+      border-color: var(--accent-border);
+    }
+    .toggle-pill.active {
+      background: var(--accent-soft);
+      color: var(--accent-primary);
+      border-color: var(--accent-primary);
+    }
+
+    /* 主容器 */
+    .page-main {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 26px 24px 72px;
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .section-head h2 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .section-head span {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+    }
+
+    /* 五项视觉升级摘要条 */
+    .upgrade-strip {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+    }
+    @media (max-width: 1080px) {
+      .upgrade-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 680px) {
+      .upgrade-strip { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    }
+    .upgrade-chip {
+      padding: 11px 13px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, var(--surface-card-top), var(--surface-card-bot));
+      border: 1px solid var(--card-border-mid);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .upgrade-chip strong {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .upgrade-chip strong i {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-primary);
+      display: inline-block;
+    }
+    .upgrade-chip span {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    /* 画廊网格（主预览区） */
+    .wall-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 1080px) {
+      .wall-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 760px) {
+      .wall-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+      .shell-header-inner, .page-main { padding-left: 16px; padding-right: 16px; }
+    }
+
+    /* =====================================================================
+       核心组件：v2 悬浮立体卡片（双层投影 + 追光边框 + 双向视差）
+       ===================================================================== */
+    .card-slot {
+      position: relative;
+      z-index: 1;
+      perspective: 950px;
+    }
+    .card-slot:hover,
+    .card-slot.menu-open {
+      z-index: 25;
+    }
+
+    /* 底部色彩环境弥散光晕（仅在悬停浮起时于卡片正下方铺开） */
+    .card-ambient-glow {
+      position: absolute;
+      left: 10%;
+      right: 10%;
+      bottom: -8px;
+      height: 55%;
+      border-radius: 24px;
+      background: var(--ambient-color, var(--accent-glow));
+      filter: blur(22px);
+      opacity: 0;
+      transform: translateY(4px) scale(0.92);
+      pointer-events: none;
+      z-index: 0;
+      transition:
+        opacity var(--dur-hover) var(--ease-smooth),
+        transform var(--dur-hover) var(--ease-smooth);
+    }
+    .card-slot:hover .card-ambient-glow {
+      opacity: var(--ambient-opacity);
+      transform: translateY(10px) scale(0.98);
+    }
+
+    .gallery-card {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      padding: var(--card-tray-padding);
+      border-radius: var(--radius-card-outer);
+      background: linear-gradient(180deg, var(--surface-card-top) 0%, var(--surface-card-bot) 100%);
+      box-shadow: var(--shadow-rest);
+      cursor: pointer;
+      user-select: none;
+      transform-style: preserve-3d;
+      will-change: transform, box-shadow;
+      transition:
+        transform var(--dur-hover) var(--ease-spring),
+        box-shadow var(--dur-hover) var(--ease-smooth),
+        background 220ms var(--ease-smooth);
+    }
+
+    .gallery-card:hover {
+      background: linear-gradient(180deg, var(--surface-card-hover-top) 0%, var(--surface-card-hover-bot) 100%);
+      box-shadow: var(--shadow-hover);
+    }
+
+    /* 顶边高光刃（模拟受光面物理厚度） */
+    .gallery-card::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 14px;
+      right: 14px;
+      height: 1px;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        var(--card-top-specular) 50%,
+        transparent 100%
+      );
+      opacity: 0.65;
+      pointer-events: none;
+      z-index: 7;
+      transition: opacity 200ms var(--ease-smooth);
+    }
+    .gallery-card:hover::after {
+      opacity: 1;
+    }
+
+    /* 1px 追光边框（常态顶部受光渐变，悬停时跟随鼠标坐标点亮靠近侧边缘） */
+    .gallery-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background:
+        radial-gradient(
+          210px circle at var(--gx, 50%) var(--gy, 0%),
+          var(--card-border-spotlight) 0%,
+          transparent 75%
+        ),
+        linear-gradient(
+          180deg,
+          var(--card-border-top) 0%,
+          var(--card-border-mid) 48%,
+          var(--card-border-bot) 100%
+        );
+      -webkit-mask: linear-gradient(var(--mask-solid) 0 0) content-box, linear-gradient(var(--mask-solid) 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      z-index: 7;
+      transition: opacity 180ms var(--ease-smooth);
+    }
+    .gallery-card.selected::before {
+      padding: 1.5px;
+      background: var(--accent-primary);
+    }
+
+    /* 斜向镜面流光带（取代旧版死板的圆形白斑） */
+    .card-glint {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      opacity: 0;
+      overflow: hidden;
+      transition: opacity 220ms var(--ease-smooth);
+      background:
+        linear-gradient(
+          125deg,
+          transparent 18%,
+          var(--sheen-edge) calc(var(--sheen-pos, 50%) - 18%),
+          var(--sheen-color) var(--sheen-pos, 50%),
+          var(--sheen-edge) calc(var(--sheen-pos, 50%) + 18%),
+          transparent 82%
+        );
+      z-index: 6;
+    }
+    .gallery-card:hover .card-glint { opacity: 1; }
+
+    /* 内嵌图片窗：同心圆角 + 内凹微影环 */
+    .card-media {
+      position: relative;
+      width: 100%;
+      aspect-ratio: var(--aspect, 1 / 1);
+      border-radius: var(--radius-card-inner);
+      overflow: hidden;
+      background: var(--surface-subtle);
+      transform: translateZ(8px);
+    }
+    /* 内嵌画框微浮雕压边层 */
+    .card-media::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      box-shadow: var(--card-inner-shadow);
+      pointer-events: none;
+      z-index: 3;
+    }
+    .card-media img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scale(1.04) translate3d(0, 0, 0);
+      transition: transform 280ms var(--ease-smooth);
+      will-change: transform;
+    }
+    .gallery-card:hover .card-media img {
+      transform: scale(1.09) translate3d(var(--img-px, 0px), var(--img-py, 0px), 0);
+    }
+
+    /* 左上角：多选圆钮 + 作品页数/动图角标（浮于画芯上方第 2 层） */
+    .media-top-left {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transform: translate3d(var(--ui-px, 0px), var(--ui-py, 0px), 16px);
+      transition: transform 220ms var(--ease-smooth);
+    }
+    .select-chip {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 1.5px solid var(--chip-border);
+      background: var(--surface-chip);
+      backdrop-filter: blur(10px);
+      color: var(--text-on-accent);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      transform: scale(0.84);
+      pointer-events: none;
+      transition:
+        opacity 180ms var(--ease-smooth),
+        transform 200ms var(--ease-spring),
+        background 150ms,
+        border-color 150ms;
+    }
+    .select-mode .select-chip,
+    .gallery-card:hover .select-chip.enable-on-hover,
+    .gallery-card.selected .select-chip {
+      opacity: 1;
+      transform: scale(1);
+      pointer-events: auto;
+    }
+    .gallery-card.selected .select-chip {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    .media-kind-badge {
+      padding: 3px 7px;
+      border-radius: 6px;
+      background: var(--surface-scrim);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--glass-border);
+      color: var(--text-on-glass);
+      font-size: 11px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: var(--shadow-badge);
+    }
+
+    /* 右上角弹出式浮动动作药丸（收藏 · 下载 · 复制，浮于画芯上方第 3 层） */
+    .action-popout {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 5;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px;
+      border-radius: var(--radius-pill);
+      background: var(--surface-glass);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--shadow-dock);
+      opacity: 0;
+      transform: translate3d(var(--ui-px, 0px), calc(var(--ui-py, 0px) - 6px), 22px) scale(0.92);
+      pointer-events: none;
+      transition:
+        opacity 190ms var(--ease-smooth),
+        transform var(--dur-pop) var(--ease-spring);
+    }
+    .gallery-card:hover .action-popout,
+    .gallery-card.force-popout .action-popout,
+    .gallery-card.has-active-feedback .action-popout {
+      opacity: 1;
+      transform: translate3d(var(--ui-px, 0px), var(--ui-py, 0px), 22px) scale(1);
+      pointer-events: auto;
+    }
+
+    .pop-btn {
+      position: relative;
+      width: 28px;
+      height: 28px;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--text-on-glass);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      transform: translateY(-4px) scale(0.82);
+      transition:
+        background 140ms var(--ease-smooth),
+        color 140ms var(--ease-smooth),
+        opacity 180ms var(--ease-smooth),
+        transform var(--dur-pop) var(--ease-spring);
+    }
+    .gallery-card:hover .pop-btn,
+    .gallery-card.force-popout .pop-btn,
+    .gallery-card.has-active-feedback .pop-btn {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .gallery-card:hover .pop-btn:nth-child(1),
+    .gallery-card.force-popout .pop-btn:nth-child(1) { transition-delay: 60ms; }
+    .gallery-card:hover .pop-btn:nth-child(2),
+    .gallery-card.force-popout .pop-btn:nth-child(2) { transition-delay: 30ms; }
+    .gallery-card:hover .pop-btn:nth-child(3),
+    .gallery-card.force-popout .pop-btn:nth-child(3) { transition-delay: 0ms; }
+
+    .pop-btn:hover {
+      background: var(--glass-hover);
+      transform: scale(1.1) !important;
+    }
+    .pop-btn:active {
+      transform: scale(0.9) !important;
+    }
+    .pop-btn.is-faved {
+      color: var(--status-favorite);
+      background: var(--status-favorite-soft);
+    }
+    .pop-btn.is-done {
+      color: var(--status-success);
+      background: var(--status-success-soft);
+    }
+
+    .pop-btn::after {
+      content: attr(data-tip);
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%) translateY(-2px);
+      padding: 3px 7px;
+      border-radius: 5px;
+      background: var(--surface-scrim-strong);
+      border: 1px solid var(--glass-border);
+      color: var(--text-on-glass);
+      font-size: 11px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 120ms, transform 120ms;
+    }
+    .pop-btn:hover::after {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* 常态右上角已收藏微标 */
+    .fav-rest-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 4;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--surface-scrim);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--status-favorite-border);
+      color: var(--status-favorite);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(0.85);
+      transition: opacity 160ms, transform 160ms;
+    }
+    .gallery-card.is-faved-card .fav-rest-badge {
+      opacity: 1;
+      transform: scale(1);
+    }
+    .gallery-card:hover .fav-rest-badge,
+    .gallery-card.force-popout .fav-rest-badge {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+
+    /* =====================================================================
+       底部信息栏：平时克制中性，悬停唤醒点亮，22px 尾槽恒定占位不跳位
+       ===================================================================== */
+    .card-info {
+      padding: 9px 6px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transform: translateZ(10px);
+    }
+    .card-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      min-height: 22px;
+    }
+    .card-title {
+      margin: 0;
+      font-size: 13.5px;
+      font-weight: 560;
+      line-height: 18px;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      min-width: 0;
+    }
+    .card-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      min-height: 20px;
+    }
+    .author-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      flex: 1;
+      border-radius: 6px;
+      padding: 1px 4px 1px 0;
+      transition: color 140ms;
+    }
+    .card-avatar {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      object-fit: cover;
+      background: var(--surface-subtle);
+      box-shadow: inset 0 0 0 1px var(--card-inner-ring);
+    }
+    .author-name {
+      font-size: 12.5px;
+      font-weight: 450;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: color 150ms;
+    }
+    .gallery-card:hover .author-name {
+      color: var(--text-primary);
+    }
+    .author-link:hover .author-name {
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    /* 站点胶囊：平时中性半透明，悬停卡片时唤醒为主题色 */
+    .source-pill {
+      flex-shrink: 0;
+      padding: 2px 6px;
+      border-radius: var(--radius-badge);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--pill-rest-text);
+      background: var(--pill-rest-bg);
+      border: 1px solid var(--pill-rest-border);
+      line-height: 1.25;
+      transition:
+        color 200ms var(--ease-smooth),
+        background 200ms var(--ease-smooth),
+        border-color 200ms var(--ease-smooth);
+    }
+    .gallery-card:hover .source-pill {
+      color: var(--accent-primary);
+      background: var(--accent-soft);
+      border-color: var(--accent-border);
+    }
+
+    /* 22×22 恒占尾槽，杜绝悬停触发布局重算 */
+    .more-slot {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .more-trigger {
+      width: 22px;
+      height: 22px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-secondary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      transform: translateX(4px);
+      pointer-events: none;
+      transition: opacity 150ms, transform 180ms var(--ease-spring), background 140ms, color 140ms;
+    }
+    .gallery-card:hover .more-trigger,
+    .card-slot.menu-open .more-trigger,
+    .gallery-card.force-popout .more-trigger {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+    .more-trigger:hover {
+      background: var(--surface-subtle);
+      color: var(--text-primary);
+    }
+
+    /* =====================================================================
+       现行版对照卡（模拟目前代码中的 v1 状态：暗色无阴影、圆白斑、常亮蓝标）
+       ===================================================================== */
+    .card-v1-current {
+      padding: 4px;
+      border-radius: 14px;
+      background: var(--surface-card-bot);
+      box-shadow: none;
+      border: 1px solid var(--card-border-mid);
+    }
+    html[data-theme="light"] .card-v1-current {
+      box-shadow: var(--shadow-v1-light);
+    }
+    .card-v1-current::before,
+    .card-v1-current::after { display: none; }
+    .card-v1-current:hover {
+      background: var(--surface-card-bot);
+      box-shadow: none;
+    }
+    html[data-theme="light"] .card-v1-current:hover {
+      box-shadow: var(--shadow-v1-light-hover);
+    }
+    .card-v1-current .card-glint {
+      background: radial-gradient(
+        200px circle at var(--gx, 50%) var(--gy, 30%),
+        var(--glint-v1),
+        transparent 70%
+      );
+    }
+    .card-v1-current .source-pill {
+      color: var(--accent-primary);
+      background: var(--accent-soft);
+      border-color: var(--accent-border);
+    }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 310px));
+      gap: 32px;
+      align-items: start;
+    }
+    @media (max-width: 680px) {
+      .compare-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+    .compare-col {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .compare-label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .compare-notes {
+      margin: 4px 0 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    /* =====================================================================
+       弹出菜单（同心圆角 12/4/8）
+       ===================================================================== */
+    .context-popover {
+      position: absolute;
+      right: 6px;
+      bottom: 42px;
+      z-index: 60;
+      width: 180px;
+      padding: 4px;
+      border-radius: var(--radius-menu);
+      background: var(--surface-menu);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border-top);
+      box-shadow: var(--shadow-menu);
+      display: none;
+      flex-direction: column;
+      gap: 2px;
+      transform-origin: bottom right;
+      animation: menuPop 160ms var(--ease-spring);
+    }
+    .card-slot.menu-open .context-popover {
+      display: flex;
+    }
+    @keyframes menuPop {
+      from { opacity: 0; transform: scale(0.92) translateY(6px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .menu-item {
+      height: 32px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: var(--radius-menu-item);
+      background: transparent;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 12.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      text-align: left;
+      transition: background 120ms;
+    }
+    .menu-item:hover {
+      background: var(--accent-soft);
+    }
+    .menu-item.danger { color: var(--status-danger); }
+    .menu-item.danger:hover { background: var(--status-danger-soft); }
+    .menu-divider {
+      height: 1px;
+      margin: 2px 6px;
+      background: var(--card-border-mid);
+    }
+    .menu-shortcut {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    /* 轻量状态提示条 */
+    .toast-bar {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%) translateY(14px);
+      padding: 8px 14px;
+      border-radius: 10px;
+      background: var(--surface-glass);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border-top);
+      color: var(--text-on-glass);
+      font-size: 12.5px;
+      font-weight: 500;
+      box-shadow: var(--shadow-dock);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms, transform 200ms var(--ease-spring);
+      z-index: 100;
+    }
+    .toast-bar.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <header class="shell-header">
+    <div class="shell-header-inner">
+      <div class="title-group">
+        <h1>画廊浮动卡片</h1>
+        <p>双层投影、追光边框与多层视差</p>
+      </div>
+      <div class="toolbar-controls">
+        <div class="segmented" role="group" aria-label="主题切换">
+          <button class="seg-btn active" data-set-theme="dark">深色</button>
+          <button class="seg-btn" data-set-theme="light">浅色</button>
+        </div>
+        <div class="segmented" role="group" aria-label="浮动强度">
+          <button class="seg-btn active" data-set-elevation="standard">标准浮动</button>
+          <button class="seg-btn" data-set-elevation="deep">增强景深</button>
+        </div>
+        <button class="toggle-pill" id="btn-force-popout" aria-pressed="false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M4.93 4.93l2.12 2.12m9.9 9.9 2.12 2.12M2 12h3m14 0h3M4.93 19.07l2.12-2.12m9.9-9.9 2.12-2.12"/></svg>
+          常驻展开动作
+        </button>
+        <button class="toggle-pill" id="btn-select-mode" aria-pressed="false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          多选模式
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-main">
+    <!-- 五点核心升级概览 -->
+    <section aria-label="视觉优化要点">
+      <div class="upgrade-strip">
+        <div class="upgrade-chip">
+          <strong><i></i>1. 双层悬浮投影</strong>
+          <span>补齐暗色投影与底部封面色柔光</span>
+        </div>
+        <div class="upgrade-chip">
+          <strong><i></i>2. 鼠标追光边框</strong>
+          <span>近鼠侧边缘点亮与斜向镜面流光</span>
+        </div>
+        <div class="upgrade-chip">
+          <strong><i></i>3. 受光渐变底托</strong>
+          <span>顶边高光亮刃与悬停半阶提亮</span>
+        </div>
+        <div class="upgrade-chip">
+          <strong><i></i>4. 三层立体视差</strong>
+          <span>底托、封面与悬浮胶囊分层位移</span>
+        </div>
+        <div class="upgrade-chip">
+          <strong><i></i>5. 信息栏悬停唤醒</strong>
+          <span>平时中性克制，悬停点亮站点标签</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 区域一：主画廊墙交互预览 -->
+    <section data-variant="floating-wall-v2">
+      <div class="section-head">
+        <h2>卡片网格预览</h2>
+        <span>移动鼠标体验追光边框、双向视差与底部悬浮阴影</span>
+      </div>
+      <div class="wall-grid" id="wall-grid"></div>
+    </section>
+
+    <!-- 区域二：现行版 vs 升级版同屏对比 -->
+    <section data-variant="comparison-v2">
+      <div class="section-head">
+        <h2>优化前后对照</h2>
+        <span>同幅作品在现行版与新版下的立体感差异</span>
+      </div>
+      <div class="compare-grid">
+        <div class="compare-col">
+          <div class="compare-label">
+            <span>现行版本</span>
+            <span>暗色无影 · 圆斑反光 · 常亮蓝标</span>
+          </div>
+          <div id="compare-current"></div>
+          <ul class="compare-notes">
+            <li>• 暗色模式 vShadow 被短路，抬升时底部无任何投影</li>
+            <li>• 反光为圆形白斑，底托纯色平涂缺少受光厚度</li>
+            <li>• 站点标签常驻亮蓝，整墙排布时分散封面注意力</li>
+          </ul>
+        </div>
+
+        <div class="compare-col">
+          <div class="compare-label">
+            <span>优化方案 v2</span>
+            <span>弥散光影 · 追光边缘 · 三层视差</span>
+          </div>
+          <div id="compare-upgraded"></div>
+          <ul class="compare-notes">
+            <li>• 双层向下弥散暗影叠加微弱环境光，浮起感明确</li>
+            <li>• 1px 边框随鼠标位置追光点亮，配合斜向柔光带</li>
+            <li>• 封面双向视差 + 动作胶囊浮起，站点胶囊悬停唤醒</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast-bar" id="toast-bar" role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      const SVG_ICONS = {
+        heart: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 12.57 12 20l-7.5-7.43A5 5 0 1 1 12 6a5 5 0 1 1 7.5 6.57z"/></svg>',
+        heartFilled: '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6"><path d="M19.5 12.57 12 20l-7.5-7.43A5 5 0 1 1 12 6a5 5 0 1 1 7.5 6.57z"/></svg>',
+        download: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+        copy: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+        check: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+        more: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/></svg>',
+        layers: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V6a2 2 0 0 1 2-2h10"/></svg>',
+        image: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>',
+        user: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>',
+        ban: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></svg>',
+      };
+
+      /* 离线 Canvas 绘制高完成度插画封面，保证本地 file:// 秒开且色彩层次丰富 */
+      function renderArtCover(kind) {
+        const c = document.createElement("canvas");
+        c.width = 520;
+        c.height = 520;
+        const ctx = c.getContext("2d");
+
+        if (kind === "manga") {
+          ctx.fillStyle = "#EAECEF";
+          ctx.fillRect(0, 0, 520, 520);
+          ctx.fillStyle = "rgba(18, 20, 24, 0.08)";
+          for (let y = 0; y < 520; y += 10) {
+            for (let x = (y % 20 === 0 ? 0 : 5); x < 520; x += 10) {
+              ctx.beginPath();
+              ctx.arc(x, y, 1.4, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+          ctx.fillStyle = "#14171F";
+          ctx.beginPath();
+          ctx.ellipse(260, 225, 165, 208, 0, Math.PI * 0.9, Math.PI * 2.1);
+          ctx.fill();
+          ctx.fillStyle = "#F7F8FA";
+          ctx.beginPath();
+          ctx.ellipse(260, 252, 114, 136, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#14171F";
+          ctx.beginPath();
+          ctx.moveTo(130, 160);
+          ctx.quadraticCurveTo(260, 100, 390, 165);
+          ctx.lineTo(378, 225);
+          ctx.quadraticCurveTo(320, 172, 270, 225);
+          ctx.quadraticCurveTo(205, 178, 140, 232);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = "#1E222D";
+          ctx.beginPath(); ctx.ellipse(210, 262, 29, 36, -0.08, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(310, 262, 29, 36, 0.08, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#FFFFFF";
+          ctx.beginPath(); ctx.arc(200, 248, 8.5, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(300, 248, 8.5, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#14171F";
+          ctx.beginPath();
+          ctx.moveTo(155, 425);
+          ctx.quadraticCurveTo(260, 368, 365, 425);
+          ctx.lineTo(392, 520);
+          ctx.lineTo(128, 520);
+          ctx.closePath();
+          ctx.fill();
+          return c.toDataURL("image/png");
+        }
+
+        const palettes = {
+          halloween: ["#141E34", "#2B4674", "#E68A3E", "#F8C974"],
+          sunset: ["#1F1638", "#782D65", "#E86A58", "#FBD098"],
+          azure: ["#0A1C34", "#1B588C", "#4FA6D8", "#DFF3FF"],
+        }[kind] || ["#1B263B", "#415A77", "#778DA9", "#E0E1DD"];
+
+        const g = ctx.createLinearGradient(0, 0, 520, 520);
+        g.addColorStop(0, palettes[0]);
+        g.addColorStop(0.52, palettes[1]);
+        g.addColorStop(1, palettes[2]);
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, 520, 520);
+
+        const orb = ctx.createRadialGradient(355, 148, 14, 355, 148, 255);
+        orb.addColorStop(0, palettes[3]);
+        orb.addColorStop(0.45, palettes[2] + "99");
+        orb.addColorStop(1, "transparent");
+        ctx.fillStyle = orb;
+        ctx.fillRect(0, 0, 520, 520);
+
+        /* 远景星点与人物侧影构图 */
+        ctx.fillStyle = "rgba(255, 255, 255, 0.16)";
+        for (let i = 0; i < 7; i++) {
+          ctx.beginPath();
+          ctx.arc(70 + i * 68, 95 + (i % 3) * 82, 14 + (i % 4) * 12, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = "rgba(10, 14, 24, 0.42)";
+        ctx.beginPath();
+        ctx.arc(235, 265, 68, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(135, 520);
+        ctx.quadraticCurveTo(165, 335, 238, 332);
+        ctx.quadraticCurveTo(312, 335, 345, 520);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(10, 14, 22, 0.36)";
+        ctx.beginPath();
+        ctx.moveTo(0, 395);
+        ctx.bezierCurveTo(150, 320, 330, 440, 520, 360);
+        ctx.lineTo(520, 520);
+        ctx.lineTo(0, 520);
+        ctx.closePath();
+        ctx.fill();
+        return c.toDataURL("image/png");
+      }
+
+      function renderAvatar(hue, letter) {
+        const c = document.createElement("canvas");
+        c.width = 64;
+        c.height = 64;
+        const ctx = c.getContext("2d");
+        const g = ctx.createLinearGradient(0, 0, 64, 64);
+        g.addColorStop(0, `hsl(${hue}, 68%, 56%)`);
+        g.addColorStop(1, `hsl(${(hue + 38) % 360}, 62%, 42%)`);
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, 64, 64);
+        ctx.fillStyle = "rgba(255,255,255,0.94)";
+        ctx.font = "600 28px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(letter, 32, 34);
+        return c.toDataURL("image/png");
+      }
+
+      const ITEMS = [
+        {
+          id: "p1",
+          title: "迟到的万圣节",
+          author: "言葉kun",
+          source: "PIXIV",
+          avatar: renderAvatar(142, "言"),
+          cover: renderArtCover("halloween"),
+          ambient: "rgba(230, 138, 62, 0.52)",
+          aspect: "1 / 1",
+          badge: "3",
+          faved: true,
+        },
+        {
+          id: "p2",
+          title: "TBIB #25138154",
+          author: "suzuhara_t",
+          source: "TBIB",
+          avatar: null,
+          cover: renderArtCover("manga"),
+          ambient: "rgba(120, 145, 195, 0.42)",
+          aspect: "1 / 1",
+          badge: "4",
+          faved: false,
+        },
+        {
+          id: "p3",
+          title: "潮汐灯塔与夏末夜风",
+          author: "MikaPikazo",
+          source: "PIXIV",
+          avatar: renderAvatar(212, "M"),
+          cover: renderArtCover("azure"),
+          ambient: "rgba(79, 166, 216, 0.55)",
+          aspect: "1 / 1",
+          badge: null,
+          faved: false,
+        },
+        {
+          id: "p4",
+          title: "暮色电车穿行旧站台",
+          author: "Asakura_N",
+          source: "YANDE",
+          avatar: null,
+          cover: renderArtCover("sunset"),
+          ambient: "rgba(232, 106, 88, 0.50)",
+          aspect: "1 / 1",
+          badge: "动图",
+          faved: false,
+        },
+      ];
+
+      let selectMode = false;
+      let forcePopout = false;
+      const favState = new Map(ITEMS.map((it) => [it.id, it.faved]));
+      const selState = new Set();
+
+      const toastEl = document.getElementById("toast-bar");
+      let toastTimer = null;
+      function showToast(msg) {
+        toastEl.textContent = msg;
+        toastEl.classList.add("visible");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl.classList.remove("visible"), 1600);
+      }
+
+      function attachSpatialMotion(slot, card, isCurrentV1) {
+        card.addEventListener("pointermove", (e) => {
+          const r = card.getBoundingClientRect();
+          const relX = e.clientX - r.left;
+          const relY = e.clientY - r.top;
+          const px = (relX / r.width) * 2 - 1;
+          const py = (relY / r.height) * 2 - 1;
+
+          const maxTilt = parseFloat(
+            getComputedStyle(document.documentElement).getPropertyValue("--tilt-max")
+          ) || 5;
+          const lift = getComputedStyle(document.documentElement)
+            .getPropertyValue("--lift-distance")
+            .trim() || "-6px";
+
+          const rx = (-py * maxTilt).toFixed(2);
+          const ry = (px * maxTilt).toFixed(2);
+
+          card.style.transform = `translateY(${lift}) scale(1.022) rotateX(${rx}deg) rotateY(${ry}deg)`;
+          card.style.setProperty("--gx", `${relX.toFixed(1)}px`);
+          card.style.setProperty("--gy", `${relY.toFixed(1)}px`);
+
+          if (!isCurrentV1) {
+            /* 斜向流光带位移 + 封面与悬浮胶囊的双向相反视差 */
+            const sheenPos = 50 + px * 28 + py * 14;
+            card.style.setProperty("--sheen-pos", `${sheenPos.toFixed(1)}%`);
+            card.style.setProperty("--img-px", `${(-px * 6.5).toFixed(1)}px`);
+            card.style.setProperty("--img-py", `${(-py * 6.5).toFixed(1)}px`);
+            card.style.setProperty("--ui-px", `${(px * 2.8).toFixed(1)}px`);
+            card.style.setProperty("--ui-py", `${(py * 2.8).toFixed(1)}px`);
+          }
+        });
+
+        card.addEventListener("pointerleave", () => {
+          card.style.transform = "";
+          card.style.setProperty("--img-px", "0px");
+          card.style.setProperty("--img-py", "0px");
+          card.style.setProperty("--ui-px", "0px");
+          card.style.setProperty("--ui-py", "0px");
+        });
+      }
+
+      function buildCard(item, { currentV1 = false, suffix = "" } = {}) {
+        const slot = document.createElement("div");
+        slot.className = "card-slot";
+        slot.style.setProperty("--ambient-color", item.ambient);
+
+        if (!currentV1) {
+          const glow = document.createElement("div");
+          glow.className = "card-ambient-glow";
+          slot.appendChild(glow);
+        }
+
+        const card = document.createElement("article");
+        const isFaved = favState.get(item.id);
+        card.className = "gallery-card" +
+          (currentV1 ? " card-v1-current" : "") +
+          (isFaved ? " is-faved-card" : "") +
+          (forcePopout ? " force-popout" : "") +
+          (selState.has(item.id) ? " selected" : "");
+        card.style.setProperty("--aspect", item.aspect);
+        card.dataset.cardId = item.id + suffix;
+
+        const glint = document.createElement("div");
+        glint.className = "card-glint";
+
+        const media = document.createElement("div");
+        media.className = "card-media";
+        const img = document.createElement("img");
+        img.src = item.cover;
+        img.alt = item.title;
+        media.appendChild(img);
+
+        const topLeft = document.createElement("div");
+        topLeft.className = "media-top-left";
+
+        const selBtn = document.createElement("button");
+        selBtn.className = "select-chip enable-on-hover";
+        selBtn.type = "button";
+        selBtn.setAttribute("aria-label", "选择卡片");
+        selBtn.innerHTML = SVG_ICONS.check;
+        selBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (selState.has(item.id)) selState.delete(item.id);
+          else selState.add(item.id);
+          syncCards();
+        });
+        topLeft.appendChild(selBtn);
+
+        if (item.badge) {
+          const badge = document.createElement("span");
+          badge.className = "media-kind-badge";
+          badge.innerHTML = (item.badge === "动图" ? "" : SVG_ICONS.layers) + `<span>${item.badge}</span>`;
+          topLeft.appendChild(badge);
+        }
+        media.appendChild(topLeft);
+
+        const favBadge = document.createElement("span");
+        favBadge.className = "fav-rest-badge";
+        favBadge.innerHTML = SVG_ICONS.heartFilled;
+        media.appendChild(favBadge);
+
+        const popout = document.createElement("div");
+        popout.className = "action-popout";
+        popout.innerHTML = `
+          <button type="button" class="pop-btn ${isFaved ? "is-faved" : ""}" data-act="fav" data-tip="收藏" aria-label="收藏">
+            ${isFaved ? SVG_ICONS.heartFilled : SVG_ICONS.heart}
+          </button>
+          <button type="button" class="pop-btn" data-act="download" data-tip="下载" aria-label="下载">
+            ${SVG_ICONS.download}
+          </button>
+          <button type="button" class="pop-btn" data-act="copy" data-tip="复制" aria-label="复制">
+            ${SVG_ICONS.copy}
+          </button>
+        `;
+
+        popout.addEventListener("click", (e) => {
+          const btn = e.target.closest(".pop-btn");
+          if (!btn) return;
+          e.stopPropagation();
+          const act = btn.dataset.act;
+          if (act === "fav") {
+            const next = !favState.get(item.id);
+            favState.set(item.id, next);
+            syncCards();
+            showToast(next ? `已收藏：${item.title}` : `已取消收藏：${item.title}`);
+          } else if (act === "download") {
+            btn.classList.add("is-done");
+            btn.innerHTML = SVG_ICONS.check;
+            card.classList.add("has-active-feedback");
+            showToast(`已保存原图：${item.title}`);
+            setTimeout(() => {
+              btn.classList.remove("is-done");
+              btn.innerHTML = SVG_ICONS.download;
+              card.classList.remove("has-active-feedback");
+            }, 1100);
+          } else if (act === "copy") {
+            btn.classList.add("is-done");
+            btn.innerHTML = SVG_ICONS.check;
+            card.classList.add("has-active-feedback");
+            showToast("图片已复制到剪贴板");
+            setTimeout(() => {
+              btn.classList.remove("is-done");
+              btn.innerHTML = SVG_ICONS.copy;
+              card.classList.remove("has-active-feedback");
+            }, 1100);
+          }
+        });
+
+        media.appendChild(popout);
+
+        const info = document.createElement("div");
+        info.className = "card-info";
+        info.innerHTML = `
+          <div class="card-title-row">
+            <h3 class="card-title" title="${item.title}">${item.title}</h3>
+            <span class="more-slot">
+              <button type="button" class="more-trigger" aria-label="更多操作">${SVG_ICONS.more}</button>
+            </span>
+          </div>
+          <div class="card-meta-row">
+            <span class="author-link">
+              ${item.avatar ? `<img class="card-avatar" src="${item.avatar}" alt="${item.author}" />` : ""}
+              <span class="author-name">${item.author}</span>
+            </span>
+            <span class="source-pill">${item.source}</span>
+          </div>
+        `;
+
+        const popover = document.createElement("div");
+        popover.className = "context-popover";
+        popover.innerHTML = `
+          <button type="button" class="menu-item" data-menu="open">${SVG_ICONS.image}<span>查看大图</span><span class="menu-shortcut">Enter</span></button>
+          <button type="button" class="menu-item" data-menu="fav">${isFaved ? SVG_ICONS.heartFilled : SVG_ICONS.heart}<span>${isFaved ? "取消收藏" : "收藏作品"}</span></button>
+          <button type="button" class="menu-item" data-menu="download">${SVG_ICONS.download}<span>保存原图</span></button>
+          <button type="button" class="menu-item" data-menu="copy">${SVG_ICONS.copy}<span>复制链接</span><span class="menu-shortcut">Ctrl+C</span></button>
+          <div class="menu-divider"></div>
+          <button type="button" class="menu-item" data-menu="artist">${SVG_ICONS.user}<span>查看画师: ${item.author}</span></button>
+          <button type="button" class="menu-item danger" data-menu="block">${SVG_ICONS.ban}<span>屏蔽画师: ${item.author}</span></button>
+        `;
+
+        const moreBtn = info.querySelector(".more-trigger");
+        moreBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const wasOpen = slot.classList.contains("menu-open");
+          document.querySelectorAll(".card-slot.menu-open").forEach((el) => el.classList.remove("menu-open"));
+          if (!wasOpen) slot.classList.add("menu-open");
+        });
+
+        popover.addEventListener("click", (e) => {
+          const m = e.target.closest(".menu-item");
+          if (!m) return;
+          e.stopPropagation();
+          slot.classList.remove("menu-open");
+          showToast(`已执行：${m.querySelector("span").textContent}`);
+        });
+
+        info.querySelector(".author-link").addEventListener("click", (e) => {
+          e.stopPropagation();
+          showToast(`打开画师主页：${item.author}`);
+        });
+
+        card.addEventListener("click", (e) => {
+          if (e.ctrlKey || e.metaKey || selectMode) {
+            if (selState.has(item.id)) selState.delete(item.id);
+            else selState.add(item.id);
+            syncCards();
+            return;
+          }
+          showToast(`查看作品详情：${item.title}`);
+        });
+
+        card.addEventListener("contextmenu", (e) => {
+          e.preventDefault();
+          document.querySelectorAll(".card-slot.menu-open").forEach((el) => el.classList.remove("menu-open"));
+          slot.classList.add("menu-open");
+        });
+
+        card.appendChild(glint);
+        card.appendChild(media);
+        card.appendChild(info);
+        slot.appendChild(card);
+        slot.appendChild(popover);
+
+        attachSpatialMotion(slot, card, currentV1);
+        return slot;
+      }
+
+      const wallGrid = document.getElementById("wall-grid");
+      const cmpCurrent = document.getElementById("compare-current");
+      const cmpUpgraded = document.getElementById("compare-upgraded");
+
+      function syncCards() {
+        wallGrid.innerHTML = "";
+        ITEMS.forEach((it) => wallGrid.appendChild(buildCard(it)));
+        cmpCurrent.innerHTML = "";
+        cmpCurrent.appendChild(buildCard(ITEMS[0], { currentV1: true, suffix: "-v1" }));
+        cmpUpgraded.innerHTML = "";
+        cmpUpgraded.appendChild(buildCard(ITEMS[0], { currentV1: false, suffix: "-v2" }));
+      }
+
+      syncCards();
+
+      /* 主题切换 */
+      document.querySelectorAll("[data-set-theme]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll("[data-set-theme]").forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          document.documentElement.setAttribute("data-theme", btn.dataset.setTheme);
+        });
+      });
+
+      /* 浮动强度切换 */
+      document.querySelectorAll("[data-set-elevation]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll("[data-set-elevation]").forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          document.documentElement.setAttribute("data-elevation", btn.dataset.setElevation);
+        });
+      });
+
+      /* 常驻展开药丸 */
+      const btnForce = document.getElementById("btn-force-popout");
+      btnForce.addEventListener("click", () => {
+        forcePopout = !forcePopout;
+        btnForce.classList.toggle("active", forcePopout);
+        btnForce.setAttribute("aria-pressed", String(forcePopout));
+        syncCards();
+      });
+
+      /* 多选模式 */
+      const btnSelect = document.getElementById("btn-select-mode");
+      btnSelect.addEventListener("click", () => {
+        selectMode = !selectMode;
+        btnSelect.classList.toggle("active", selectMode);
+        btnSelect.setAttribute("aria-pressed", String(selectMode));
+        document.body.classList.toggle("select-mode", selectMode);
+      });
+
+      document.addEventListener("click", () => {
+        document.querySelectorAll(".card-slot.menu-open").forEach((el) => el.classList.remove("menu-open"));
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1226 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>备份与还原 · 桌面端重做方案稿</title>
+<style>
+:root {
+  --canvas: #08090b;
+  --app-bg: #131519;
+  --rail-bg: rgba(21, 23, 28, 0.85);
+  --rail-border: rgba(255, 255, 255, 0.09);
+  --surface-1: #191c22;
+  --surface-2: #20242c;
+  --surface-3: #282d37;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.14);
+  --hover: rgba(255, 255, 255, 0.06);
+  --ink: rgba(255, 255, 255, 0.94);
+  --ink-2: rgba(255, 255, 255, 0.64);
+  --ink-3: rgba(255, 255, 255, 0.40);
+  --accent: #0A84FF;
+  --accent-hover: #2593FF;
+  --accent-soft: rgba(10, 132, 255, 0.15);
+  --accent-line: rgba(10, 132, 255, 0.45);
+  --safe: #78D6C0;
+  --safe-soft: rgba(120, 214, 192, 0.14);
+  --caution: #F2B87C;
+  --caution-soft: rgba(242, 184, 124, 0.14);
+  --danger: #F28B82;
+  --danger-solid: #DC3545;
+  --danger-soft: rgba(242, 139, 130, 0.14);
+  --shadow-app: 0 36px 84px rgba(0, 0, 0, 0.58);
+  --shadow-card: none;
+  --font: "PingFang SC", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+body.light {
+  --canvas: #e5e8ef;
+  --app-bg: #f4f6fa;
+  --rail-bg: rgba(248, 249, 252, 0.9);
+  --rail-border: rgba(0, 0, 0, 0.08);
+  --surface-1: #ffffff;
+  --surface-2: #f1f3f7;
+  --surface-3: #e7ebf2;
+  --line: rgba(0, 0, 0, 0.07);
+  --line-strong: rgba(0, 0, 0, 0.13);
+  --hover: rgba(0, 0, 0, 0.045);
+  --ink: rgba(16, 20, 28, 0.92);
+  --ink-2: rgba(16, 20, 28, 0.62);
+  --ink-3: rgba(16, 20, 28, 0.40);
+  --accent: #0A63F6;
+  --accent-hover: #0052D9;
+  --accent-soft: rgba(10, 99, 246, 0.10);
+  --accent-line: rgba(10, 99, 246, 0.45);
+  --safe: #128766;
+  --safe-soft: rgba(18, 135, 102, 0.10);
+  --caution: #B4630B;
+  --caution-soft: rgba(180, 99, 11, 0.10);
+  --danger: #C9302C;
+  --danger-solid: #C9302C;
+  --danger-soft: rgba(201, 48, 44, 0.10);
+  --shadow-app: 0 28px 64px rgba(18, 24, 38, 0.15);
+  --shadow-card: 0 2px 10px rgba(18, 24, 38, 0.045);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+  transition: background 180ms var(--ease), color 180ms var(--ease);
+}
+
+button, input { font: inherit; color: inherit; }
+button { border: 0; background: transparent; cursor: pointer; }
+svg { display: block; flex: none; }
+
+/* ── 稿外控制器 ── */
+.preview-bar {
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: rgba(16, 18, 23, 0.92);
+  color: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  flex-wrap: wrap;
+}
+.preview-meta h1 { margin: 0; font-size: 13.5px; font-weight: 600; }
+.preview-meta p { margin: 2px 0 0; font-size: 11.5px; color: rgba(255, 255, 255, 0.56); }
+.preview-controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.ctrl-group { display: flex; align-items: center; gap: 6px; }
+.ctrl-label { font-size: 11px; color: rgba(255, 255, 255, 0.48); }
+.seg {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.seg button {
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.66);
+  transition: background 120ms var(--ease), color 120ms var(--ease);
+}
+.seg button:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.seg button[aria-pressed="true"] { background: #0A84FF; color: #fff; font-weight: 500; }
+
+/* ── 窗口舞台 ── */
+.stage {
+  flex: 1;
+  padding: 22px 24px 32px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+.app-window {
+  width: 100%;
+  max-width: 1320px;
+  min-height: 820px;
+  border-radius: 14px;
+  background: var(--app-bg);
+  border: 1px solid var(--rail-border);
+  box-shadow: var(--shadow-app);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: background 180ms var(--ease), border-color 180ms var(--ease);
+}
+
+/* ── 窗口标题栏 (46px) ── */
+.titlebar {
+  height: 46px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line);
+}
+.tb-left { display: flex; align-items: center; gap: 10px; }
+.tb-back {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  display: grid; place-items: center;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.tb-back:hover { background: var(--surface-3); color: var(--ink); }
+.tb-crumb { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.tb-dots { display: flex; gap: 8px; }
+.tb-dots span { width: 10px; height: 10px; border-radius: 50%; background: var(--line-strong); }
+
+.app-body { flex: 1; display: flex; min-height: 0; }
+
+/* ── 侧栏轨 (72px) ── */
+.rail {
+  width: 72px;
+  flex: none;
+  background: var(--rail-bg);
+  border-right: 1px solid var(--rail-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 0;
+  gap: 8px;
+}
+.rail-btn {
+  width: 42px; height: 42px;
+  border-radius: 10px;
+  display: grid; place-items: center;
+  color: var(--ink-3);
+  transition: background 120ms var(--ease), color 120ms var(--ease);
+}
+.rail-btn:hover { background: var(--hover); color: var(--ink-2); }
+.rail-btn.active { background: var(--accent-soft); color: var(--accent); }
+.rail-spacer { flex: 1; }
+
+/* ── 主内容工作区 ── */
+.workspace {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 22px 28px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* 页头 */
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.page-title h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+.page-title p {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.head-actions { display: flex; align-items: center; gap: 10px; }
+.status-pill {
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--safe); }
+.btn-ghost {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 120ms var(--ease), border-color 120ms var(--ease);
+}
+.btn-ghost:hover { background: var(--surface-3); border-color: var(--line-strong); }
+
+/* 顶部本机资产概览条 */
+.asset-strip {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+.asset-card {
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.asset-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--ink-2);
+  font-size: 11.5px;
+}
+.asset-val {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.asset-sub { font-size: 11px; color: var(--ink-3); }
+
+/* 双栏主网格 */
+.main-grid {
+  display: grid;
+  grid-template-columns: minmax(340px, 0.92fr) minmax(440px, 1.25fr);
+  gap: 18px;
+  align-items: start;
+}
+.col-stack { display: flex; flex-direction: column; gap: 16px; }
+
+/* 通用卡片 */
+.panel {
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.panel-title-wrap { display: flex; align-items: center; gap: 9px; }
+.panel-icon {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  display: grid; place-items: center;
+  color: var(--accent);
+}
+.panel-title { font-size: 14.5px; font-weight: 600; margin: 0; }
+.panel-sub { font-size: 11.5px; color: var(--ink-3); margin: 2px 0 0; }
+
+.badge {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.badge-accent { background: var(--accent-soft); color: var(--accent); }
+.badge-safe { background: var(--safe-soft); color: var(--safe); }
+.badge-caution { background: var(--caution-soft); color: var(--caution); }
+.badge-neutral { background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); }
+
+/* 导出模块标签群 */
+.scope-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+.scope-tag {
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: 11.5px;
+  color: var(--ink-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+.scope-tag b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* 隐私开关卡 */
+.security-box {
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 140ms var(--ease), background 140ms var(--ease);
+}
+.security-box.warn {
+  border-color: rgba(242, 184, 124, 0.4);
+  background: var(--caution-soft);
+}
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.switch-text strong { display: block; font-size: 12.5px; font-weight: 600; }
+.switch-text span { display: block; font-size: 11.5px; color: var(--ink-2); margin-top: 2px; }
+.switch {
+  width: 38px; height: 22px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  border: 1px solid var(--line-strong);
+  position: relative;
+  flex: none;
+  transition: background 140ms var(--ease), border-color 140ms var(--ease);
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 140ms var(--ease);
+}
+.switch[aria-checked="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.switch[aria-checked="true"]::after {
+  transform: translateX(16px);
+}
+.security-hint {
+  font-size: 11.5px;
+  color: var(--caution);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 按钮 */
+.btn-primary {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: background 120ms var(--ease);
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-danger {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 9px;
+  background: var(--danger-solid);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.btn-secondary {
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.btn-secondary:hover { background: var(--surface-3); }
+.btn-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.meta-caption { font-size: 11.5px; color: var(--ink-3); font-family: var(--mono); }
+
+/* WebDAV 内嵌表单 */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field.full { grid-column: 1 / -1; }
+.field label {
+  font-size: 11.5px;
+  color: var(--ink-2);
+  display: flex;
+  justify-content: space-between;
+}
+.field label span { color: var(--ink-3); font-size: 11px; }
+.input-wrap {
+  height: 34px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.input-wrap:focus-within { border-color: var(--accent-line); }
+.input-wrap input {
+  width: 100%;
+  border: 0; outline: none; background: transparent;
+  font-size: 12.5px;
+}
+.dav-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.dav-status {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-size: 11.5px;
+  color: var(--ink-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ── 右栏：导入与还原工作区 ── */
+.dropzone {
+  border: 1.5px dashed var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface-2);
+  padding: 36px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  transition: border-color 140ms var(--ease), background 140ms var(--ease);
+}
+.dropzone:hover {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.dz-icon {
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  display: grid; place-items: center;
+  color: var(--accent);
+}
+.dz-title { font-size: 14.5px; font-weight: 600; margin: 4px 0 0; }
+.dz-desc { font-size: 12px; color: var(--ink-2); max-width: 380px; line-height: 1.55; margin: 0; }
+.dz-formats { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; justify-content: center; }
+
+.recent-cloud {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.recent-info strong { font-size: 12.5px; display: block; }
+.recent-info span { font-size: 11.5px; color: var(--ink-3); }
+
+/* 解析预览态 */
+.archive-header {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.archive-file { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.archive-file-meta strong {
+  display: block;
+  font-size: 13px;
+  font-family: var(--mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.archive-file-meta span { display: block; font-size: 11.5px; color: var(--ink-2); margin-top: 2px; }
+
+/* 冲突策略切换 */
+.strategy-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.strategy-opt {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: border-color 120ms var(--ease), background 120ms var(--ease);
+}
+.strategy-opt strong { font-size: 12.5px; display: flex; align-items: center; gap: 6px; }
+.strategy-opt span { font-size: 11.5px; color: var(--ink-2); line-height: 1.4; }
+.strategy-opt.active {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+.strategy-opt.active.danger-mode {
+  background: var(--danger-soft);
+  border-color: rgba(242, 139, 130, 0.55);
+}
+.strategy-opt.active.danger-mode strong { color: var(--danger); }
+
+/* 勾选清单 */
+.checklist-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.link-actions { display: flex; gap: 10px; }
+.link-btn { font-size: 11.5px; color: var(--accent); font-weight: 500; }
+.link-btn:hover { text-decoration: underline; }
+
+.check-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.check-item {
+  padding: 9px 12px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+}
+.check-item:hover { background: var(--surface-3); }
+.check-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.cb {
+  width: 17px; height: 17px;
+  border-radius: 5px;
+  border: 1.5px solid var(--line-strong);
+  display: grid; place-items: center;
+  flex: none;
+  background: var(--surface-1);
+}
+.cb.checked {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.check-name { font-size: 12.5px; font-weight: 500; }
+.check-note { font-size: 11px; color: var(--ink-3); margin-left: 6px; }
+.check-count { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+
+.danger-banner {
+  padding: 9px 12px;
+  border-radius: 9px;
+  background: var(--danger-soft);
+  border: 1px solid rgba(242, 139, 130, 0.35);
+  color: var(--danger);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 结果汇总态 */
+.result-banner {
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--safe-soft);
+  border: 1px solid rgba(120, 214, 192, 0.35);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.result-banner strong { display: block; font-size: 13.5px; color: var(--safe); }
+.result-banner span { display: block; font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.result-cell {
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.result-cell span { font-size: 12px; color: var(--ink-2); }
+.result-cell b { font-size: 13px; font-variant-numeric: tabular-nums; }
+.skip-note {
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: var(--caution-soft);
+  border: 1px solid rgba(242, 184, 124, 0.3);
+  font-size: 12px;
+  color: var(--caution);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toast {
+  padding: 9px 12px;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  font-size: 12px;
+  color: var(--ink);
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+}
+.toast.show { display: flex; }
+
+.hidden { display: none !important; }
+
+@media (max-width: 1080px) {
+  .asset-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .main-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="preview-bar">
+  <div class="preview-meta">
+    <h1>备份与还原 · 桌面工作台方案稿</h1>
+    <p>兼容安卓端 .venera 归档互通 · 含可交互状态演练（请点选右侧分段查看各阶段界面）</p>
+  </div>
+  <div class="preview-controls">
+    <div class="ctrl-group">
+      <span class="ctrl-label">主题</span>
+      <div class="seg" id="themeSeg">
+        <button type="button" data-theme="dark" aria-pressed="true">深色</button>
+        <button type="button" data-theme="light" aria-pressed="false">浅色</button>
+      </div>
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">右栏导入状态</span>
+      <div class="seg" id="stateSeg">
+        <button type="button" data-state="idle" aria-pressed="false">1. 待选文件</button>
+        <button type="button" data-state="preview" aria-pressed="true">2. 安卓包预览</button>
+        <button type="button" data-state="done" aria-pressed="false">3. 导入完成</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="app-window">
+    <div class="titlebar">
+      <div class="tb-left">
+        <button type="button" class="tb-back" title="返回设置">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+        </button>
+        <span class="tb-crumb">设置 / 备份与还原</span>
+      </div>
+      <div class="tb-dots"><span></span><span></span><span></span></div>
+    </div>
+
+    <div class="app-body">
+      <nav class="rail" aria-label="主导航">
+        <button type="button" class="rail-btn" title="主页">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+        </button>
+        <button type="button" class="rail-btn" title="收藏">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        </button>
+        <button type="button" class="rail-btn" title="历史">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        </button>
+        <div class="rail-spacer"></div>
+        <button type="button" class="rail-btn active" title="设置">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.77 1.02 1.42 1.1H21a2 2 0 1 1 0 4h-.09c-.65.08-1.16.5-1.51 1.1z"/></svg>
+        </button>
+      </nav>
+
+      <main class="workspace">
+        <!-- 页头 -->
+        <header class="page-head">
+          <div class="page-title">
+            <h2>备份与还原</h2>
+            <p>跨端数据迁移、本机备份与云端同步</p>
+          </div>
+          <div class="head-actions">
+            <div class="status-pill"><span class="dot"></span> 本机数据库就绪</div>
+            <button type="button" class="btn-ghost" onclick="showToast('已打开桌面数据目录')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              打开数据目录
+            </button>
+          </div>
+        </header>
+
+        <div class="toast" id="toastBox">
+          <span id="toastMsg">操作完成</span>
+          <button type="button" class="link-btn" onclick="hideToast()">关闭</button>
+        </div>
+
+        <!-- 顶部本机资产概览条 -->
+        <section class="asset-strip" aria-label="本机数据统计">
+          <div class="asset-card">
+            <div class="asset-top"><span>阅读历史</span></div>
+            <div class="asset-val">1,284</div>
+            <div class="asset-sub">comic_history</div>
+          </div>
+          <div class="asset-card">
+            <div class="asset-top"><span>漫画收藏</span></div>
+            <div class="asset-val">342</div>
+            <div class="asset-sub">6 个收藏夹</div>
+          </div>
+          <div class="asset-card">
+            <div class="asset-top"><span>插图收藏</span></div>
+            <div class="asset-val">89</div>
+            <div class="asset-sub">含元信息与地址</div>
+          </div>
+          <div class="asset-card">
+            <div class="asset-top"><span>画廊收藏与关注</span></div>
+            <div class="asset-val">156 / 28</div>
+            <div class="asset-sub">作品 / 关注画师</div>
+          </div>
+          <div class="asset-card">
+            <div class="asset-top"><span>阅读统计</span></div>
+            <div class="asset-val">418</div>
+            <div class="asset-sub">按日记录条目</div>
+          </div>
+          <div class="asset-card">
+            <div class="asset-top"><span>屏蔽规则</span></div>
+            <div class="asset-val">19</div>
+            <div class="asset-sub">关键词与正则</div>
+          </div>
+        </section>
+
+        <!-- 双栏工作台 -->
+        <section class="main-grid">
+          <!-- 左栏：导出与 WebDAV -->
+          <div class="col-stack">
+            <!-- 本机打包导出 -->
+            <div class="panel">
+              <div class="panel-head">
+                <div class="panel-title-wrap">
+                  <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  </div>
+                  <div>
+                    <h3 class="panel-title">打包导出</h3>
+                    <p class="panel-sub">生成通用 .venera 归档，可导入安卓端</p>
+                  </div>
+                </div>
+                <span class="badge badge-accent">v5 互通格式</span>
+              </div>
+
+              <div class="scope-grid">
+                <div class="scope-tag"><span>阅读历史</span><b>1,284</b></div>
+                <div class="scope-tag"><span>漫画收藏</span><b>342</b></div>
+                <div class="scope-tag"><span>插图收藏</span><b>89</b></div>
+                <div class="scope-tag"><span>画廊收藏</span><b>156</b></div>
+                <div class="scope-tag"><span>关注画师</span><b>28</b></div>
+                <div class="scope-tag"><span>统计与屏蔽</span><b>437</b></div>
+              </div>
+
+              <div class="security-box" id="accountExportBox">
+                <div class="switch-row">
+                  <div class="switch-text">
+                    <strong>包含漫画源账号与设置</strong>
+                    <span>默认关闭；勾选后写入已安装源的登录态与参数</span>
+                  </div>
+                  <button type="button" class="switch" id="accountExportSwitch" aria-checked="false" onclick="toggleAccountExport()"></button>
+                </div>
+                <div class="security-hint hidden" id="accountWarnHint">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  归档将包含源登录凭据与 Token，请妥善保管切勿外传。
+                </div>
+              </div>
+
+              <div class="btn-row">
+                <span class="meta-caption">不含图片缓存与源脚本文件</span>
+                <button type="button" class="btn-primary" onclick="showToast('已导出：venera_backup_20261120.venera（9 项共 2,336 条）')">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+                  导出 .venera 归档
+                </button>
+              </div>
+            </div>
+
+            <!-- WebDAV 云端同步（完整内嵌） -->
+            <div class="panel">
+              <div class="panel-head">
+                <div class="panel-title-wrap">
+                  <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+                  </div>
+                  <div>
+                    <h3 class="panel-title">WebDAV 云端同步</h3>
+                    <p class="panel-sub">与手机端使用相同配置键，上传或拉取归档</p>
+                  </div>
+                </div>
+                <span class="badge badge-safe">已保存配置</span>
+              </div>
+
+              <div class="form-grid">
+                <div class="field full">
+                  <label>服务器地址 <span>HTTPS 根地址</span></label>
+                  <div class="input-wrap">
+                    <input type="text" value="https://dav.jianguoyun.com/dav/" placeholder="https://...">
+                  </div>
+                </div>
+                <div class="field">
+                  <label>账号</label>
+                  <div class="input-wrap">
+                    <input type="text" value="user@example.com">
+                  </div>
+                </div>
+                <div class="field">
+                  <label>密码 <span>本地明文保存</span></label>
+                  <div class="input-wrap">
+                    <input type="password" id="davPwd" value="app-password-token">
+                    <button type="button" onclick="togglePwd()" style="color:var(--ink-3);font-size:11px;">显隐</button>
+                  </div>
+                </div>
+                <div class="field full">
+                  <label>远端目录 <span>默认 /Venera/</span></label>
+                  <div class="input-wrap">
+                    <input type="text" value="/Venera/">
+                  </div>
+                </div>
+              </div>
+
+              <div class="dav-status">
+                <span>上次同步：今天 09:42 · venera_backup_android.venera</span>
+                <button type="button" class="link-btn" onclick="showToast('WebDAV 连接正常（HTTP 207）')">测试连接</button>
+              </div>
+
+              <div class="dav-actions">
+                <button type="button" class="btn-secondary" onclick="showToast('已打包并上传至 /Venera/')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  上传最新归档
+                </button>
+                <button type="button" class="btn-secondary" onclick="switchRightState('preview'); showToast('已从云端拉取归档并载入右侧预览')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
+                  拉取云端并预览
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右栏：导入与还原工作区 -->
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title-wrap">
+                <div class="panel-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <div>
+                  <h3 class="panel-title">导入与还原</h3>
+                  <p class="panel-sub">自动识别安卓 .venera 归档与旧版桌面 JSON</p>
+                </div>
+              </div>
+              <span class="badge badge-neutral" id="rightBadge">等待确认导入</span>
+            </div>
+
+            <!-- 状态 1：待选文件 -->
+            <div id="viewIdle" class="hidden" style="display:flex;flex-direction:column;gap:14px;">
+              <div class="dropzone" onclick="switchRightState('preview')">
+                <div class="dz-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+                </div>
+                <p class="dz-title">拖入备份文件到此处，或点击浏览本机</p>
+                <p class="dz-desc">读取后将先展示包内数据明细与条数，确认后再写入数据库，不会直接覆盖当前数据。</p>
+                <div class="dz-formats">
+                  <span class="badge badge-accent">安卓 / 桌面通用 .venera</span>
+                  <span class="badge badge-neutral">旧版桌面 .json</span>
+                </div>
+              </div>
+
+              <div class="recent-cloud">
+                <div class="recent-info">
+                  <strong>已暂存的云端下载：venera_backup_1763512900.venera</strong>
+                  <span>来自 WebDAV · 大小 482 KB · 2026-11-20 09:42</span>
+                </div>
+                <button type="button" class="btn-secondary" onclick="switchRightState('preview')">解析此文件</button>
+              </div>
+            </div>
+
+            <!-- 状态 2：已解析预览与策略选择 -->
+            <div id="viewPreview" style="display:flex;flex-direction:column;gap:14px;">
+              <div class="archive-header">
+                <div class="archive-file">
+                  <div class="panel-icon" style="color:var(--safe);background:var(--safe-soft);border-color:transparent;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <div class="archive-file-meta">
+                    <strong>venera_backup_android_20261119.venera</strong>
+                    <span>安卓端 Venera Compose · 格式 v5 · 导出于 2026-11-19 22:18</span>
+                  </div>
+                </div>
+                <button type="button" class="btn-ghost" onclick="switchRightState('idle')">重选文件</button>
+              </div>
+
+              <!-- 写入策略 -->
+              <div class="strategy-box">
+                <button type="button" class="strategy-opt active" id="stratMerge" onclick="setStrategy('merge')">
+                  <strong>智能合并（推荐）</strong>
+                  <span>保留本机现有记录，补充缺失条目并更新更晚进度</span>
+                </button>
+                <button type="button" class="strategy-opt" id="stratOverwrite" onclick="setStrategy('overwrite')">
+                  <strong>清空并覆盖</strong>
+                  <span>先清空所勾选模块的本机数据，完全以备份为准</span>
+                </button>
+              </div>
+
+              <!-- 模块勾选 -->
+              <div class="checklist-head">
+                <span>选择要导入的数据模块</span>
+                <div class="link-actions">
+                  <button type="button" class="link-btn" onclick="setAllChecks(true)">全选</button>
+                  <button type="button" class="link-btn" onclick="setAllChecks(false)">全不选</button>
+                </div>
+              </div>
+
+              <div class="check-list" id="checkList">
+                <div class="check-item" onclick="toggleCheck(this)">
+                  <div class="check-left">
+                    <div class="cb checked"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div><span class="check-name">阅读历史</span><span class="check-note">含章节与页码进度</span></div>
+                  </div>
+                  <span class="check-count">864 条</span>
+                </div>
+                <div class="check-item" onclick="toggleCheck(this)">
+                  <div class="check-left">
+                    <div class="cb checked"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div><span class="check-name">漫画收藏与收藏夹</span><span class="check-note">5 个夹子含排序</span></div>
+                  </div>
+                  <span class="check-count">219 本</span>
+                </div>
+                <div class="check-item" onclick="toggleCheck(this)">
+                  <div class="check-left">
+                    <div class="cb checked"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div><span class="check-name">插图收藏</span><span class="check-note">元信息与远程图链</span></div>
+                  </div>
+                  <span class="check-count">64 张</span>
+                </div>
+                <div class="check-item" onclick="toggleCheck(this)">
+                  <div class="check-left">
+                    <div class="cb checked"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div><span class="check-name">画廊收藏与关注画师</span><span class="check-note">112 收藏 / 24 画师</span></div>
+                  </div>
+                  <span class="check-count">136 项</span>
+                </div>
+                <div class="check-item" onclick="toggleCheck(this)">
+                  <div class="check-left">
+                    <div class="cb checked"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div><span class="check-name">阅读统计</span><span class="check-note">每日页数与阅读时长</span></div>
+                  </div>
+                  <span class="check-count">310 条</span>
+                </div>
+                <div class="check-item" onclick="toggleCheck(this)">
+                  <div class="check-left">
+                    <div class="cb checked"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div><span class="check-name">屏蔽规则</span><span class="check-note">自动跳过无效正则</span></div>
+                  </div>
+                  <span class="check-count">14 条</span>
+                </div>
+                <div class="check-item" onclick="toggleCheck(this)">
+                  <div class="check-left">
+                    <div class="cb"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="opacity:0;"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div><span class="check-name">漫画源账号与设置</span><span class="check-note">未安装的源将自动跳过</span></div>
+                  </div>
+                  <span class="check-count">4 个源</span>
+                </div>
+              </div>
+
+              <div class="danger-banner hidden" id="dangerBanner">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>覆盖模式将先删除已勾选模块的本机现有数据，且无法撤销。</span>
+              </div>
+
+              <div class="btn-row">
+                <span class="meta-caption" id="importSummaryText">已选 6 项 · 共 1,607 条记录</span>
+                <button type="button" class="btn-primary" id="executeImportBtn" onclick="executeImport()">开始合并导入</button>
+              </div>
+            </div>
+
+            <!-- 状态 3：导入结果报告 -->
+            <div id="viewDone" class="hidden" style="display:flex;flex-direction:column;gap:14px;">
+              <div class="result-banner">
+                <div class="panel-icon" style="color:var(--safe);background:var(--surface-1);border-color:transparent;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div>
+                  <strong>导入已完成（智能合并）</strong>
+                  <span>来源：venera_backup_android_20261119.venera · 数据已即时生效</span>
+                </div>
+              </div>
+
+              <div class="result-grid">
+                <div class="result-cell"><span>阅读历史</span><b>864 条</b></div>
+                <div class="result-cell"><span>漫画收藏</span><b>219 本 / 5 夹</b></div>
+                <div class="result-cell"><span>插图收藏</span><b>64 张</b></div>
+                <div class="result-cell"><span>画廊收藏与关注</span><b>112 / 24 项</b></div>
+                <div class="result-cell"><span>阅读统计</span><b>310 条</b></div>
+                <div class="result-cell"><span>屏蔽规则</span><b>13 条生效</b></div>
+              </div>
+
+              <div class="skip-note">
+                <div>• 已跳过 1 条无效正则表达式的屏蔽规则（格式错误未写入）</div>
+                <div>• 已跳过 1 个本机未安装的漫画源账号配置</div>
+              </div>
+
+              <div class="btn-row">
+                <span class="meta-caption">本机数据库总条数已同步刷新</span>
+                <button type="button" class="btn-secondary" onclick="switchRightState('idle')">继续导入其他文件</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentStrategy = 'merge';
+let overwriteArmed = false;
+
+document.querySelectorAll('#themeSeg button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#themeSeg button').forEach(b => b.setAttribute('aria-pressed', 'false'));
+    btn.setAttribute('aria-pressed', 'true');
+    document.body.classList.toggle('light', btn.dataset.theme === 'light');
+  });
+});
+
+document.querySelectorAll('#stateSeg button').forEach(btn => {
+  btn.addEventListener('click', () => switchRightState(btn.dataset.state));
+});
+
+function switchRightState(state) {
+  document.querySelectorAll('#stateSeg button').forEach(b => {
+    b.setAttribute('aria-pressed', b.dataset.state === state ? 'true' : 'false');
+  });
+  document.getElementById('viewIdle').classList.toggle('hidden', state !== 'idle');
+  document.getElementById('viewPreview').classList.toggle('hidden', state !== 'preview');
+  document.getElementById('viewDone').classList.toggle('hidden', state !== 'done');
+  const badge = document.getElementById('rightBadge');
+  if (state === 'idle') badge.textContent = '支持 .venera / .json';
+  if (state === 'preview') badge.textContent = '等待确认导入';
+  if (state === 'done') badge.textContent = '导入完成';
+}
+
+function toggleAccountExport() {
+  const sw = document.getElementById('accountExportSwitch');
+  const on = sw.getAttribute('aria-checked') === 'true';
+  sw.setAttribute('aria-checked', String(!on));
+  document.getElementById('accountExportBox').classList.toggle('warn', !on);
+  document.getElementById('accountWarnHint').classList.toggle('hidden', on);
+}
+
+function togglePwd() {
+  const input = document.getElementById('davPwd');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+function setStrategy(s) {
+  currentStrategy = s;
+  overwriteArmed = false;
+  document.getElementById('stratMerge').classList.toggle('active', s === 'merge');
+  const ov = document.getElementById('stratOverwrite');
+  ov.classList.toggle('active', s === 'overwrite');
+  ov.classList.toggle('danger-mode', s === 'overwrite');
+  document.getElementById('dangerBanner').classList.toggle('hidden', s !== 'overwrite');
+  updateImportBtn();
+}
+
+function toggleCheck(el) {
+  const cb = el.querySelector('.cb');
+  const checked = cb.classList.toggle('checked');
+  cb.querySelector('svg').style.opacity = checked ? '1' : '0';
+  updateSummary();
+}
+
+function setAllChecks(on) {
+  document.querySelectorAll('#checkList .cb').forEach(cb => {
+    cb.classList.toggle('checked', on);
+    cb.querySelector('svg').style.opacity = on ? '1' : '0';
+  });
+  updateSummary();
+}
+
+function updateSummary() {
+  const total = document.querySelectorAll('#checkList .cb.checked').length;
+  document.getElementById('importSummaryText').textContent = `已选 ${total} 项模块`;
+  overwriteArmed = false;
+  updateImportBtn();
+}
+
+function updateImportBtn() {
+  const btn = document.getElementById('executeImportBtn');
+  if (currentStrategy === 'merge') {
+    btn.className = 'btn-primary';
+    btn.textContent = '开始合并导入';
+  } else if (!overwriteArmed) {
+    btn.className = 'btn-danger';
+    btn.textContent = '覆盖导入所选数据';
+  } else {
+    btn.className = 'btn-danger';
+    btn.textContent = '再次点击确认覆盖';
+  }
+}
+
+function executeImport() {
+  if (currentStrategy === 'overwrite' && !overwriteArmed) {
+    overwriteArmed = true;
+    updateImportBtn();
+    return;
+  }
+  switchRightState('done');
+}
+
+function showToast(msg) {
+  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastBox').classList.add('show');
+}
+function hideToast() {
+  document.getElementById('toastBox').classList.remove('show');
+}
+
+switchRightState('preview');
+</script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-zcode-design>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>开卷承字 · 剪影派矢量重绘 · app-icon-redesign-2026-11-20</title>
+<style>
+:root {
+  --accent: #0A63F6;
+  --ink: #E8EDF6;
+  --ink-dim: #9AA7BC;
+  --bg: #12151C;
+  --card: #1A1F29;
+  --card-edge: #2A3242;
+  --chip-dark: #1F1F1F;
+  --chip-light: #F5F5F5;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+  padding: 48px 40px 80px; max-width: 1180px; margin: 0 auto;
+}
+header h1 { font-size: 26px; font-weight: 700; letter-spacing: 1px; }
+header .sub { color: var(--ink-dim); font-size: 14px; margin-top: 10px; line-height: 1.8; }
+.badge { display: inline-block; font-size: 12px; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 2px 12px; margin-bottom: 14px; }
+.why { margin-top: 36px; background: var(--card); border: 1px solid var(--card-edge); border-radius: 16px; padding: 24px 26px; }
+.why h2 { font-size: 16px; font-weight: 600; }
+.why ul { list-style: none; margin-top: 10px; }
+.why li { font-size: 13px; color: var(--ink-dim); line-height: 1.9; padding-left: 18px; position: relative; }
+.why li::before { content: ""; position: absolute; left: 0; top: 11px; width: 6px; height: 6px; border-radius: 2px; background: var(--accent); }
+.why li b { color: var(--ink); }
+.finalwrap { margin-top: 30px; background: var(--card); border: 1px solid var(--card-edge); border-radius: 16px; padding: 28px; display: grid; grid-template-columns: 1fr; gap: 20px; }
+.fstage { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
+.fstage .big { filter: drop-shadow(0 10px 24px rgba(0,0,0,.45)); }
+.ladder { display: flex; align-items: flex-end; gap: 20px; color: var(--ink-dim); font-size: 11px; text-align: center; }
+.ladder .cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.dock { border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 18px; }
+.dock.dark { background: var(--chip-dark); }
+.dock.light { background: var(--chip-light); }
+.dock .label { font-size: 11px; width: 52px; flex: none; }
+.dock.dark .label { color: #7A808C; }
+.dock.light .label { color: #8A8F98; }
+.next { margin-top: 30px; font-size: 13px; color: var(--ink-dim); line-height: 2; border-top: 1px solid var(--card-edge); padding-top: 20px; }
+.next b { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="ic-book-final" viewBox="0 0 512 512">
+      <rect width="512" height="512" rx="116" fill="#FFFFFF"/>
+      <rect width="512" height="512" rx="116" fill="none" stroke="#ECEFF4" stroke-width="3"/>
+      <!-- V：圆头笔画，底尖落入书脊 -->
+      <path d="M168 148 L256 318 L344 148" fill="none" stroke="#0A0A0A" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- 摊开书：两翼微翘，端头圆厚 -->
+      <path fill="#0A0A0A" d="M256 336 C240 312 202 300 162 300 C122 300 98 312 96 330 C94 344 104 352 120 350 C164 346 214 358 256 386 Z"/>
+      <path fill="#0A0A0A" d="M256 336 C272 312 310 300 350 300 C390 300 414 312 416 330 C418 344 408 352 392 350 C348 346 298 358 256 386 Z"/>
+      <!-- 书脊白条：中缝镂空，穿到书下缘 -->
+      <rect x="250" y="342" width="12" height="44" rx="6" fill="#FFFFFF"/>
+    </symbol>
+  </defs>
+</svg>
+
+<header>
+  <span class="badge">阶段 A · 定稿候选 · 开卷承字 × 剪影派 · 待批</span>
+  <h1>开卷承字，剪影派终稿候选</h1>
+  <p class="sub">绕了一圈回到 B2 的叙事 —— 但这一版已经不是第一轮的它：<b>B2 骨架 × 圆笔手感 × 白底黑剪影</b>，前面所有轮次的好东西焊在了一起。原图为 AI 生成，本页为矢量重绘版。</p>
+</header>
+
+<section class="why">
+  <h2>为什么这版站得住（含画廊感取舍）</h2>
+  <ul>
+    <li><b>叙事从第一轮就锁死</b>：开卷承字 —— V 自书缝升起。中间所有轮次换的都是手感与底板，叙事没变过，说明它就是主人心里的那个形状</li>
+    <li><b>画廊感的取舍，账算过来了</b>：网格版的"瀑布流"语义在 16px 全部蒸发（只剩三团色块），而 V + 书在 16px 语义幸存 —— 小尺寸才是图标的生死线</li>
+    <li><b>书对双主体都成立</b>：本仓是漫画阅读器 + 图库，书讲"阅读"半边，不违和；画廊半边由界面自己讲，不必图标代办</li>
+    <li><b>书脊白条是神来之笔</b>：中缝镂空既交代书的结构，又把 V 尖"承接"的位置点明 —— AI 原图偶然出彩的细节，矢量重绘保留并精确化</li>
+    <li>派系合规：白 squircle + 纯黑单色 + 圆头笔画 + 零渐变零阴影，16px 两大形状对比清晰</li>
+  </ul>
+</section>
+
+<section class="finalwrap">
+  <div class="fstage">
+    <svg class="big" width="128" height="128"><use href="#ic-book-final"/></svg>
+    <div class="ladder">
+      <span class="cell"><svg width="64" height="64"><use href="#ic-book-final"/></svg>64</span>
+      <span class="cell"><svg width="48" height="48"><use href="#ic-book-final"/></svg>48</span>
+      <span class="cell"><svg width="32" height="32"><use href="#ic-book-final"/></svg>32</span>
+      <span class="cell"><svg width="24" height="24"><use href="#ic-book-final"/></svg>24</span>
+      <span class="cell"><svg width="16" height="16"><use href="#ic-book-final"/></svg>16</span>
+    </div>
+  </div>
+  <div class="dock dark"><span class="label">深色栏</span><svg width="16" height="16"><use href="#ic-book-final"/></svg><svg width="24" height="24"><use href="#ic-book-final"/></svg><svg width="32" height="32"><use href="#ic-book-final"/></svg><svg width="48" height="48"><use href="#ic-book-final"/></svg></div>
+  <div class="dock light"><span class="label">浅色栏</span><svg width="16" height="16"><use href="#ic-book-final"/></svg><svg width="24" height="24"><use href="#ic-book-final"/></svg><svg width="32" height="32"><use href="#ic-book-final"/></svg><svg width="48" height="48"><use href="#ic-book-final"/></svg></div>
+</section>
+
+<section class="next">
+  <b>与原图的已知差异（矢量重绘必然取舍）</b>：① V 笔画粗细与开合角度按原图比例参数化（顶宽 / 高 ≈ 1.15，笔画 52）；② 书页端头圆卷半径统一；③ 书脊白条上端精确停在 V 尖圆头下缘，穿至书下缘平齐；④ 底板加 1.5px 极淡描边防浅色任务栏融边（派系固有取舍）。<br>
+  <b>获批后</b>：阶段 B 三件套（design-analysis / design-tokens / component-spec 三件中图标类精简为 tokens + 尺寸表）→ ICO 多尺寸（16/24/32/48/64/128/256）→ 替换 `packaging/` 与 `src/main/resources/` 三处接入 → 增量编译验证 + commit。
+</section>
+
+</body>
+</html>

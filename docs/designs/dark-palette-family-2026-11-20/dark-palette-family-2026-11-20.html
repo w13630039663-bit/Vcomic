@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-zcode-design>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>深色族四档 · 色板方向 · 2026-11-20</title>
+<style>
+:root {
+  --accent: #0A63F6;
+  --ink: #E8EDF6;
+  --ink-dim: #9AA7BC;
+  --bg: #0B0D12;
+  --card: #14171E;
+  --card-edge: #232935;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+  padding: 44px 32px 80px; max-width: 1240px; margin: 0 auto;
+}
+header h1 { font-size: 25px; font-weight: 700; letter-spacing: .5px; }
+header .sub { color: var(--ink-dim); font-size: 13.5px; margin-top: 10px; line-height: 1.85; }
+.badge { display: inline-block; font-size: 12px; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 2px 12px; margin-bottom: 14px; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; margin-top: 34px; }
+@media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } body { padding: 30px 16px 60px; } }
+
+.pal { background: var(--card); border: 1px solid var(--card-edge); border-radius: 16px; overflow: hidden; }
+.pal-head { padding: 18px 22px 14px; border-bottom: 1px solid var(--card-edge); display: flex; align-items: baseline; gap: 10px; }
+.pal-head .no { font-size: 12px; color: var(--accent); font-weight: 700; letter-spacing: 2px; }
+.pal-head h2 { font-size: 17px; font-weight: 600; }
+.pal-head .tag { font-size: 11.5px; color: var(--ink-dim); margin-left: auto; }
+
+/* ── 迷你首页模拟 ── */
+.mock { display: flex; height: 268px; font-size: 10px; }
+.mock .rail { width: 96px; padding: 10px 8px; display: flex; flex-direction: column; gap: 6px; }
+.mock .brand { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.mock .brand .logo { width: 18px; height: 18px; border-radius: 5px; display: grid; place-items: center; font-size: 10px; font-weight: 800; color: #fff; }
+.mock .brand .word { font-size: 9.5px; font-weight: 700; letter-spacing: .6px; }
+.mock .nav { padding: 4px 8px; border-radius: 6px; font-size: 9.5px; }
+.mock .nav.on { font-weight: 600; }
+.mock .body { flex: 1; padding: 12px 14px 12px 0; display: flex; flex-direction: column; gap: 9px; overflow: hidden; }
+.mock .hi { font-size: 14px; font-weight: 700; }
+.mock .hero { border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; }
+.mock .hero .t { font-size: 12px; font-weight: 700; }
+.mock .hero .s { font-size: 8.5px; margin-top: 3px; opacity: .75; }
+.mock .hero .cbt { background: #F5F7FA; color: #0F141C; border-radius: 999px; padding: 3px 9px; font-size: 8.5px; font-weight: 600; }
+.mock .row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+.mock .cv { border-radius: 7px; aspect-ratio: 3/4; }
+.mock .cap { font-size: 7.5px; margin-top: 3px; opacity: .68; }
+
+/* ① 深灰（现有） */
+.v-grey { background: #202020; }
+.v-grey .rail { background: #1C1C1C; }
+.v-grey .brand .logo { background: linear-gradient(135deg, #3B82F6, #1D4ED8); }
+.v-grey .brand .word { color: #FFF; }
+.v-grey .nav { color: #A0A0A0; }
+.v-grey .nav.on { background: rgba(255,255,255,.09); color: #FFF; }
+.v-grey .hi { color: #FFF; }
+.v-grey .hero { background: linear-gradient(120deg, #1E3A8A, #16213D); color: #FFF; }
+.v-grey .cv { background: #2C2C2C; }
+
+/* ② 纯黑（现成未接线） */
+.v-black { background: #000; }
+.v-black .rail { background: #0A0A0A; }
+.v-black .brand .logo { background: linear-gradient(135deg, #3B82F6, #1D4ED8); }
+.v-black .brand .word { color: #FFF; }
+.v-black .nav { color: #A0A0A0; }
+.v-black .nav.on { background: rgba(255,255,255,.10); color: #FFF; }
+.v-black .hi { color: #FFF; }
+.v-black .hero { background: linear-gradient(120deg, #132C6B, #0B1224); color: #FFF; }
+.v-black .cv { background: #161616; }
+
+/* ③ 石墨蓝（新） */
+.v-slate { background: #1B2130; }
+.v-slate .rail { background: #171C26; }
+.v-slate .brand .logo { background: linear-gradient(135deg, #4A86FF, #1D4ED8); }
+.v-slate .brand .word { color: #F0F4FF; }
+.v-slate .nav { color: #9AA6BE; }
+.v-slate .nav.on { background: rgba(120,160,255,.14); color: #F0F4FF; }
+.v-slate .hi { color: #F0F4FF; }
+.v-slate .hero { background: linear-gradient(120deg, #22407F, #1B2740); color: #F0F4FF; }
+.v-slate .cv { background: #262E40; }
+
+/* ④ 暖褐（新） */
+.v-sepia { background: #201A16; }
+.v-sepia .rail { background: #1B1613; }
+.v-sepia .brand .logo { background: linear-gradient(135deg, #C08552, #8A5A3B); }
+.v-sepia .brand .word { color: #F5EDE4; }
+.v-sepia .nav { color: #AFA093; }
+.v-sepia .nav.on { background: rgba(230,190,150,.14); color: #F5EDE4; }
+.v-sepia .hi { color: #F5EDE4; }
+.v-sepia .hero { background: linear-gradient(120deg, #4A3524, #2A201A); color: #F5EDE4; }
+.v-sepia .cv { background: #2D251E; }
+
+/* 色阶条 */
+.ramp { display: flex; gap: 0; height: 26px; margin: 0 22px; border-radius: 7px; overflow: hidden; }
+.ramp i { flex: 1; }
+.pal-foot { padding: 12px 22px 20px; font-size: 12px; color: var(--ink-dim); line-height: 1.85; }
+.pal-foot b { color: var(--ink); }
+.pal-foot .cost { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 999px; margin-right: 6px; }
+.cost.zero { background: rgba(34,197,94,.16); color: #4ADE80; }
+.cost.low { background: rgba(234,179,8,.16); color: #FACC15; }
+.cost.mid { background: rgba(239,68,68,.14); color: #F87171; }
+.note { margin-top: 34px; background: var(--card); border: 1px solid var(--card-edge); border-radius: 14px; padding: 22px 24px; }
+.note h2 { font-size: 16px; font-weight: 600; }
+.note ul { list-style: none; margin-top: 10px; }
+.note li { font-size: 13px; color: var(--ink-dim); line-height: 1.95; padding-left: 16px; position: relative; }
+.note li::before { content: ""; position: absolute; left: 0; top: 12px; width: 5px; height: 5px; border-radius: 1.5px; background: var(--accent); }
+.note li b { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="badge">配色方向 · 全深色四档 · 待批</span>
+  <h1>不做浅色，那就做「深色族」</h1>
+  <p class="sub">四档全部是深色，没有浅色。现有色板是纯中性灰（<code>#1C1C1C→#353535</code>），一档色调不带；下面第③④档是给灰度「上色」的方向。所有模拟用 SVG/CSS 近似，<b>封面为几何占位不是真图</b>。</p>
+</header>
+
+<div class="grid">
+
+  <section class="pal" data-variant="深灰">
+    <div class="pal-head"><span class="no">①</span><h2>深灰</h2><span class="tag">现有默认</span></div>
+    <div class="mock v-grey">
+      <div class="rail">
+        <div class="brand"><span class="logo">V</span><span class="word">VCOMIC</span></div>
+        <div class="nav on">首页</div><div class="nav">漫画搜索</div><div class="nav">画廊</div><div class="nav">收藏</div><div class="nav">每日热门</div>
+      </div>
+      <div class="body">
+        <div class="hi">下午好，主人</div>
+        <div class="hero"><div><div class="t">继续阅读</div><div class="s">腦洞學生會 · 第6/17页 · 35%</div></div><span class="cbt">继续阅读</span></div>
+        <div class="row"><div><div class="cv"></div><div class="cap">色彩 #152186</div></div><div><div class="cv"></div><div class="cap">幸永 #15222</div></div><div><div class="cv"></div><div class="cap">水視ずみ</div></div><div><div class="cv"></div><div class="cap">夢ノ内</div></div></div>
+      </div>
+    </div>
+    <div class="ramp"><i style="background:#1C1C1C"></i><i style="background:#202020"></i><i style="background:#272727"></i><i style="background:#2C2C2C"></i><i style="background:#353535"></i></div>
+    <div class="pal-foot"><span class="cost zero">零成本</span><b>中性灰，最安全。</b>已经调过所有对比度，改任何东西都可能打破平衡——它的价值就是「不动」。缺点是没有气质，卡片与页面区分靠明度差，久了发闷。</div>
+  </section>
+
+  <section class="pal" data-variant="纯黑">
+    <div class="pal-head"><span class="no">②</span><h2>纯黑</h2><span class="tag">代码已写好·零入口</span></div>
+    <div class="mock v-black">
+      <div class="rail">
+        <div class="brand"><span class="logo">V</span><span class="word">VCOMIC</span></div>
+        <div class="nav on">首页</div><div class="nav">漫画搜索</div><div class="nav">画廊</div><div class="nav">收藏</div><div class="nav">每日热门</div>
+      </div>
+      <div class="body">
+        <div class="hi">下午好，主人</div>
+        <div class="hero"><div><div class="t">继续阅读</div><div class="s">腦洞學生會 · 第6/17页 · 35%</div></div><span class="cbt">继续阅读</span></div>
+        <div class="row"><div><div class="cv"></div><div class="cap">色彩 #152186</div></div><div><div class="cv"></div><div class="cap">幸永 #15222</div></div><div><div class="cv"></div><div class="cap">水視ずみ</div></div><div><div class="cv"></div><div class="cap">夢ノ内</div></div></div>
+      </div>
+    </div>
+    <div class="ramp"><i style="background:#000"></i><i style="background:#0A0A0A"></i><i style="background:#161616"></i><i style="background:#1E1E1E"></i><i style="background:#2A2A2A"></i></div>
+    <div class="pal-foot"><span class="cost zero">零成本</span><b>OLED 沉浸档。</b><code>PureBlack</code> 色板早已写完、<code>of(dark,pureBlack)</code> 已支持、只差一个入口。<b>黑边彻底消失</b>，卡片像浮在虚空里，看图最沉浸、OLED 最省电。代价：大面积纯黑 + 纯白字会有光晕感，长时间读写文字略累。</div>
+  </section>
+
+  <section class="pal" data-variant="石墨蓝">
+    <div class="pal-head"><span class="no">③</span><h2>石墨蓝</h2><span class="tag">新·推荐主推</span></div>
+    <div class="mock v-slate">
+      <div class="rail">
+        <div class="brand"><span class="logo">V</span><span class="word">VCOMIC</span></div>
+        <div class="nav on">首页</div><div class="nav">漫画搜索</div><div class="nav">画廊</div><div class="nav">收藏</div><div class="nav">每日热门</div>
+      </div>
+      <div class="body">
+        <div class="hi">下午好，主人</div>
+        <div class="hero"><div><div class="t">继续阅读</div><div class="s">腦洞學生會 · 第6/17页 · 35%</div></div><span class="cbt">继续阅读</span></div>
+        <div class="row"><div><div class="cv"></div><div class="cap">色彩 #152186</div></div><div><div class="cv"></div><div class="cap">幸永 #15222</div></div><div><div class="cv"></div><div class="cap">水視ずみ</div></div><div><div class="cv"></div><div class="cap">夢ノ内</div></div></div>
+      </div>
+    </div>
+    <div class="ramp"><i style="background:#171C26"></i><i style="background:#1B2130"></i><i style="background:#212838"></i><i style="background:#262E40"></i><i style="background:#2F384C"></i></div>
+    <div class="pal-foot"><span class="cost low">低成本</span><b>给灰阶上蓝调。</b>明度阶梯完全照搬现有深灰（一档不差），只把每阶往蓝偏 6-8%。结果：与品牌蓝/accent 同族，<b>玻璃和卡片有了色温</b>，冷调专业感；改的是 5 个色值，对比度不变，风险极低。</div>
+  </section>
+
+  <section class="pal" data-variant="暖褐">
+    <div class="pal-head"><span class="no">④</span><h2>暖褐</h2><span class="tag">新·夜读档</span></div>
+    <div class="mock v-sepia">
+      <div class="rail">
+        <div class="brand"><span class="logo">V</span><span class="word">VCOMIC</span></div>
+        <div class="nav on">首页</div><div class="nav">漫画搜索</div><div class="nav">画廊</div><div class="nav">收藏</div><div class="nav">每日热门</div>
+      </div>
+      <div class="body">
+        <div class="hi">下午好，主人</div>
+        <div class="hero"><div><div class="t">继续阅读</div><div class="s">腦洞學生會 · 第6/17页 · 35%</div></div><span class="cbt">继续阅读</span></div>
+        <div class="row"><div><div class="cv"></div><div class="cap">色彩 #152186</div></div><div><div class="cv"></div><div class="cap">幸永 #15222</div></div><div><div class="cv"></div><div class="cap">水視ずみ</div></div><div><div class="cv"></div><div class="cap">夢ノ内</div></div></div>
+      </div>
+    </div>
+    <div class="ramp"><i style="background:#1B1613"></i><i style="background:#201A16"></i><i style="background:#272019"></i><i style="background:#2D251E"></i><i style="background:#372D24"></i></div>
+    <div class="pal-foot"><span class="cost mid">中成本</span><b>暗色纸感 / 护眼夜读。</b>Kindle、Tachiyomi 都有这一档。蓝光最少，长时间夜读最舒服，纸墨气质。代价：<b>与品牌蓝冲突</b>——强调色得另配暖金/赭石，等于第二套 accent，且冷色封面在暖底上会偏黄。</div>
+  </section>
+
+</div>
+
+<section class="note">
+  <h2>我的推荐</h2>
+  <ul>
+    <li><b>先上 ② 纯黑</b>：零成本、代码现成、当天能进设置。它把「只有深色」变成一个真选项而不是唯一选项，用户有得挑，砍浅色的愧疚也少一半。</li>
+    <li><b>再上 ③ 石墨蓝作为默认</b>：这才是真正「给这个软件定调」的一步。改 5 个色值、对比度不动、风险最低，收益是整屏冷调气质 + 与品牌蓝呼应。我认为它是四档里<b>最能代表 VComic 的一档</b>。</li>
+    <li><b>④ 暖褐先不做</b>：它要第二套强调色，成本和风险都跳档；等前面两档跑稳，作为「夜读模式」单独立项更干净。</li>
+    <li>落地秩序建议：<b>③ 做默认 + ② 做可选</b>，两档并存。灰阶结构完全一样，只是色温不同——同一个阶梯换色，维护成本几乎为零。</li>
+  </ul>
+</section>
+
+</body>
+</html>

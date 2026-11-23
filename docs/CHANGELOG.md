@@ -17,6 +17,10 @@
 
 ## Bug 修复（Fixes）
 
+- **2026-11-24 · 清理仓库历史大图资产与重复截图并将 README 展示图统一优化为 WebP**（`README.md`、`README.en.md`、`docs/images/`、`assets/`）
+  - **原因**：① `desktop/assets/screenshots/` 与 `desktop/assets/` 堆积了大量 2MB+ 的巨大未压缩 PNG 截图，以及与正式图片完全相同的 UUID 临时测试截图，无代码和文档引用，导致仓库被多塞了近 20MB 冗余数据；② README 展示图此前使用 JPG 格式，体积偏大且存在局部未去重；③ 外围 `_backup` 与 `_archive` 存有大量 2MB~3MB 的历史截图原图。
+  - **解决方案**：① 在 `desktop` 仓库中移除无引用的 2MB+ PNG、1MB+ 冗余原图及两份重复 UUID 截图，Git 跟踪图片体积立降 20.69 MB（降幅 63.5%）；② 将 `docs/images/` 核心展示图统一压制为高质量 WebP（Quality 82%），体积从 3.57 MB 压缩至 2.12 MB 并同步更新中英两份 README 引用；③ 清理外围原始截图备份与归档目录，全工作区累计释放 105.36 MB 硬盘空间。
+
 - **2026-11-23 · 切换下载路径后旧漫画丢失封面和标题，以及下载中在线漫画误显示为「导入」**（`DesktopComicDownloadedList.kt`、`DesktopDownloadsDb.kt`、`DesktopDownloadsPipelineScreen.kt`、`DesktopComicAndSourceHost.kt`）
   - **原因**：① `DesktopDownloadsDb.listComicListing()` 未将表内已保存的 `comic_title`、`cover_url`、`local_dir` 传出，`DesktopDownloadsPipelineScreen` 与 `onOpenDownloadedChapter` 仅从当前 `downloadsRoot` 与当前队列取名和封面，切换路径后查询落空导致退回话名和空封面；② `DesktopDownloadsPipelineScreen` 将 `localComicScan` 扫出的全部非 `downloaded` 目录（含正在下载或跨路径未归一化的 `picacg`/`ehentai` 等在线源目录）全部包装成「导入」卡片。
   - **解决方案**：① `DesktopComicDownloadedChapter` 透传台账的 `comicTitle`、`coverUrl`、`localDir`，作品名和封面优先命中台账与真实落盘作品目录（含本地 `cover.*`、URL 与首张页图兜底）；② 仅展示台账导入表与 `imported/` 目录下的真正导入漫画，且排除正在下载队列中的任务编号，彻底消除下载中漫画变成「导入」的异常。

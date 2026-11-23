@@ -2022,13 +2022,13 @@ internal fun DesktopSettingsHub(
                     title = "项目主页",
                     caption = "在系统浏览器打开",
                     value = null,
-                    onOpen = { scope.launch { openInBrowser("https://github.com/venera-app/venera") } },
+                    onOpen = { scope.launch { openInBrowser("https://github.com/w13630039663-bit/Vcomic") } },
                 ),
                 DesktopSettingRow.Entry(
                     title = "更新发布",
                     caption = "在系统浏览器打开发布页",
                     value = null,
-                    onOpen = { scope.launch { openInBrowser("https://github.com/venera-app/venera/releases") } },
+                    onOpen = { scope.launch { openInBrowser("https://github.com/w13630039663-bit/Vcomic/releases") } },
                 ),
                     ),
                 )

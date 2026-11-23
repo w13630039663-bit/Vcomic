@@ -101,7 +101,7 @@ import java.util.concurrent.atomic.AtomicLong
 import javax.imageio.ImageIO
 
 /** 目标 GitHub Issue 仓库（`owner/repo` 格式，可按需修改为上游或专用反馈仓）。 */
-const val GITHUB_ISSUE_REPO = "w13630039663-bit/venera-miuix"
+const val GITHUB_ISSUE_REPO = "w13630039663-bit/Vcomic"
 
 enum class DesktopFeedbackTab {
     BUG,

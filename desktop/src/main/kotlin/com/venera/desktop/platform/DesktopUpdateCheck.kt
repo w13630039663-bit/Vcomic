@@ -25,11 +25,11 @@ import okhttp3.Request
  */
 object DesktopUpdateCheck {
 
-    /** 发布通道（逐字复刻对岸 ProjectChannel.LATEST_RELEASE_API，SLUG 同串）。 */
-    private const val LATEST_RELEASE_API = "https://api.github.com/repos/w13630039663-bit/venera-miuix/releases/latest"
+    /** 桌面端 VComic 发布通道。 */
+    private const val LATEST_RELEASE_API = "https://api.github.com/repos/w13630039663-bit/Vcomic/releases/latest"
 
     /** 发布页（Available 时念"去发布页下载"）。 */
-    private const val RELEASES_URL = "https://github.com/w13630039663-bit/venera-miuix/releases"
+    private const val RELEASES_URL = "https://github.com/w13630039663-bit/Vcomic/releases"
 
     /** 一次检查的读数（给设置行与启动播报共用）。 */
     sealed interface Result {

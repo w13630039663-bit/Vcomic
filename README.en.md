@@ -9,7 +9,7 @@
 A multi-source manga reader and multi-site gallery browser for Windows desktop.<br/>
 34 bundled JavaScript manga sources, Pixiv plus several gallery sites, a two-page reader, offline downloads, follow-updates tracking and reading statistics.
 
-[![Version](https://img.shields.io/badge/version-2.1.1-orange)](desktop/build.gradle.kts)
+[![Version](https://img.shields.io/badge/version-1.0.0-orange)](desktop/build.gradle.kts)
 [![Website](https://img.shields.io/badge/Website-VComic-FF7A00?logo=googlechrome&logoColor=white)](https://w13630039663-bit.github.io/Vcomic/#top)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.10-7F52FF?logo=kotlin&logoColor=white)](gradle/libs.versions.toml)
 [![Compose](https://img.shields.io/badge/Compose_Multiplatform-1.12.2-2A2A2A)](gradle/libs.versions.toml)
@@ -46,20 +46,20 @@ The desktop build has removed the original Android `:app` module and its source 
 ### Windows desktop
 
 <p align="center">
-  <img src="docs/images/home.jpg" width="48%" alt="Home" />
-  <img src="docs/images/gallery-home.jpg" width="48%" alt="Gallery wall" />
+  <img src="docs/images/home.webp" width="48%" alt="Home" />
+  <img src="docs/images/gallery-home.webp" width="48%" alt="Gallery wall" />
 </p>
 <p align="center">
-  <img src="docs/images/manga-detail.jpg" width="48%" alt="Manga detail" />
-  <img src="docs/images/manga-reader.jpg" width="48%" alt="Reader" />
+  <img src="docs/images/manga-detail.webp" width="48%" alt="Manga detail" />
+  <img src="docs/images/manga-reader.webp" width="48%" alt="Reader" />
 </p>
 <p align="center">
-  <img src="docs/images/gallery-search.jpg" width="48%" alt="Gallery search" />
-  <img src="docs/images/artist-profile.jpg" width="48%" alt="Artist profile" />
+  <img src="docs/images/gallery-search.webp" width="48%" alt="Gallery search" />
+  <img src="docs/images/artist-profile.webp" width="48%" alt="Artist profile" />
 </p>
 <p align="center">
-  <img src="docs/images/reading-stats.jpg" width="48%" alt="Reading stats" />
-  <img src="docs/images/home-light.jpg" width="48%" alt="Light theme" />
+  <img src="docs/images/reading-stats.webp" width="48%" alt="Reading stats" />
+  <img src="docs/images/home-light.webp" width="48%" alt="Light theme" />
 </p>
 
 <p align="center"><sub>Home · Gallery wall · Manga detail · Reader · Gallery search · Artist profile · Reading stats · Light theme (captured on a development machine, compressed)</sub></p>
@@ -67,10 +67,10 @@ The desktop build has removed the original Android `:app` module and its source 
 ### Android app
 
 <p align="center">
-  <img src="docs/images/android/gallery.jpg" height="400" alt="Android gallery" />
-  <img src="docs/images/android/search.jpg" height="400" alt="Android search" />
-  <img src="docs/images/android/detail.jpg" height="400" alt="Android detail" />
-  <img src="docs/images/android/stats.jpg" height="400" alt="Android stats" />
+  <img src="docs/images/android/gallery.webp" height="400" alt="Android gallery" />
+  <img src="docs/images/android/search.webp" height="400" alt="Android search" />
+  <img src="docs/images/android/detail.webp" height="400" alt="Android detail" />
+  <img src="docs/images/android/stats.webp" height="400" alt="Android stats" />
 </p>
 
 <p align="center"><sub>Gallery · Search · Manga detail · Reading stats (Miuix style)</sub></p>
@@ -79,7 +79,7 @@ The desktop build has removed the original Android `:app` module and its source 
 
 <p align="center">
   <a href="https://w13630039663-bit.github.io/Vcomic/#top">
-    <img src="docs/images/website.jpg" width="88%" alt="Official website hero" />
+    <img src="docs/images/website.webp" width="88%" alt="Official website hero" />
   </a>
 </p>
 

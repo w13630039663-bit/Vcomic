@@ -75,7 +75,7 @@ import kotlinx.coroutines.launch
  *    - 提供直达「我的 Pixiv」二级页与「登录 Pixiv」/「退出登录」把手。
  */
 /** 桌面版本号：关于区、更新检查与弹窗尾注的唯一出处。 */
-internal const val DESKTOP_APP_VERSION = "2.1.1"
+internal const val DESKTOP_APP_VERSION = "1.0.0"
 
 internal enum class DesktopSettingsSection(
     val titleZh: String,

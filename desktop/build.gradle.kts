@@ -76,7 +76,7 @@ tasks.named("check") { dependsOn(checkDuplicateImports) }
 
 // 包版本唯一记账处（nativeDistributions.packageVersion 与 Inno 安装器都从这取；
 // 升级发布必须递增，MSI/Inno 才会当成覆盖升级而不是拒装）。
-val desktopPackageVersion = "2.1.1"
+val desktopPackageVersion = "1.0.0"
 
 // PathProvider 的门面接口住在 :app（Android 模块），纯 JVM 模块依赖不了它 ——
 // 沿用 :engine-probe 的共享源目录手法：同一份文件、不复制第二份，

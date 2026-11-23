@@ -9,7 +9,7 @@
 Windows 桌面端多源漫画阅读器 + 多站图库浏览器。<br/>
 内置 34 个 JavaScript 漫画源，接入 Pixiv 与多个图库站，提供双页阅读、离线下载、漫画追更与阅读统计。
 
-[![Version](https://img.shields.io/badge/version-2.1.1-orange)](desktop/build.gradle.kts)
+[![Version](https://img.shields.io/badge/version-1.0.0-orange)](desktop/build.gradle.kts)
 [![Website](https://img.shields.io/badge/Website-VComic-FF7A00?logo=googlechrome&logoColor=white)](https://w13630039663-bit.github.io/Vcomic/#top)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.10-7F52FF?logo=kotlin&logoColor=white)](gradle/libs.versions.toml)
 [![Compose](https://img.shields.io/badge/Compose_Multiplatform-1.12.2-2A2A2A)](gradle/libs.versions.toml)
@@ -46,20 +46,20 @@ VComic 是一个多端漫画与图库项目，目前包含三部分：
 ### Windows 桌面版
 
 <p align="center">
-  <img src="docs/images/home.jpg" width="48%" alt="首页" />
-  <img src="docs/images/gallery-home.jpg" width="48%" alt="图库主墙" />
+  <img src="docs/images/home.webp" width="48%" alt="首页" />
+  <img src="docs/images/gallery-home.webp" width="48%" alt="图库主墙" />
 </p>
 <p align="center">
-  <img src="docs/images/manga-detail.jpg" width="48%" alt="漫画详情" />
-  <img src="docs/images/manga-reader.jpg" width="48%" alt="阅读器" />
+  <img src="docs/images/manga-detail.webp" width="48%" alt="漫画详情" />
+  <img src="docs/images/manga-reader.webp" width="48%" alt="阅读器" />
 </p>
 <p align="center">
-  <img src="docs/images/gallery-search.jpg" width="48%" alt="图库搜索" />
-  <img src="docs/images/artist-profile.jpg" width="48%" alt="画师主页" />
+  <img src="docs/images/gallery-search.webp" width="48%" alt="图库搜索" />
+  <img src="docs/images/artist-profile.webp" width="48%" alt="画师主页" />
 </p>
 <p align="center">
-  <img src="docs/images/reading-stats.jpg" width="48%" alt="阅读统计" />
-  <img src="docs/images/home-light.jpg" width="48%" alt="浅色主题" />
+  <img src="docs/images/reading-stats.webp" width="48%" alt="阅读统计" />
+  <img src="docs/images/home-light.webp" width="48%" alt="浅色主题" />
 </p>
 
 <p align="center"><sub>首页 · 图库主墙 · 漫画详情 · 阅读器 · 图库搜索 · 画师主页 · 阅读统计 · 浅色主题（开发机实拍，已压缩）</sub></p>
@@ -67,10 +67,10 @@ VComic 是一个多端漫画与图库项目，目前包含三部分：
 ### Android 手机版
 
 <p align="center">
-  <img src="docs/images/android/gallery.jpg" height="400" alt="手机版图库" />
-  <img src="docs/images/android/search.jpg" height="400" alt="手机版搜索" />
-  <img src="docs/images/android/detail.jpg" height="400" alt="手机版详情" />
-  <img src="docs/images/android/stats.jpg" height="400" alt="手机版统计" />
+  <img src="docs/images/android/gallery.webp" height="400" alt="手机版图库" />
+  <img src="docs/images/android/search.webp" height="400" alt="手机版搜索" />
+  <img src="docs/images/android/detail.webp" height="400" alt="手机版详情" />
+  <img src="docs/images/android/stats.webp" height="400" alt="手机版统计" />
 </p>
 
 <p align="center"><sub>画廊 · 搜索探索 · 漫画详情 · 阅读统计（Miuix 风格）</sub></p>
@@ -79,7 +79,7 @@ VComic 是一个多端漫画与图库项目，目前包含三部分：
 
 <p align="center">
   <a href="https://w13630039663-bit.github.io/Vcomic/#top">
-    <img src="docs/images/website.jpg" width="88%" alt="官方网站首屏" />
+    <img src="docs/images/website.webp" width="88%" alt="官方网站首屏" />
   </a>
 </p>
 

@@ -84,9 +84,9 @@ class DesktopComicOfflineReadingTest {
             // 那一屏念的「已下全 / 缺 N 页」因此只跟着盘上状态改口，不跟着净化口径改口。
             assertNull("读侧那颗件自己算了净化（那条纪律被搬进来了）：",
                 desktopComicLocalChapter(root, "jm/sub", "14:61316", "g42"))
-            // 两把源码尺把"归一只有这一个落点"钉住：离线那颗件恰两处（源与号各一），读侧那颗仍零处。
+            // 两把源码尺把"归一只有这一个落点"钉住：离线那颗件里净化只在目录拼接处（源与号共四处），读侧那颗仍零处。
             val offlineFile = DesktopSourceTree.desktopSourceOf("gallery/data/DesktopComicOfflineReading.kt")
-            assertEquals("离线阅读那颗件里净化恰两处（源与号各一处）：", 2,
+            assertEquals("离线阅读那颗件里净化恰四处（两路拼接各源与号一处）：", 4,
                 DesktopSourceTree.codeOccurrences(offlineFile, "desktopComicSafePathKey("))
             val listFile = DesktopSourceTree.desktopSourceOf("gallery/data/DesktopComicDownloadedList.kt")
             assertEquals("读侧那颗件仍零处净化：", 0,

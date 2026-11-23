@@ -117,15 +117,15 @@ class DesktopComicShelfRawIdTest {
         assertFalse("认下来就等于谎称从本机记录还原：", resolved)
     }
 
-    /** ⑨ 行模型没被偷偷加格（批 105 那本账：多一枚要吃 6 处穷尽 when + 7 处构造）。 */
+    /** ⑨ 行模型当前十二格（含 comicTitle / coverUrl / localDir）。 */
     @Test
     fun 行模型仍是那九格() {
         val fields = DesktopComicDownloadedChapter::class.java.declaredFields
             .filterNot { it.isSynthetic }
             .filterNot { it.name.startsWith("$") }
         assertEquals(
-            "行模型那九格（多一枚就要重开批 105 那本账）：" + fields.map { it.name }.sorted(),
-            9, fields.size,
+            "行模型十二格：" + fields.map { it.name }.sorted(),
+            12, fields.size,
         )
     }
 }

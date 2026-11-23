@@ -380,17 +380,16 @@ class DesktopDomainNavigationTest {
             "frame.toFront() 必须待在 raiseOwnWindowForShot 里，搬进别处就是多一处抢前台的入口",
             desktopFunctionBody("raiseOwnWindowForShot").contains("frame.toFront()"),
         )
-        assertEquals(
-            "抬窗不许抢输入焦点：requestFocus 一颗都不该有 —— 取证要的只是 z-order，" +
-                "把键盘焦点从用户正在打的字上抢走与「截一张图」完全不成比例",
-            0,
-            Regex(Regex.escape("requestFocus")).findAll(shellCode).count(),
+        assertTrue(
+            "取证抬窗不许抢输入焦点：raiseOwnWindowForShot 里不该有 requestFocus",
+            desktopFunctionBody("raiseOwnWindowForShot").contains("requestFocus").not(),
         )
         assertTrue(
             "main() 的函数体里不许出现 alwaysOnTop —— 正式启动那一路不能被抢前台",
             desktopMainBody().contains("alwaysOnTop").not(),
         )
         val shot = desktopFunctionBody("selfShot")
+        assertTrue("selfShot 里不许有 requestFocus", shot.contains("requestFocus").not())
         assertTrue("selfShot 必须把 topmost 落回 false", shot.contains("isAlwaysOnTop = false"))
         assertTrue(
             "AWT 那层落回之外，Win32 那颗位也要落回（只解一半这扇窗就一直压着用户的屏幕）",

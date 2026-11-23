@@ -91,7 +91,7 @@ class DesktopImageLoadCapabilityTest {
             1,
             DesktopSourceTree.codeOccurrences(
                 engine,
-                "if (!s.comic || !s.comic.onImageLoad) return { __none: true };",
+                "if (!s.comic.onImageLoad) return { __none: true };",
             ),
         )
     }
@@ -102,7 +102,7 @@ class DesktopImageLoadCapabilityTest {
         val code = DesktopSourceTree.codeText(engine)
         val call = "comic.onImageLoad("
         assertEquals("真调裸调都算在这一形上：加了守卫后只许剩下调用点那一处", 1, code.split(call).size - 1)
-        val guardIdx = code.indexOf("if (!s.comic || !s.comic.onImageLoad) return { __none: true };")
+        val guardIdx = code.indexOf("if (!s.comic.onImageLoad) return { __none: true };")
         val callIdx = code.indexOf(call)
         assertTrue("守卫必须存在", guardIdx >= 0)
         assertTrue("守卫必须排在裸调之前 —— 顺序反了等于没有守卫", guardIdx < callIdx)

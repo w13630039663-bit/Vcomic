@@ -1,6 +1,7 @@
 package com.venera.desktop.gallery.data
 
 import com.venera.compose.download.isPageImage
+import com.venera.desktop.downloads.DesktopDownloadsDb
 import java.io.File
 import java.util.zip.ZipFile
 
@@ -141,7 +142,45 @@ internal fun desktopLocalComicImport(
         )
     }
 
+    DesktopDownloadsDb.recordImportedComic(
+        id = title,
+        title = title,
+        sourceKey = DESKTOP_LOCAL_COMIC_IMPORTED_SOURCE,
+        chapterCount = 1,
+        totalPages = pageIdx - 1,
+        rootPath = targetDir.canonicalPath,
+        isLinked = false,
+    )
+
     return DesktopLocalComicImportOutcome(error = null, pages = pageIdx - 1, title = title)
+}
+
+/**
+ * 原地关联导入单个本地漫画文件夹（零文件拷贝）。
+ * 支持“根目录直接放图片”与“多子目录分话”两种结构，结果写入台账 `local_comic_imports`。
+ */
+internal fun desktopLinkLocalComicFolder(folder: File): DesktopLocalComicImportOutcome {
+    if (!folder.exists() || !folder.isDirectory) {
+        return DesktopLocalComicImportOutcome(error = "所选文件夹不存在：${folder.name}")
+    }
+    val chapters = desktopInspectLocalComicFolder(folder)
+    val totalPages = chapters.sumOf { it.pageCount }
+    if (chapters.isEmpty() || totalPages <= 0) {
+        return DesktopLocalComicImportOutcome(error = "文件夹及其直属子目录里没有认得出的漫画图片")
+    }
+    val canonical = runCatching { folder.canonicalPath }.getOrElse { folder.absolutePath }
+    val title = folder.name.ifBlank { "未命名" }
+    val id = "folder_${canonical.hashCode().toUInt().toString(16)}"
+    DesktopDownloadsDb.recordImportedComic(
+        id = id,
+        title = title,
+        sourceKey = DESKTOP_LOCAL_COMIC_IMPORTED_SOURCE,
+        chapterCount = chapters.size,
+        totalPages = totalPages,
+        rootPath = canonical,
+        isLinked = true,
+    )
+    return DesktopLocalComicImportOutcome(error = null, pages = totalPages, title = title)
 }
 
 /** 最小 JSON 字符串字面量(反斜杠与双引号转义;题名是文件名,不会有控制字符)。 */

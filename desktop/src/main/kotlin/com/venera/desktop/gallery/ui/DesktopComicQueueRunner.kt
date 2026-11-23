@@ -124,8 +124,8 @@ private suspend fun desktopComicRunOneTask(engine: EngineSession, root: File, ta
     val outcome = runCatching {
         // 过锁的那一跳：`getOrThrow()` 让失败仍旧落到这一颗 `runCatching` 里
         // （档位、读数、`desktopComicChapterOutcome` 那一路一个字不改），只是不再与 UI 抢同一颗 context。
-        val pages = desktopEngineCall(engine) {
-            engine.pages(task.comicId, EngineSession.Episode(task.chapterTitle, task.chapterId, task.placeholder))
+        val pages = desktopEngineCall(engine, sourceKey = task.sourceKey) {
+            engine.pages(task.comicId, EngineSession.Episode(task.chapterTitle, task.chapterId, task.placeholder), sourceKey = task.sourceKey)
         }.getOrThrow()
         knownPages = pages.size
         DesktopComicDownloadQueue.reportTotal(root, taskId, pages.size)
@@ -138,8 +138,8 @@ private suspend fun desktopComicRunOneTask(engine: EngineSession, root: File, ta
             },
         ) { page ->
             // 每一页各过各的锁（粒度 = 一跳，见类注释）：整话锁住会把 UI 饿死在锁外。
-            val bytes = desktopEngineCall(engine) {
-                engine.pageImage(pages[page], task.comicId, task.chapterId)
+            val bytes = desktopEngineCall(engine, sourceKey = task.sourceKey) {
+                engine.pageImage(pages[page], task.comicId, task.chapterId, sourceKey = task.sourceKey)
             }.getOrThrow()
             com.venera.desktop.gallery.data.DesktopDownloadSpeedTracker.recordBytes(bytes.size.toLong())
             bytes

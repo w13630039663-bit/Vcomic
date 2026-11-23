@@ -68,12 +68,11 @@ toolchain 由 `foojay-resolver-convention` 按需下载。daemon 目标版本记
 
 | 参数 | 值 |
 |---|---|
-| 堆 | `-Xmx256m -Xms64m` |
-| 堆回收比 | `MaxHeapFreeRatio=40`、`MinHeapFreeRatio=20` |
+| 堆 | `-Xmx1024m -Xms64m` |
 | Metaspace | `-XX:MaxMetaspaceSize=192m` |
-| 编译 | `-XX:TieredStopAtLevel=1` |
-| GC | `-XX:+UseSerialGC` |
-| Skia 资源缓存 | `-Dskiko.gpu.resourceCacheLimit=32M` |
+| 代码缓存 | `-XX:ReservedCodeCacheSize=128m` |
+| GC | `-XX:+UseG1GC` |
+| Skia 资源缓存 | `-Dskiko.gpu.resourceCacheLimit=128M` |
 
 ## 4. 打包链路
 

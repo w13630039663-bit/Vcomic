@@ -8,6 +8,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
@@ -352,5 +353,173 @@ class DesktopDownloadsPipelineScreenTest {
         onNodeWithText("pixiv · 99999").assertExists()
         // 验证多图 P 数角标
         onNodeWithText("12P").assertExists()
+    }
+
+    @Test
+    fun 下载队列区分失败态警告态等待态与短时成功态并透出报错原因() = runComposeUiTest {
+        val now = System.currentTimeMillis()
+        var retriedTaskId: String? = null
+
+        setContentThemed {
+            Stage {
+                DesktopDownloadsPipelineScreen(
+                    mode = WideScreenLayoutMode.Expanded,
+                    queueTasks = listOf(
+                        sampleTask(1, DesktopComicQueueStatus.FAILED).copy(
+                            taskId = "task_fail",
+                            chapterTitle = "失败话",
+                            error = "loadEp 失败: 源脚本异常",
+                        ),
+                        sampleTask(2, DesktopComicQueueStatus.STOPPED).copy(
+                            taskId = "task_warn",
+                            chapterTitle = "暂停话",
+                        ),
+                        sampleTask(3, DesktopComicQueueStatus.PENDING).copy(
+                            taskId = "task_wait",
+                            chapterTitle = "等待话",
+                            downloadedPages = 0,
+                            totalPages = 0,
+                        ),
+                        sampleTask(4, DesktopComicQueueStatus.DONE).copy(
+                            taskId = "task_just_done",
+                            chapterTitle = "刚完成话",
+                            downloadedPages = 24,
+                            totalPages = 24,
+                            updateTime = now,
+                        ),
+                        sampleTask(5, DesktopComicQueueStatus.DONE).copy(
+                            taskId = "task_old_done",
+                            chapterTitle = "历史完成话",
+                            downloadedPages = 24,
+                            totalPages = 24,
+                            updateTime = 2L,
+                        ),
+                    ),
+                    queuePrimed = true,
+                    queueNote = null,
+                    onQueuePauseResume = { retriedTaskId = it.taskId },
+                    downloadedListing = null,
+                    downloadedNote = null,
+                    onRepairDownloadedChapter = {},
+                    onDeleteDownloadedChapter = {},
+                    onOpenDownloadedChapterDir = {},
+                    localComicScan = null,
+                    localComicNote = null,
+                    images = emptyList(),
+                    onImportComics = {},
+                    onOpenSettingsDownloads = {},
+                    onBack = {},
+                )
+            }
+        }
+
+        // 失败态与真实报错原文
+        onNodeWithText("下载失败").assertExists()
+        onNodeWithText("loadEp 失败: 源脚本异常").assertExists()
+        onNodeWithContentDescription("重试").performClick()
+        assertTrue("点击失败态重试按钮必须触发对应任务回调", retriedTaskId == "task_fail")
+
+        // 警告态与等待态分离
+        onNodeWithText("已暂停").assertExists()
+        onNodeWithText("等待中").assertExists()
+
+        // 刚完成任务显示成功态，历史旧完成任务不显示
+        onNodeWithText("下载成功").assertExists()
+        onNodeWithText("芙莉莲 · 刚完成话").assertExists()
+        onAllNodesWithText("芙莉莲 · 历史完成话").assertCountEquals(0)
+
+        // 超过展示窗口后，短时成功态自动退出队列展示
+        mainClock.advanceTimeBy(4_500L)
+        waitForIdle()
+        onAllNodesWithText("芙莉莲 · 刚完成话").assertCountEquals(0)
+    }
+
+    @Test
+    fun 切换路径后保留旧漫画标题且不将下载中在线漫画误显示为导入() = runComposeUiTest {
+        var importFolderClicked = false
+
+        setContentThemed {
+            Stage {
+                DesktopDownloadsPipelineScreen(
+                    mode = WideScreenLayoutMode.Expanded,
+                    downloadsRoot = java.io.File("D:/new_empty_root"),
+                    queueTasks = listOf(
+                        sampleTask(1, DesktopComicQueueStatus.PENDING).copy(
+                            sourceKey = "ehentai",
+                            comicId = "https://exhentai.org/g/3599509/6fc81d929b/",
+                            comicTitle = "下载中的本子",
+                        ),
+                    ),
+                    queuePrimed = true,
+                    queueNote = null,
+                    downloadedListing = DesktopComicDownloadListing(
+                        groups = listOf(
+                            DesktopComicDownloadedGroup(
+                                comicId = "old_100",
+                                sourceKey = "jm",
+                                chapters = listOf(
+                                    sampleChapter(0).copy(
+                                        title = "第07話",
+                                        comicTitle = "旧目录的真实漫画标题",
+                                        coverUrl = "https://example.com/old_cover.jpg",
+                                        localDir = "C:/old_dir/jm/old_100/0000_第07話",
+                                    ),
+                                ),
+                            ),
+                        ),
+                        skipped = 0,
+                        rootExists = true,
+                    ),
+                    downloadedNote = null,
+                    onRepairDownloadedChapter = {},
+                    onDeleteDownloadedChapter = {},
+                    onOpenDownloadedChapterDir = {},
+                    localComicScan = DesktopLocalComicLibraryScan(
+                        comics = listOf(
+                            // 在线下载中的目录（sourceKey 非 imported）：绝不能出现在下面变成「导入」卡片
+                            DesktopLocalComic(
+                                id = "https___exhentai.org_g_3599509_6fc81d929b_",
+                                title = "https___exhentai.org_g_3599509_6fc81d929b_",
+                                sourceKey = "ehentai",
+                                chapterCount = 1,
+                                totalPages = 20,
+                                rootPath = "D:/new_empty_root/ehentai/https___exhentai.org_g_3599509_6fc81d929b_",
+                                updatedAt = 1000L,
+                            ),
+                        ),
+                        rootExists = true,
+                        error = null,
+                    ),
+                    importedComics = listOf(
+                        DesktopLocalComic(
+                            id = "folder_1",
+                            title = "原地关联漫画文件夹",
+                            sourceKey = "imported",
+                            chapterCount = 2,
+                            totalPages = 35,
+                            rootPath = "E:/Comics/MyComic",
+                            updatedAt = 2000L,
+                            isLinked = true,
+                        ),
+                    ),
+                    localComicNote = null,
+                    onImportComics = {},
+                    onImportComicFolder = { importFolderClicked = true },
+                    onOpenSettingsDownloads = {},
+                    onBack = {},
+                )
+            }
+        }
+
+        // 台账中的真实书名必须展示，不能因换了 downloadsRoot 而退回第07話
+        onNodeWithText("旧目录的真实漫画标题").assertExists()
+        // 下载中的 ehentai 目录不得被当成本地导入卡展示
+        onAllNodesWithText("https___exhentai.org_g_3599509_6fc81d929b_").assertCountEquals(0)
+        // 原地关联的文件夹漫画展示「文件夹」胶囊与书名
+        onNodeWithText("原地关联漫画文件夹").assertExists()
+        onNodeWithText("文件夹").assertExists()
+        // 点击「导入文件夹」按钮触发回调
+        onNodeWithText("导入文件夹").performClick()
+        assertTrue("点击导入文件夹按钮必须触发回调", importFolderClicked)
     }
 }

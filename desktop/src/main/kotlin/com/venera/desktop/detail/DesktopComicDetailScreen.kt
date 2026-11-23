@@ -133,6 +133,8 @@ internal fun DesktopComicDetailScreen(
     onStartLiveReading: (ReaderSession) -> Unit,
     onSearchTag: (String) -> Unit,
     onDownloadStarted: ((coverUrl: String?) -> Unit)? = null,
+    downloadDirLabel: String? = null,
+    onPickDownloadDir: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val ux = LocalUxPlatformServices.current
@@ -456,6 +458,8 @@ internal fun DesktopComicDetailScreen(
             }
         },
         onLoadMoreComments = { core.loadComments(loadMore = true) },
+        downloadDirLabel = downloadDirLabel,
+        onPickDownloadDir = onPickDownloadDir,
         modifier = modifier,
     )
 }
@@ -495,6 +499,8 @@ internal fun DesktopComicDetailContent(
     onRate: (Float) -> Unit,
     /** 评论区续下一页（核里 loadComments(loadMore = true)，追加不替换）。 */
     onLoadMoreComments: () -> Unit = {},
+    downloadDirLabel: String? = null,
+    onPickDownloadDir: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val tokens = VeneraTokens
@@ -847,6 +853,31 @@ internal fun DesktopComicDetailContent(
                                     }
                                 }
                                 repeat(columns - line.size) { Spacer(Modifier.weight(1f)) }
+                            }
+                        }
+                    }
+                    if (downloadDirLabel != null || onPickDownloadDir != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = tokens.spacing.space1),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(tokens.spacing.space2),
+                        ) {
+                            Text(
+                                text = com.venera.desktop.settings.DesktopI18n.t(
+                                    "保存至：${downloadDirLabel ?: "默认目录"}",
+                                    "Save to: ${downloadDirLabel ?: "Default"}",
+                                ),
+                                fontSize = VeneraType.micro.size, lineHeight = VeneraType.micro.lineHeight,
+                                color = tokens.color.textTertiary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                            if (onPickDownloadDir != null) {
+                                MacDialogTextButton(
+                                    text = com.venera.desktop.settings.DesktopI18n.t("更改目录", "Change"),
+                                    onClick = onPickDownloadDir,
+                                )
                             }
                         }
                     }

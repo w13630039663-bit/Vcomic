@@ -139,13 +139,21 @@ class DesktopGalleryPreferences(paths: PathProvider) : GalleryPreferences {
 
     // 下载目录与默认目录开关（落盘 + 推流）；命名不带 setGallery 前缀。
     private val downloadDirState = MutableStateFlow(store.getString(KEY_DOWNLOAD_DIR, "") ?: "")
-    private val downloadUseDefaultDirState = MutableStateFlow(store.getBoolean(KEY_DOWNLOAD_USE_DEFAULT_DIR, true))
+    private val downloadUseDefaultDirState = MutableStateFlow(store.getBoolean(KEY_DOWNLOAD_USE_DEFAULT_DIR, false))
+    private val comicDownloadDirState = MutableStateFlow(store.getString(KEY_COMIC_DOWNLOAD_DIR, "") ?: "")
+    private val extraImageDirsState = MutableStateFlow(decodeDirList(store.getString(KEY_EXTRA_IMAGE_DIRS, "") ?: ""))
 
     /** 自定义下载目录（空串 = 用内置 `数据根/downloads/图库`）。 */
     val downloadDir: StateFlow<String> = downloadDirState.asStateFlow()
 
     /** 默认目录开关：true = 存图不再问路直接落默认目录；false = 每次手动选目录。 */
     val downloadUseDefaultDir: StateFlow<Boolean> = downloadUseDefaultDirState.asStateFlow()
+
+    /** 自定义漫画离线下载目录（空串 = 用内置 `数据根/downloads`）。 */
+    val comicDownloadDir: StateFlow<String> = comicDownloadDirState.asStateFlow()
+
+    /** 曾通过手选目录保存过图片的额外扫描目录列表。 */
+    val extraImageDirs: StateFlow<List<String>> = extraImageDirsState.asStateFlow()
 
     fun setDownloadDir(path: String) {
         store.put(KEY_DOWNLOAD_DIR, path)
@@ -156,6 +164,25 @@ class DesktopGalleryPreferences(paths: PathProvider) : GalleryPreferences {
         store.put(KEY_DOWNLOAD_USE_DEFAULT_DIR, on)
         downloadUseDefaultDirState.value = on
     }
+
+    fun setComicDownloadDir(path: String) {
+        store.put(KEY_COMIC_DOWNLOAD_DIR, path)
+        comicDownloadDirState.value = path
+    }
+
+    /** 记录一次手选保存图片的目录，便于「本机内容 → 图片」合并扫描。 */
+    fun addExtraImageDir(path: String) {
+        val trimmed = path.trim()
+        if (trimmed.isEmpty()) return
+        val current = extraImageDirsState.value
+        if (current.any { it.equals(trimmed, ignoreCase = true) }) return
+        val updated = (current + trimmed).distinct()
+        store.put(KEY_EXTRA_IMAGE_DIRS, updated.joinToString("\n"))
+        extraImageDirsState.value = updated
+    }
+
+    private fun decodeDirList(raw: String): List<String> =
+        raw.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.distinct().toList()
 
     /**
      * pixiv 卡片预览画质（合主线时主线新加的那一枚）。
@@ -368,9 +395,11 @@ class DesktopGalleryPreferences(paths: PathProvider) : GalleryPreferences {
         const val KEY_FOLLOW_COOLDOWN_HOURS = "pref_follow_cooldown_hours"
         val FOLLOW_COOLDOWN_CHOICES = setOf(6, 12, 24)
         const val DEFAULT_FOLLOW_COOLDOWN_HOURS = 6
-        // 2.4：下载目录 + 默认开关（桌面自持两枚，安卓无此句，见 desktopOnlyKeys）。
+        // 2.4：下载目录 + 默认开关（桌面自持，安卓无此句，见 desktopOnlyKeys）。
         const val KEY_DOWNLOAD_DIR = "pref_download_dir"
         const val KEY_DOWNLOAD_USE_DEFAULT_DIR = "pref_download_use_default_dir"
+        const val KEY_COMIC_DOWNLOAD_DIR = "pref_comic_download_dir"
+        const val KEY_EXTRA_IMAGE_DIRS = "pref_extra_image_dirs"
         const val KEY_WALL_LAYOUT = "pref_wall_layout"
         const val KEY_PIXIV_PREVIEW_QUALITY = "pref_pixiv_preview_quality"
         const val KEY_PIXIV_ILLUST_QUALITY = "pref_pixiv_illust_quality"

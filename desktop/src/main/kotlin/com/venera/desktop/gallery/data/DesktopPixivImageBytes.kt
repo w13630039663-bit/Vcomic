@@ -78,6 +78,8 @@ internal object DesktopPixivImageBytes {
             defaultName = suggestedName.ifBlank { "image.jpg" },
         )?.let { java.io.File(it) } ?: return "已取消保存。"
         target.writeBytes(bytes)
+        recordPixivImage(url, target, bytes.size.toLong())
+        com.venera.desktop.platform.DesktopSystemTray.notifyDownloadComplete("图片已保存", target.name)
         return "已保存：${target.absolutePath}"
     }
 
@@ -90,6 +92,23 @@ internal object DesktopPixivImageBytes {
         dir.mkdirs()
         val target = java.io.File(dir, desktopSaveUniqueName(dir, suggestedName.ifBlank { "image.jpg" }))
         target.writeBytes(bytes)
+        recordPixivImage(url, target, bytes.size.toLong())
+        com.venera.desktop.platform.DesktopSystemTray.notifyDownloadComplete("图片已保存", target.name)
         return "已保存：${target.absolutePath}"
+    }
+
+    private fun recordPixivImage(url: String, target: java.io.File, bytes: Long) {
+        val stem = target.nameWithoutExtension
+        val postId = stem.removePrefix("pixiv_").substringBefore("_p")
+        com.venera.desktop.downloads.DesktopDownloadsDb.recordImage(
+            site = "pixiv",
+            postId = postId,
+            title = "",
+            fileName = target.name,
+            bytes = bytes,
+            dimensions = "",
+            sourceUrl = url,
+            localPath = target.absolutePath,
+        )
     }
 }

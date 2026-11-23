@@ -155,6 +155,9 @@ internal fun closePersistenceInOrder() {
     runCatching { com.venera.compose.data.db.ComicFollowDao.closeIfInitialized() }.onFailure {
         println("D_关闭 追更账本未关净：${it::class.java.simpleName}: ${it.message?.take(200)}")
     }
+    runCatching { com.venera.desktop.downloads.DesktopDownloadsDb.close() }.onFailure {
+        println("D_关闭 下载台账未关净：${it::class.java.simpleName}: ${it.message?.take(200)}")
+    }
     runCatching { DesktopDatabasePorts.close() }.onFailure {
         println("D_关闭 桌面接线关闭失败：${it::class.java.simpleName}: ${it.message?.take(200)}")
     }

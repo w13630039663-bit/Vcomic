@@ -134,6 +134,27 @@ class EngineSession(
      * @return 源展示名称；装载失败直接抛异常。
      */
     fun load(sourceKey: String, runInit: Boolean = true): String {
+        val (loadedKey, loadedName) = loadIntoSources(sourceKey, runInit)
+        key = loadedKey
+        name = loadedName
+        return loadedName
+    }
+
+    /**
+     * 确保指定源已在当前 JS 环境的 `ComicSource.sources` 中就绪。
+     * 不修改主会话的当前选中 [key] / [name]，供下载队列等后台多源并发/跨源任务按任务自带 sourceKey 执行。
+     */
+    private fun ensureSourceLoaded(sourceKey: String): String {
+        val requested = sourceKey.trim()
+        if (requested.isEmpty()) error("未指定漫画源，无法执行源请求")
+        val loaded = host.evaluate("Boolean(ComicSource.sources[${gson.toJson(requested)}])")
+            ?.trim('"', '\'') == "true"
+        if (loaded) return requested
+        val (loadedKey, _) = loadIntoSources(requested, runInit = true)
+        return loadedKey
+    }
+
+    private fun loadIntoSources(sourceKey: String, runInit: Boolean): Pair<String, String> {
         // Task 6：源脚本改走 EngineAssets —— 包内 `/sources/<key>.js` 优先，取不到才回仓库目录，
         // 两处都没有就抛（原来是 `error("源脚本不存在: …")`，形状不变）。CRLF 归一仍在这颗做，
         // 送进 eval 的**内容**与改动前逐字节相同。
@@ -177,9 +198,8 @@ class EngineSession(
                 onEngineSourceInitFailure?.invoke(loadedKey, initRes.take(200))
             }
         }
-        key = loadedKey
-        name = host.evaluate("ComicSource.sources['$loadedKey'].name")?.trim('"', '\'') ?: loadedKey
-        return name
+        val loadedName = host.evaluate("ComicSource.sources['$loadedKey'].name")?.trim('"', '\'') ?: loadedKey
+        return loadedKey to loadedName
     }
 
     /**
@@ -1271,7 +1291,8 @@ class EngineSession(
         )
     }
 
-    fun pages(comicId: String, episode: Episode): List<String> {
+    fun pages(comicId: String, episode: Episode, sourceKey: String = key): List<String> {
+        val targetKey = ensureSourceLoaded(sourceKey.ifBlank { key })
         // 修复禁漫等源单话传 null 导致章节打不开问题：
         // 只有当没有章节 id 或章节 id 为空时才传 null；单话漫画真实 id 必须传给 loadEp
         val epArg = if (episode.placeholder && episode.id.isBlank()) "null" else gson.toJson(episode.id)
@@ -1279,7 +1300,8 @@ class EngineSession(
             evalWithRetry(
                 """
                 return (async function(){
-                    var s = ComicSource.sources['$key'];
+                    var s = ComicSource.sources[${gson.toJson(targetKey)}];
+                    if (!s || !s.comic) throw new Error('漫画源未加载或不支持章节读取: ' + ${gson.toJson(targetKey)});
                     return await s.comic.loadEp(${gson.toJson(comicId)}, $epArg, "");
                 })()
                 """.trimIndent()
@@ -1307,13 +1329,15 @@ class EngineSession(
      * 「地址 + 请求头 + 切块数」全在 [desktopImageRequestOf]，判据是 `DesktopImageLoadCapabilityTest`。
      * 守卫那一形与同文件 [coverBytes] 的缩略图守卫**同一颗**，不加第三种说法。
      */
-    fun pageImage(imageKey: String, comicId: String, episodeId: String): ByteArray {
+    fun pageImage(imageKey: String, comicId: String, episodeId: String, sourceKey: String = key): ByteArray {
+        val targetKey = ensureSourceLoaded(sourceKey.ifBlank { key })
         val env = gson.fromJson<Map<String, Any?>>(
             host.evaluateAsync(
                 """
                 return (async function(){
-                    var s = ComicSource.sources['$key'];
-                    if (!s.comic || !s.comic.onImageLoad) return { __none: true };
+                    var s = ComicSource.sources[${gson.toJson(targetKey)}];
+                    if (!s || !s.comic) throw new Error('漫画源未加载或不支持图片读取: ' + ${gson.toJson(targetKey)});
+                    if (!s.comic.onImageLoad) return { __none: true };
                     return await s.comic.onImageLoad(
                         ${gson.toJson(imageKey)}, ${gson.toJson(comicId)}, ${gson.toJson(episodeId)}, undefined);
                 })()

@@ -68,7 +68,10 @@ internal fun desktopResolveSaveDir(paths: PathProvider, prefs: DesktopGalleryPre
     val base = desktopGallerySaveDir(paths, prefs?.downloadDir?.value)
     val useDefault = prefs?.downloadUseDefaultDir?.value ?: true
     if (useDefault) return base
-    return DesktopDirChooser.pickDirectory("选择保存目录", base.absolutePath)?.let(::File)
+    return DesktopDirChooser.pickDirectory("选择保存目录", base.absolutePath)?.let { picked ->
+        prefs?.addExtraImageDir(picked)
+        File(picked)
+    }
 }
 
 /**
@@ -226,12 +229,28 @@ internal suspend fun desktopSaveImageRun(
         ?: return announce(DesktopSaveImageOutcome.Refused(DesktopSaveImageCause.NO_FILE_URL, null))
     val bytes = desktopCoilBytes(context, url)
         ?: return announce(DesktopSaveImageOutcome.Refused(DesktopSaveImageCause.NO_BYTES, null))
-    return announce(desktopSaveImageWrite(dir, post, bytes, paths))
+    val outcome = desktopSaveImageWrite(dir, post, bytes, paths)
+    if (outcome is DesktopSaveImageOutcome.Saved) {
+        com.venera.desktop.downloads.DesktopDownloadsDb.recordImage(
+            site = post.site.name.lowercase(),
+            postId = post.id.toString(),
+            title = post.author,
+            fileName = outcome.name,
+            bytes = outcome.bytesOnDisk,
+            dimensions = if (post.width > 0 && post.height > 0) "${post.width}×${post.height}" else "",
+            sourceUrl = url,
+            localPath = outcome.path,
+        )
+    }
+    return announce(outcome)
 }
 
 /** 唯一的出口：先念那一行，再把结果交回屏上。 */
 private fun announce(outcome: DesktopSaveImageOutcome): DesktopSaveImageOutcome {
     println(desktopSaveImageStdoutReading(outcome))
+    if (outcome is DesktopSaveImageOutcome.Saved) {
+        com.venera.desktop.platform.DesktopSystemTray.notifyDownloadComplete("图片已保存", outcome.name)
+    }
     return outcome
 }
 

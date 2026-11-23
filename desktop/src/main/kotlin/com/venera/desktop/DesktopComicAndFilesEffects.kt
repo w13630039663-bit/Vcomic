@@ -853,48 +853,32 @@ internal fun DesktopComicAndFilesEffects(
         )
     }
 
-    // 话级已下载扫描统一收口于此（供下载屏、批量弹窗与探索徽章共用），键含 route、downloadsTick 与任务终局 rerollKey，失败时报错不报空。
+    val downloadsDbVersion by com.venera.desktop.downloads.DesktopDownloadsDb.version.collectAsState()
+    // 话级已下载台账读取统一收口于此（纯读独立数据库 DesktopDownloadsDb，不扫用户磁盘目录），避免换目录或扫大盘卡死。
     LaunchedEffect(
         route,
         filesSegment,
         currentTab,
         downloadsTick,
+        downloadsDbVersion,
+        downloadsRoot,
         detailUi.showBulkDownload,
         desktopComicShelfRerollKey(queueTasks),
     ) {
-        // 补链：合并页的「本机已下载」档才是今天的主路（这颗 effect 从前只认旧 Downloads
-        // 路由与探索格——门并页后档位不落旧路由，表没人数、屏就永远念"正在数…"）。
         if (
             route !is DesktopRoute.Downloads && !detailUi.showBulkDownload && currentTab != VeneraNavTab.EXPLORE &&
-            currentTab != VeneraNavTab.SEARCH && // 选择器页的探索档也吃离线徽章
+            currentTab != VeneraNavTab.SEARCH &&
             route !is DesktopRoute.Files
         ) {
             return@LaunchedEffect
         }
-        val root = downloadsRoot
-        if (root == null) {
-            filesUi.downloadsListing = DesktopComicDownloadListing(
-                groups = emptyList(), skipped = 0, rootExists = false,
-                error = "下载根目录拿不到 ⇒ 那棵树数不着",
-            )
-            return@LaunchedEffect
-        }
-        val listing = withContext(Dispatchers.IO) {
-            runCatching {
-                val (chapters, skipped) = desktopComicDownloadedScan(root)
-                DesktopComicDownloadListing(
-                    groups = desktopComicChaptersByComic(chapters),
-                    skipped = skipped,
-                    rootExists = root.isDirectory,
-                )
-            }.getOrElse { t ->
-                DesktopComicDownloadListing(
-                    groups = emptyList(), skipped = 0, rootExists = root.isDirectory,
-                    error = "${t.javaClass.simpleName} ${t.message?.take(160) ?: ""}",
-                )
-            }
+        val listing: com.venera.desktop.gallery.ui.DesktopComicDownloadListing = withContext(Dispatchers.IO) {
+            com.venera.desktop.downloads.DesktopDownloadsDb.listComicListing()
         }
         filesUi.downloadsListing = listing
+        filesUi.importedComics = withContext(Dispatchers.IO) {
+            com.venera.desktop.downloads.DesktopDownloadsDb.listImportedComics()
+        }
         // 取证读数（只进 stdout，不进界面）：那六格与表头那句出自**同一次**读盘，不另走一趟。
         if (listing.error == null) println(desktopComicDownloadedReading(listing))
         // 探索卡下载徽章复用同一次扫描结果；命中读数日志移至独立 effect，避免因卡片尚未到达而误报 0。
@@ -969,6 +953,35 @@ internal fun DesktopComicAndFilesEffects(
                 humanReason = outcome.error,
                 detail = "title=${outcome.title} pages=${outcome.pages}\n${outcome.error}",
                 dedupKey = "comic:local_import_fail",
+            )
+        }
+        if (outcome.error == null) localComicImportTick++
+    }
+
+    // 原地关联导入本地漫画文件夹（零文件拷贝）。
+    LaunchedEffect(filesUi.localFolderImportPick) {
+        val pick = filesUi.localFolderImportPick ?: return@LaunchedEffect
+        filesUi.localFolderImportPick = null
+        if (filesUi.localComicImportBusy) return@LaunchedEffect
+        filesUi.localComicImportBusy = true
+        filesUi.localComicNote = null
+        val outcome = withContext(Dispatchers.IO) {
+            runCatching { com.venera.desktop.gallery.data.desktopLinkLocalComicFolder(pick) }.getOrElse { t ->
+                DesktopLocalComicImportOutcome(
+                    error = "关联失败：${t.javaClass.simpleName} ${t.message?.take(160) ?: ""}",
+                )
+            }
+        }
+        filesUi.localComicImportBusy = false
+        filesUi.localComicNote = outcome.error
+            ?: "已关联文件夹「${outcome.title}」· ${outcome.pages} 页"
+        if (outcome.error != null) {
+            DesktopErrorBus.report(
+                category = "漫画",
+                headline = "本地文件夹导入失败",
+                humanReason = outcome.error,
+                detail = "folder=${pick.absolutePath}\n${outcome.error}",
+                dedupKey = "comic:local_folder_import_fail",
             )
         }
         if (outcome.error == null) localComicImportTick++

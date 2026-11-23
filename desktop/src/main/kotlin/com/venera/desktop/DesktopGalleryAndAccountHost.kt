@@ -1324,7 +1324,10 @@ internal fun DesktopGalleryAndAccountHost(
                                             suggestedName = suggestedName,
                                         )
                                     }
-                                    if (receipt.startsWith("已保存")) {
+                                    if (receipt.startsWith("已保存：")) {
+                                        java.io.File(receipt.removePrefix("已保存：")).parent?.let { parentDir ->
+                                            galleryPrefs?.addExtraImageDir(parentDir)
+                                        }
                                         filesUi.imageScanTick++
                                     }
                                     receipt

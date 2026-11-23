@@ -10,6 +10,7 @@ A multi-source manga reader and multi-site gallery browser for Windows desktop.<
 34 bundled JavaScript manga sources, Pixiv plus several gallery sites, a two-page reader, offline downloads, follow-updates tracking and reading statistics.
 
 [![Version](https://img.shields.io/badge/version-2.1.1-orange)](desktop/build.gradle.kts)
+[![Website](https://img.shields.io/badge/Website-VComic-FF7A00?logo=googlechrome&logoColor=white)](https://w13630039663-bit.github.io/Vcomic/#top)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.10-7F52FF?logo=kotlin&logoColor=white)](gradle/libs.versions.toml)
 [![Compose](https://img.shields.io/badge/Compose_Multiplatform-1.12.2-2A2A2A)](gradle/libs.versions.toml)
 [![Windows](https://img.shields.io/badge/Platform-Windows-0078D4?logo=windows&logoColor=white)](#requirements-and-quick-start)
@@ -17,7 +18,7 @@ A multi-source manga reader and multi-site gallery browser for Windows desktop.<
 
 [简体中文](README.md) | **English**
 
-[Screenshots](#screenshots) · [Features](#desktop-features) · [Download](#download-and-install) · [Build from source](#requirements-and-quick-start)
+[Website](https://w13630039663-bit.github.io/Vcomic/#top) · [Screenshots](#screenshots) · [Features](#desktop-features) · [Download](#download-and-install) · [Build from source](#requirements-and-quick-start)
 
 </div>
 
@@ -31,7 +32,7 @@ VComic is a multi-platform comics and gallery project with three parts:
 |---|---|---|
 | **Windows desktop** (this repository) | Native single-window app built with Kotlin and Compose Multiplatform; all UI and business code is desktop-owned | `.exe` installer / portable folder |
 | **Android app** | Mobile build sharing the same origin but with its own UI, styled with Miuix and Material 3 | APK (Android 13+) |
-| **Official landing page** | Static HTML page with interactive feature demos | `index.html` (local preview) |
+| **Official landing page** | Static HTML page with interactive feature demos | [Live site](https://w13630039663-bit.github.io/Vcomic/#top) / `index.html` |
 
 The desktop build has removed the original Android `:app` module and its source mappings. An embedded QuickJS engine runs the manga source plugins. Data formats stay compatible with the Android app, so `.venera` backups can move between platforms.
 
@@ -74,10 +75,12 @@ The desktop build has removed the original Android `:app` module and its source 
 ### Official landing page
 
 <p align="center">
-  <img src="docs/images/website.jpg" width="88%" alt="Official website hero" />
+  <a href="https://w13630039663-bit.github.io/Vcomic/#top">
+    <img src="docs/images/website.jpg" width="88%" alt="Official website hero" />
+  </a>
 </p>
 
-<p align="center"><sub>Static landing page: hero window preview, six interactive feature demos, source wall and the Android showcase</sub></p>
+<p align="center"><sub>Static landing page: hero window preview, six interactive feature demos, source wall and the Android showcase · <a href="https://w13630039663-bit.github.io/Vcomic/#top">Visit official website</a></sub></p>
 
 ---
 
@@ -175,7 +178,7 @@ APKs are published for `universal`, `arm64-v8a`, `armeabi-v7a` and `x86_64`. And
 
 ### Official landing page
 
-The landing page is static HTML, hosted on GitHub Pages (`https://w13630039663-bit.github.io/Vcomic/`): `index.html` at the repository root references assets under `assets/`. To preview it locally, start any static server from the repository root (for example `python -m http.server 8080`) and open `index.html`.
+The landing page is static HTML, hosted on GitHub Pages: **[https://w13630039663-bit.github.io/Vcomic/#top](https://w13630039663-bit.github.io/Vcomic/#top)** (`index.html` at the repository root references assets under `assets/`). To preview it locally, start any static server from the repository root (for example `python -m http.server 8080`) and open `index.html`.
 
 ---
 

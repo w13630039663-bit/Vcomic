@@ -10,6 +10,7 @@ Windows 桌面端多源漫画阅读器 + 多站图库浏览器。<br/>
 内置 34 个 JavaScript 漫画源，接入 Pixiv 与多个图库站，提供双页阅读、离线下载、漫画追更与阅读统计。
 
 [![Version](https://img.shields.io/badge/version-2.1.1-orange)](desktop/build.gradle.kts)
+[![Website](https://img.shields.io/badge/Website-VComic-FF7A00?logo=googlechrome&logoColor=white)](https://w13630039663-bit.github.io/Vcomic/#top)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.10-7F52FF?logo=kotlin&logoColor=white)](gradle/libs.versions.toml)
 [![Compose](https://img.shields.io/badge/Compose_Multiplatform-1.12.2-2A2A2A)](gradle/libs.versions.toml)
 [![Windows](https://img.shields.io/badge/Platform-Windows-0078D4?logo=windows&logoColor=white)](#环境要求与快速启动)
@@ -17,7 +18,7 @@ Windows 桌面端多源漫画阅读器 + 多站图库浏览器。<br/>
 
 **简体中文** | [English](README.en.md)
 
-[界面预览](#界面预览) · [核心功能](#桌面版核心功能) · [下载与安装](#下载与安装) · [从源码构建](#环境要求与快速启动)
+[官方网站](https://w13630039663-bit.github.io/Vcomic/#top) · [界面预览](#界面预览) · [核心功能](#桌面版核心功能) · [下载与安装](#下载与安装) · [从源码构建](#环境要求与快速启动)
 
 </div>
 
@@ -31,7 +32,7 @@ VComic 是一个多端漫画与图库项目，目前包含三部分：
 |---|---|---|
 | **Windows 桌面版**（本仓库） | Kotlin + Compose Multiplatform 原生单窗口应用，UI 与业务全部桌面自持 | `.exe` 安装器 / 便携目录 |
 | **Android 手机版** | Miuix + Material 3 双风格的移动端实现，与桌面版同源、UI 各自独立 | APK（Android 13+） |
-| **官方宣传页** | 静态 HTML 宣传页，含交互式功能演示 | `index.html`（本地预览） |
+| **官方宣传页** | 静态 HTML 宣传页，含交互式功能演示 | [在线访问](https://w13630039663-bit.github.io/Vcomic/#top) / `index.html` |
 
 桌面版本体已移除原 Android `:app` 模块与源码映射，使用内置 QuickJS 引擎执行漫画源插件；数据格式与手机版保持兼容，`.venera` 备份可以跨端导入导出。
 
@@ -74,10 +75,12 @@ VComic 是一个多端漫画与图库项目，目前包含三部分：
 ### 官方网站
 
 <p align="center">
-  <img src="docs/images/website.jpg" width="88%" alt="官方网站首屏" />
+  <a href="https://w13630039663-bit.github.io/Vcomic/#top">
+    <img src="docs/images/website.jpg" width="88%" alt="官方网站首屏" />
+  </a>
 </p>
 
-<p align="center"><sub>静态宣传页：首屏桌面窗口预览、六块可交互功能演示、来源墙与 Android 双端展示</sub></p>
+<p align="center"><sub>静态宣传页：首屏桌面窗口预览、六块可交互功能演示、来源墙与 Android 双端展示 · <a href="https://w13630039663-bit.github.io/Vcomic/#top">立即访问官方网站</a></sub></p>
 
 ---
 
@@ -175,7 +178,7 @@ APK 提供 `universal`、`arm64-v8a`、`armeabi-v7a`、`x86_64` 四种 ABI，系
 
 ### 官方网站
 
-宣传页为静态 HTML，已托管至 GitHub Pages（`https://w13630039663-bit.github.io/Vcomic/`），仓库根目录 `index.html` 引用同级 `assets/` 素材。本地预览时在仓库根目录启动任意静态服务器（例如 `python -m http.server 8080`）后访问 `index.html` 即可。
+宣传页为静态 HTML，已托管至 GitHub Pages：**[https://w13630039663-bit.github.io/Vcomic/#top](https://w13630039663-bit.github.io/Vcomic/#top)**，仓库根目录 `index.html` 引用同级 `assets/` 素材。本地预览时在仓库根目录启动任意静态服务器（例如 `python -m http.server 8080`）后访问 `index.html` 即可。
 
 ---
 

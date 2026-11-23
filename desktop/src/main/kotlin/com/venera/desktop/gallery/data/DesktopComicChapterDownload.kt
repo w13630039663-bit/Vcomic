@@ -48,6 +48,12 @@ private const val DESKTOP_COMIC_CHAPTER_MANIFEST = "chapter.json"
  */
 internal fun desktopComicDownloadsRoot(dataRoot: File): File = File(dataRoot, "downloads")
 
+/** 解析当前生效的漫画下载根目录：配置非空用自定义路径，否则回落内置目录。 */
+internal fun desktopResolvedComicDownloadsRoot(dataRoot: File, customDir: String?): File {
+    val custom = customDir?.trim()?.takeIf { it.isNotEmpty() }
+    return if (custom != null) File(custom) else desktopComicDownloadsRoot(dataRoot)
+}
+
 /** `sourceKey` / `comicId` 那一档：只替字符，**不去首尾空白**（对岸那两行没有 `.trim()`）。 */
 internal fun desktopComicSafePathKey(raw: String): String = raw.replace(DESKTOP_COMIC_UNSAFE_CHARS, "_")
 

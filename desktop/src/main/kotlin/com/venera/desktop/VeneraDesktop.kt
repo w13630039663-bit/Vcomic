@@ -470,6 +470,7 @@ fun main(args: Array<String>) {
     // Task 5a：把 data/db 接到桌面（只装 factory lambda，不碰 SQLite —— 建目录/建库推迟到第一次取用）。
     // 未接线就取用会由 DatabasePorts.of 直接抛，这里不包 try/catch：抛就是要崩在启动读数里。
     DesktopDatabasePorts.install(paths)
+    com.venera.desktop.downloads.DesktopDownloadsDb.install(paths)
     // 必须在 DatabasePorts 之后初始化：DesktopGalleryContentGuard 在构造期即通过 DatabasePorts.of 访问数据库。
     val galleryHandle = com.venera.desktop.gallery.data.DesktopGalleryHandle.of(paths)
     DesktopGalleryPorts.install(galleryHandle)
@@ -787,12 +788,22 @@ fun main(args: Array<String>) {
                         runCatching {
                             nucleusWindow.setMinimized(false)
                             nucleusWindow.toFront()
+                            nucleusWindow.requestFocus()
                         }
                     },
                     onExit = {
                         com.venera.desktop.platform.DesktopSystemTray.uninstall()
                         closePersistenceInOrder()
                         exitApplication()
+                    },
+                    isWindowVisible = { !nucleusWindow.isMinimized },
+                    onHideToTray = {
+                        runCatching { nucleusWindow.setMinimized(true) }
+                    },
+                    isMaskEnabled = { guard.nsfwMaskMode.value != "OFF" },
+                    onToggleMask = {
+                        val next = if (guard.nsfwMaskMode.value == "OFF") "BLUR" else "OFF"
+                        guard.setNsfwMaskMode(next)
                     },
                 )
                 onDispose { com.venera.desktop.platform.DesktopSystemTray.uninstall() }
@@ -1420,9 +1431,11 @@ fun main(args: Array<String>) {
                         }
                     }
                 },
-                // 漫画「下载这一话」要落的那个根目录。给到这一层，壳才知道能不能摆那枚钮：
-                // 没有写口的地方整颗不摆，而不是摆一颗按下去什么也不做的假开关。
-                downloadsRoot = desktopComicDownloadsRoot(paths.dataRoot),
+                // 漫画「下载这一话」要落的那个根目录（支持设置页/弹窗自定义，空串回落内置数据根/downloads）。
+                downloadsRoot = com.venera.desktop.gallery.data.desktopResolvedComicDownloadsRoot(
+                    paths.dataRoot,
+                    gallerySettings.comicDownloadDir.collectAsState().value,
+                ),
                 // 阅读那一屏的模式偏好 + `--read-mode=` 种子。
                 // getInstance 同一数据根只建一颗；它构造时读一次 prefs 那份小 JSON（与
                 // gallerySettings 同族，不是 browseHistory 那种"开机建库"的重件），装配期建合法。

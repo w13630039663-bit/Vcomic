@@ -521,6 +521,82 @@ internal fun DesktopLargeScreenRouter(
                 androidx.compose.runtime.DisposableEffect(followChecker) {
                     onDispose { followChecker?.close() }
                 }
+                androidx.compose.runtime.DisposableEffect(followChecker, followDao, downloadsRoot, scope) {
+                    com.venera.desktop.platform.DesktopSystemTray.bindShellActions(
+                        com.venera.desktop.platform.DesktopTrayShellCallbacks(
+                            onOpenDownloads = {
+                                routeState.value = DesktopRoute.Files
+                                com.venera.desktop.platform.DesktopSystemTray.requestShowWindow()
+                            },
+                            onOpenDownloadDir = {
+                                val dir = downloadsRoot
+                                if (dir != null) {
+                                    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                        runCatching {
+                                            dir.mkdirs()
+                                            java.awt.Desktop.getDesktop().open(dir)
+                                        }
+                                    }
+                                }
+                            },
+                            onCheckFollowUpdates = {
+                                val checker = followChecker
+                                val dao = followDao
+                                if (checker != null && dao != null) {
+                                    scope.launch {
+                                        val records = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                            runCatching { dao.listSync() }.getOrDefault(emptyList())
+                                        }
+                                        if (records.isEmpty()) {
+                                            com.venera.desktop.platform.DesktopSystemTray.notifyDownloadComplete(
+                                                "追更检查",
+                                                "当前暂无追更漫画记录",
+                                            )
+                                        } else {
+                                            checker.start(scope, records, force = true)
+                                        }
+                                    }
+                                }
+                            },
+                            onPauseAllDownloads = {
+                                val root = downloadsRoot
+                                val tasks = com.venera.desktop.gallery.data.DesktopComicDownloadQueue.tasks.value
+                                scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                    tasks.forEach { task ->
+                                        when (task.status) {
+                                            com.venera.desktop.gallery.data.DesktopComicQueueStatus.RUNNING ->
+                                                com.venera.desktop.gallery.data.DesktopComicDownloadQueue.requestStop(task.taskId)
+                                            com.venera.desktop.gallery.data.DesktopComicQueueStatus.PENDING ->
+                                                if (root != null) {
+                                                    com.venera.desktop.gallery.data.DesktopComicDownloadQueue.pause(root, task.taskId)
+                                                }
+                                            else -> Unit
+                                        }
+                                    }
+                                }
+                            },
+                            onResumeAllDownloads = {
+                                val root = downloadsRoot
+                                if (root != null) {
+                                    val tasks = com.venera.desktop.gallery.data.DesktopComicDownloadQueue.tasks.value
+                                    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                        tasks.filter {
+                                            it.status == com.venera.desktop.gallery.data.DesktopComicQueueStatus.STOPPED ||
+                                                it.status == com.venera.desktop.gallery.data.DesktopComicQueueStatus.FAILED
+                                        }.forEach { task ->
+                                            com.venera.desktop.gallery.data.DesktopComicDownloadQueue.resume(root, task.taskId)
+                                        }
+                                    }
+                                }
+                            },
+                            hasDownloadsDir = { downloadsRoot != null },
+                            canCheckFollow = { followChecker != null && followDao != null },
+                        ),
+                    )
+                    onDispose {
+                        com.venera.desktop.platform.DesktopSystemTray.bindShellActions(null)
+                    }
+                }
                 // 启动自动检查默认关；开了才在窗起来后跑一轮（冷却期内的条目自动跳过）。
                 val followAutoCheck = galleryPrefs?.followAutoCheck?.collectAsState()?.value ?: false
                 androidx.compose.runtime.LaunchedEffect(followChecker, followAutoCheck) {

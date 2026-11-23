@@ -47,6 +47,8 @@ internal data class DesktopLocalComic(
     val rootPath: String,
     /** 盘上 `lastModified()`，本级排序吃它（对岸 `sortedByDescending { updatedAt }`）。 */
     val updatedAt: Long,
+    /** 是否为原地关联导入的外部文件夹（删除时只移除关联记录，不删原磁盘文件）。 */
+    val isLinked: Boolean = false,
 )
 
 /** 某一话认得出的页数（[title] 走 `chapter.json.title` 否则目录名 —— 与本级题名同一条兜底口径）。 */
@@ -131,6 +133,41 @@ internal fun desktopLocalComics(root: File): List<DesktopLocalComic> {
         }
     }
     return out.sortedByDescending { it.updatedAt }
+}
+
+/** 探测任意漫画文件夹的话级结构（支持“多子目录分话”和“文件夹内直接放图片”两种排法）。 */
+internal data class DesktopLocalFolderChapter(
+    val title: String,
+    val pageCount: Int,
+    val dir: File,
+)
+
+/** 解析单个漫画文件夹内的章节分布；既无子话目录也无直属图片时返回空表。 */
+internal fun desktopInspectLocalComicFolder(folder: File): List<DesktopLocalFolderChapter> {
+    if (!folder.isDirectory) return emptyList()
+    val subChapters = folder.listFiles { f -> f.isDirectory }
+        ?.sortedBy { it.name }
+        ?.mapNotNull { chDir ->
+            val pages = chDir.listFiles { f -> f.isPageImageFile() }?.size ?: 0
+            if (pages <= 0) null else {
+                val manifest = File(chDir, "chapter.json")
+                val title = if (manifest.isFile) {
+                    runCatching { FIELD_COMIC_TITLE.find(manifest.readText())?.groupValues?.get(1) }.getOrNull()
+                        ?.takeIf { it.isNotBlank() } ?: chDir.name
+                } else {
+                    chDir.name
+                }
+                DesktopLocalFolderChapter(title = title, pageCount = pages, dir = chDir)
+            }
+        }
+        .orEmpty()
+    if (subChapters.isNotEmpty()) return subChapters
+
+    val directPages = folder.listFiles { f -> f.isPageImageFile() }?.size ?: 0
+    if (directPages > 0) {
+        return listOf(DesktopLocalFolderChapter(title = "全一话", pageCount = directPages, dir = folder))
+    }
+    return emptyList()
 }
 
 /** 某一目录下那些「真有图」的话（本级口径：目录里有 `isPageImageFile` 认得的颗数 ≥1 就算一话）。 */

@@ -101,7 +101,7 @@ class DesktopDownloadsEntryTest {
     @Test
     fun 那五颗runner各有一处在壳里按() {
         val declared = listOf(
-            "desktopComicDownloadedScan(" to "DesktopComicDownloadedList.kt",
+            "listComicListing(" to "DesktopDownloadsDb.kt",
             "desktopComicDownloadedReading(" to "DesktopComicDownloadsPane.kt",
             "desktopComicDeleteChapter(" to "DesktopComicDownloadsDelete.kt",
             "desktopComicRepairChapter(" to "DesktopComicShelfRepair.kt",

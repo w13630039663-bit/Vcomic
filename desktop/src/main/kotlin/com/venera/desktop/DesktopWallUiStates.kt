@@ -205,6 +205,8 @@ internal class FilesAuxUiState {
     var localComicNote by mutableStateOf<String?>(null)
     var localComicImportBusy by mutableStateOf(false)
     var localComicImportPick by mutableStateOf<java.io.File?>(null)
+    var localFolderImportPick by mutableStateOf<java.io.File?>(null)
+    var importedComics by mutableStateOf<List<com.venera.desktop.gallery.data.DesktopLocalComic>>(emptyList())
     var filesDomain by mutableStateOf(com.venera.desktop.downloads.DesktopFilesDomain.COMIC)
     var imageItems by mutableStateOf<List<com.venera.desktop.downloads.DesktopLocalImageItem>?>(null)
     var imageScanTick by mutableIntStateOf(0)

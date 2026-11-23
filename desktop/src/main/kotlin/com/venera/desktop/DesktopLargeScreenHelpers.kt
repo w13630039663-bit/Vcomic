@@ -587,7 +587,17 @@ internal fun onDownloadsDeleteHelper(
         armedDeleteKeyState.value = null
     }
     scope.launch {
-        val outcome = desktopComicDeleteChapter(root, chapter)
+        val effectiveRoot = com.venera.desktop.downloads.DesktopDownloadsDb.comicChapterDirOf(
+            chapter.sourceKey,
+            chapter.comicId,
+            chapter.chapterId,
+        )?.parentFile?.parentFile?.parentFile ?: root
+        val outcome = desktopComicDeleteChapter(effectiveRoot, chapter)
+        com.venera.desktop.downloads.DesktopDownloadsDb.deleteComicChapter(
+            chapter.sourceKey,
+            chapter.comicId,
+            chapter.chapterId,
+        )
         filesUi.downloadsNote = desktopComicDeleteScreenLine(chapter, outcome)
         onDone()
     }

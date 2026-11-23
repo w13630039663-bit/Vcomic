@@ -58,13 +58,23 @@ internal fun desktopComicOfflineLocalChapter(
     sourceKey: String,
     comicId: String,
     chapterId: String,
-): DesktopComicLocalChapter? =
-    desktopComicLocalChapter(
+): DesktopComicLocalChapter? {
+    val recorded = com.venera.desktop.downloads.DesktopDownloadsDb.comicChapterDirOf(sourceKey, comicId, chapterId)
+        ?: com.venera.desktop.downloads.DesktopDownloadsDb.comicChapterDirOf(
+            desktopComicSafePathKey(sourceKey),
+            desktopComicSafePathKey(comicId),
+            chapterId,
+        )
+    if (recorded != null) {
+        desktopComicLocalChapterAtDir(recorded)?.let { return it }
+    }
+    return desktopComicLocalChapter(
         root,
         desktopComicSafePathKey(sourceKey),
         desktopComicSafePathKey(comicId),
         chapterId,
     )
+}
 
 /**
  * 要不要问引擎那两跳（`load` + `pages`）。

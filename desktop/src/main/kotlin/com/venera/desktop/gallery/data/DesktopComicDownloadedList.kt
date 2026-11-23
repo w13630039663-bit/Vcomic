@@ -37,6 +37,9 @@ internal data class DesktopComicDownloadedChapter(
     val writtenPages: Int,
     val bytes: Long,
     val complete: Boolean,
+    val comicTitle: String = "",
+    val coverUrl: String = "",
+    val localDir: String = "",
 )
 
 /** 同一本的一格。`label` 念的是**号**：盘上没有本子的题名（清单存的是话的题名），造一个就是假话。 */
@@ -177,6 +180,11 @@ internal data class DesktopComicLocalChapter(
  * ⚠️ 代价：这一颗把整棵树走一遍并为每页读一次头部。阅读器**只在进那一屏时问一次**（不在逐页里问），
  * 所以它不会变成刚改掉的那种空转。
  */
+internal fun desktopComicLocalChapterAtDir(dir: File): DesktopComicLocalChapter? {
+    if (!dir.isDirectory) return null
+    return readChapter(dir)?.let { DesktopComicLocalChapter(dir, it.writtenPages, it.expectedPages) }
+}
+
 internal fun desktopComicLocalChapter(
     root: File,
     sourceKey: String,

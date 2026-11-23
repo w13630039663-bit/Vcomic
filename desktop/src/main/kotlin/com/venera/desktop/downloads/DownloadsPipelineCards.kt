@@ -50,6 +50,9 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.venera.compose.ui.tokens.VeneraTokens
 import com.venera.desktop.gallery.data.DesktopComicDownloadedChapter
+import com.venera.desktop.gallery.data.DesktopLocalComic
+import com.venera.desktop.gallery.data.DesktopLocalFolderChapter
+import com.venera.desktop.gallery.data.desktopInspectLocalComicFolder
 import com.venera.desktop.gallery.ui.desktopByteLabel
 import com.venera.desktop.ui.VeneraCheckbox
 import com.venera.desktop.ui.components.desktopCoverFloat
@@ -104,10 +107,15 @@ internal fun ComicBookGridCard(
                     )
                 }
                 if (onDelete != null) {
+                    val deleteLabel = if (card is PipelineComicCard.LocalImportedComicCard && card.comic.isLinked) {
+                        "移除关联"
+                    } else {
+                        "删除"
+                    }
                     add(com.venera.desktop.ui.components.DesktopMenuEntry.Divider)
                     add(
                         com.venera.desktop.ui.components.DesktopMenuEntry.Item(
-                            label = "删除",
+                            label = deleteLabel,
                             icon = Icons.Outlined.Delete,
                             isDanger = true,
                             onClick = { onDelete.invoke() },
@@ -172,7 +180,11 @@ internal fun ComicBookGridCard(
                             DqBadge(label = "缺 ${card.group.incompleteCount} 话", tone = DqTone.fail, filled = true)
                         }
                     } else if (card is PipelineComicCard.LocalImportedComicCard) {
-                        DqBadge(label = "导入", tone = tokens.color.primary, filled = true)
+                        if (card.comic.isLinked) {
+                            DqBadge(label = "文件夹", tone = DqTone.ok, filled = true)
+                        } else {
+                            DqBadge(label = "导入", tone = tokens.color.primary, filled = true)
+                        }
                     }
                 }
 
@@ -225,8 +237,13 @@ internal fun ComicBookGridCard(
                                 )
                             }
                             if (onDelete != null) {
+                                val deleteItemText = if (card is PipelineComicCard.LocalImportedComicCard && card.comic.isLinked) {
+                                    "移除文件夹关联"
+                                } else {
+                                    "删除此漫画"
+                                }
                                 DropdownMenuItem(
-                                    text = { Text("删除此漫画", color = tokens.color.error) },
+                                    text = { Text(deleteItemText, color = tokens.color.error) },
                                     leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = tokens.color.error, modifier = Modifier.size(18.dp)) },
                                     onClick = {
                                         menuExpanded = false
@@ -608,4 +625,107 @@ internal fun ComicChaptersDialog(
         }
     }
 }
+}
+
+/** 本地导入多话文件夹的章节选择弹窗。 */
+@Composable
+internal fun LocalComicChaptersDialog(
+    comic: DesktopLocalComic,
+    onDismiss: () -> Unit,
+    onOpenChapter: (DesktopLocalFolderChapter) -> Unit,
+    onOpenFolder: () -> Unit,
+) {
+    val tokens = VeneraTokens
+    val chapters = remember(comic.rootPath) {
+        desktopInspectLocalComicFolder(File(comic.rootPath))
+    }
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .width(500.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(tokens.color.surface)
+                .border(1.dp, tokens.color.outlineVariant.copy(alpha = 0.45f), RoundedCornerShape(16.dp))
+                .padding(20.dp),
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = comic.title,
+                        fontSize = VeneraType.cardTitle.size, lineHeight = VeneraType.cardTitle.lineHeight,
+                        fontWeight = VeneraType.cardTitle.weight,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f).padding(end = 8.dp),
+                    )
+                    DqMiniButton(
+                        text = "打开文件夹",
+                        primary = false,
+                        onClick = onOpenFolder,
+                    )
+                }
+
+                Text(
+                    text = "${if (comic.isLinked) "关联文件夹" else "本地导入"} · 共 ${chapters.size} 话 · ${comic.totalPages} 页",
+                    fontSize = VeneraType.aux.size, lineHeight = VeneraType.aux.lineHeight,
+                    color = tokens.color.textSecondary,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
+                )
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 380.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    chapters.forEach { ch ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(tokens.color.surfaceVariant.copy(alpha = 0.35f))
+                                .border(0.5.dp, tokens.color.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                .clickable { onOpenChapter(ch) }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                text = ch.title,
+                                fontSize = VeneraType.bodySecondary.size, lineHeight = VeneraType.bodySecondary.lineHeight,
+                                fontWeight = VeneraType.cardTitle.weight,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f).padding(end = 8.dp),
+                            )
+                            Text(
+                                text = "${ch.pageCount} 页",
+                                fontSize = VeneraType.micro.size, lineHeight = VeneraType.micro.lineHeight,
+                                color = tokens.color.textTertiary,
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    DqMiniButton(
+                        text = "关闭",
+                        primary = true,
+                        onClick = onDismiss,
+                    )
+                }
+            }
+        }
+    }
 }

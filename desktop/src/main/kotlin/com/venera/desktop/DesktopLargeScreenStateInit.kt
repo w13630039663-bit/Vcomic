@@ -1068,7 +1068,8 @@ internal fun rememberDesktopLargeScreenState(
 
     // 详情页那 17 族端口的装配句柄。三枚读数缺任何一枚 ⇒ `null`：详情支路如实念
     // "装配没接上"，不拿空端口假装能取数（与"没有写口就没有那枚钮"同一条口径）。
-    val businessHandle = remember(desktopUx, engine, assetDir, overrideDir, galleryPaths, galleryGuard, downloadsRoot) {
+    val latestDownloadsRoot by androidx.compose.runtime.rememberUpdatedState(downloadsRoot)
+    val businessHandle = remember(desktopUx, engine, assetDir, overrideDir, galleryPaths, galleryGuard) {
         val paths = galleryPaths
         val guard = galleryGuard
         val dir = assetDir
@@ -1080,7 +1081,7 @@ internal fun rememberDesktopLargeScreenState(
                 assetDir = dir,
                 overrideDir = overrideDir,
                 paths = paths,
-                downloadsRoot = { downloadsRoot },
+                downloadsRoot = { latestDownloadsRoot },
                 coverMask = { sourceKey, title, author, tags, comicId ->
                     desktopUx.coverMaskStateOf(sourceKey, title, author, tags, comicId, "")
                 },

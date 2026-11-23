@@ -380,4 +380,25 @@ class DesktopComicDownloadQueueTest {
         )
         assertFalse("任务号里下划线只是分隔符，不许出现连续分隔：" + task.taskId, task.taskId.contains("//"))
     }
+
+    /** ⑲ 等待态任务可直接暂停并持久化，失败与暂停任务恢复时清空错误并重新排队。 */
+    @Test
+    fun pause可暂停等待态任务且resume可重排失败或暂停任务() {
+        freshRoot()
+        enqueueProbe("jm", "100", "ch1")
+        val taskId = DesktopComicDownloadQueue.tasks.value[0].taskId
+        DesktopComicDownloadQueue.pause(root, taskId)
+        assertEquals(DesktopComicQueueStatus.STOPPED, DesktopComicDownloadQueue.tasks.value[0].status)
+
+        DesktopComicDownloadQueue.prime(root, force = true)
+        assertEquals(DesktopComicQueueStatus.STOPPED, DesktopComicDownloadQueue.tasks.value[0].status)
+
+        DesktopComicDownloadQueue.fail(root, taskId, "源报错测试")
+        assertEquals(DesktopComicQueueStatus.FAILED, DesktopComicDownloadQueue.tasks.value[0].status)
+        assertEquals("源报错测试", DesktopComicDownloadQueue.tasks.value[0].error)
+
+        DesktopComicDownloadQueue.resume(root, taskId)
+        assertEquals(DesktopComicQueueStatus.PENDING, DesktopComicDownloadQueue.tasks.value[0].status)
+        assertEquals("", DesktopComicDownloadQueue.tasks.value[0].error)
+    }
 }

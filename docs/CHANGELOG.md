@@ -7,7 +7,35 @@
 
 ---
 
+## 新增功能（Features）
+
+- **2026-11-24 · 升级系统托盘右键菜单为 Windows 11 同步样式并加入实用后台功能**（`DesktopSystemTray.kt`、`VeneraDesktop.kt`、`DesktopLargeScreenRouter.kt`、`DesktopSystemTrayTest.kt`）
+  - **功能说明**：托盘右键菜单由默认老式 `JPopupMenu` 升级为自绘无边框圆角弹窗（10px 圆角、抗锯齿字体与手绘线性图标），自动读取 Windows `SystemUsesLightTheme`/`AppsUseLightTheme` 同步深浅配色，并在任务栏呼出时自动贴合工作区边缘；菜单新增实时状态头、显示/隐藏主窗口、打开「下载与本地」、打开下载文件夹、立即检查追更、暂停/继续全部下载与隐私遮罩开关。
+
+- **2026-11-23 · 新增本地漫画「导入文件夹（原地关联）」功能**（`DesktopDownloadsDb.kt`、`DesktopLocalComicLibrary.kt`、`DesktopLocalComicImport.kt`、`DesktopDownloadsPipelineScreen.kt`、`DownloadsPipelineCards.kt`、`DesktopComicAndSourceHost.kt`、`DesktopComicAndFilesEffects.kt`、`DesktopWallUiStates.kt`）
+  - **功能说明**：在「下载与本地 → 本机内容 → 漫画」新增「导入文件夹」入口，通过系统文件夹选择器选中单个漫画文件夹后原地关联写入 `local_comic_imports` 表（零文件拷贝），自动兼容单话直接放图与多话子目录结构，支持直接阅读或先选话再阅读；切换下载目录不丢失记录，移除关联时仅清理台账不删除硬盘原文件夹。
+
 ## Bug 修复（Fixes）
+
+- **2026-11-23 · 切换下载路径后旧漫画丢失封面和标题，以及下载中在线漫画误显示为「导入」**（`DesktopComicDownloadedList.kt`、`DesktopDownloadsDb.kt`、`DesktopDownloadsPipelineScreen.kt`、`DesktopComicAndSourceHost.kt`）
+  - **原因**：① `DesktopDownloadsDb.listComicListing()` 未将表内已保存的 `comic_title`、`cover_url`、`local_dir` 传出，`DesktopDownloadsPipelineScreen` 与 `onOpenDownloadedChapter` 仅从当前 `downloadsRoot` 与当前队列取名和封面，切换路径后查询落空导致退回话名和空封面；② `DesktopDownloadsPipelineScreen` 将 `localComicScan` 扫出的全部非 `downloaded` 目录（含正在下载或跨路径未归一化的 `picacg`/`ehentai` 等在线源目录）全部包装成「导入」卡片。
+  - **解决方案**：① `DesktopComicDownloadedChapter` 透传台账的 `comicTitle`、`coverUrl`、`localDir`，作品名和封面优先命中台账与真实落盘作品目录（含本地 `cover.*`、URL 与首张页图兜底）；② 仅展示台账导入表与 `imported/` 目录下的真正导入漫画，且排除正在下载队列中的任务编号，彻底消除下载中漫画变成「导入」的异常。
+
+- **2026-11-23 · 下载队列所有非下载中任务均假报「排队中」且吞掉报错，同时跨源下载未切换源导致 `loadEp` 失败**（`EngineSession.kt`、`DesktopComicQueueRunner.kt`、`DesktopComicDownloadQueue.kt`、`DesktopComicAndSourceHost.kt`、`DesktopDownloadsChrome.kt`、`DesktopDownloadsPipelineScreen.kt`）
+  - **原因**：① 队列行 UI 仅判断 `status == RUNNING`，把 `FAILED` 和 `STOPPED` 也一律显示为黄色「排队中」，且未在行内渲染 `task.error`；② 顶栏「全部暂停」与宿主 `onQueuePauseResume` 未区分 `PENDING` / `STOPPED` / `FAILED`，点击「全部暂停」反而把等待/失败项重新 `resume`；③ `DesktopComicQueueRunner` 调 `engine.pages` / `engine.pageImage` 未传入 `task.sourceKey`，`EngineSession` 始终按主会话当前最后加载的 `key` 取源，导致跨源或未加载源时 `loadEp` 错打到别的源脚本并报错；④ 长标题未设 `weight(1f, fill = false)` 挤压右侧「漫画」徽章。
+  - **解决方案**：① `EngineSession.pages` / `pageImage` 新增可选 `sourceKey` 参数并自动通过 `ensureSourceLoaded` 装载对应源（不污染主界面当前选中源），`DesktopComicQueueRunner` 传入 `task.sourceKey`（同时走 `desktopEngineCall` 代理直连前置校验）；② 队列补齐 `pause()`，修正宿主暂停/继续/重试分发与顶栏「重试失败」「全部暂停」「全部继续」按态生效；③ 队列行完整区分进行中（「下载中」主色）、等待态（「等待中」中性灰）、警告态（「已暂停」琥珀黄）、失败态（「下载失败」红 + 行内报错条与一键复制 + 重试按钮）以及短时成功态（「下载成功」绿，展示 4 秒后自动隐去、下方「本机内容」不展示成功态），并修复长标题挤压徽章问题。
+
+- **2026-11-23 · 官网下载按钮把 Windows 用户导向手机端仓库**（`index.html`）
+  - **原因**：「下载 VComic」卡片的「前往 Releases 下载」按钮与页脚「GitHub 仓库」都写成 `https://github.com/w13630039663-bit/venera-miuix/releases`，该仓库 Release 只有 `app-arm64-v8a-release.apk`、`app-universal-release.apk` 两个 Android 资产，桌面用户点进去拿不到 Windows 安装包；官网由 Vcomic 仓库根目录 `index.html` 发布，属于链接写错仓库。
+  - **解决方案**：下载按钮与页脚链接统一改为 `https://github.com/w13630039663-bit/Vcomic`，按钮文案由「前往 Releases 下载」改为「前往 GitHub 仓库」（Vcomic 仓库当前无 Release、README 注明正式发布前从源码构建，故不保留 Releases 入口措辞）；Android 区块仍指向手机端仓库，未改程序内更新检查。
+
+- **2026-11-23 · 改用独立下载台账数据库 `desktop_downloads.db` 彻底取消磁盘扫盘，并支持自由选目录与通知**（`DesktopDownloadsDb.kt`、`DesktopComicDownloadQueue.kt`、`DesktopImageSaver.kt`、`DesktopPixivImageBytes.kt`、`DesktopComicAndFilesEffects.kt`、`DesktopLargeScreenMiscEffects.kt`、`DesktopLargeScreenStateInit.kt`、`DesktopComicOfflineReading.kt`、`DesktopFollowUpdateChecker.kt`、`DesktopGalleryPreferences.kt`、`DesktopSettingsHub.kt`、`DesktopComicDetailScreen.kt`、`VeneraDesktop.kt`）
+  - **原因**：① 「本机内容」依赖递归遍历电脑目录树，更换大目录会卡死在「正在加载漫画列表...」，且跨目录存图会漏扫；② `businessHandle` 缓存旧 `downloadsRoot` 闭包；③ 图片默认开启固定目录直存，显得地址绑死。
+  - **解决方案**：① 新增独立库 `desktop_downloads.db`（`comic_download_records` 与 `image_download_records` 两张表，分别记录下载内容、源地址与本地保存路径），「本机内容 → 漫画 / 图片」纯读库不扫盘，阅读/删除/打开文件夹按库记录直达目标目录；② 补齐追更与图片下载系统通知；③ 修复 `businessHandle` 动态读取最新 `downloadsRoot`，并将图片保存默认改为弹出选目录（可在设置页开启「默认目录直存」）。
+
+- **2026-11-23 · 修复安装版搜图缺少 `java.net.http` 崩溃、托盘右键中文乱码与切换页面卡死**（`desktop/build.gradle.kts`、`DesktopSystemTray.kt`、`DesktopNotifier.kt`、`DesktopLargeScreenMiscEffects.kt`、`docs/03-guides/build-and-release.md`）
+  - **原因**：① `nativeDistributions.modules` 遗漏 `java.net.http`，导致打包后运行时缺少 `HttpClient`；② `DesktopSystemTray` 使用老旧 AWT `PopupMenu` 走 ANSI 渲染导致中文变方块乱码，且与 `DesktopNotifier` 并存两颗托盘图标；③ 运行时参数限制 `-Xmx256m` + `-XX:+UseSerialGC` + `-XX:TieredStopAtLevel=1` + `32M` GPU 缓存，切页时易触发单线程 Full GC 冻屏。
+  - **解决方案**：① `modules` 补齐 `java.net.http`；② `DesktopSystemTray` 改用 `JPopupMenu` + `Microsoft YaHei UI` 字体与无边框 `JDialog` 宿主，并将 `DesktopNotifier` 统一委托至 `DesktopSystemTray`、移除重复安装调用；③ 调整运行时参数为 `-Xmx1024m`、`-XX:+UseG1GC`、移除 `TieredStopAtLevel=1`、并将 Skia 缓存调至 `128M`。
 
 - **2026-11-23 · 清零全量测试红灯、清理重复引入与本机路径注释**（`DesktopLargeScreenHelpers.kt`、`DesktopFavoritesScreen.kt`、`DesktopGalleryPostViewer.kt`、`DesktopSqliteNative.kt`、`DesktopComicMapping.kt`、`DesktopCrashReadingTest.kt`、`DesktopNetworkFollowImporterTest.kt`）
   - **原因**：① `DesktopLargeScreenHelpers.kt` 重复引入 `desktopComicDeleteRowKey` 导致静态护栏失败；② `DesktopFavoritesScreen.kt` 在双列视图新增了第二处 `desktopFavoriteFolderLine` 调用且空态时顶栏与 `CenterNote` 同时渲染两次 `note`；③ `DesktopGalleryPostViewer.kt` 的 `ViewerImage` 回调 `onError` 带默认空实现违背无默认回调规矩；④ `DesktopCrashReadingTest` 与 `DesktopNetworkFollowImporterTest` 未同步「拉图失败静默不刷屏」及友好错误翻译口径；⑤ `DesktopSqliteNative.kt`、`DesktopComicMapping.kt` 注释含本机绝对路径。

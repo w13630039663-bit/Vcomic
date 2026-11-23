@@ -68,6 +68,8 @@ internal object DqTone {
         @Composable @ReadOnlyComposable get() = com.venera.desktop.gallery.ui.GalleryTokens.Color.ToneCaution
     val fail: Color
         @Composable @ReadOnlyComposable get() = com.venera.desktop.gallery.ui.GalleryTokens.Color.ToneDanger
+    val wait: Color
+        @Composable @ReadOnlyComposable get() = com.venera.desktop.gallery.ui.GalleryTokens.Color.TextSecondary
 }
 
 /** 稿 `.badge`：五档状态胶囊（b-run/b-ok/b-fail/b-wait/b-pause 用 tone 传色）。 */
@@ -221,6 +223,48 @@ internal fun DqErrCard(message: String) {
             Text("失败原因", fontSize = VeneraType.micro.size, lineHeight = VeneraType.micro.lineHeight, fontWeight = VeneraType.cardTitle.weight, color = DqTone.fail)
         }
         Text(message, fontSize = VeneraType.aux.size, lineHeight = VeneraType.aux.lineHeight, color = tokens.color.textSecondary, modifier = Modifier.padding(top = 5.dp))
+    }
+}
+
+/** 队列行内紧凑报错条：直接展示失败原因并支持一键复制。 */
+@Composable
+internal fun DqInlineErrorBanner(message: String, modifier: Modifier = Modifier) {
+    val tokens = VeneraTokens
+    val clipboard = LocalClipboardManager.current
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(DqTone.fail.copy(alpha = 0.09f))
+            .border(1.dp, DqTone.fail.copy(alpha = 0.32f), RoundedCornerShape(8.dp))
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.WarningAmber,
+            contentDescription = null,
+            tint = DqTone.fail,
+            modifier = Modifier.size(14.dp),
+        )
+        Text(
+            text = message,
+            fontSize = VeneraType.micro.size,
+            lineHeight = VeneraType.micro.lineHeight,
+            color = DqTone.fail,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            imageVector = Icons.Outlined.ContentCopy,
+            contentDescription = "复制报错信息",
+            tint = tokens.color.textTertiary,
+            modifier = Modifier
+                .size(14.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .clickable { clipboard.setText(AnnotatedString(message)) },
+        )
     }
 }
 

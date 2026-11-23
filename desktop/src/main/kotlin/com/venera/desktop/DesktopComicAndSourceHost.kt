@@ -422,12 +422,17 @@ internal fun DesktopComicAndSourceHost(
                     } else {
                         scope.launch {
                             val dir = withContext(Dispatchers.IO) {
-                                com.venera.desktop.gallery.data.desktopComicLocalChapter(
-                                    root,
+                                com.venera.desktop.downloads.DesktopDownloadsDb.comicChapterDirOf(
                                     ch.sourceKey,
                                     ch.comicId,
                                     ch.chapterId,
-                                )?.dir
+                                )?.takeIf { it.isDirectory }
+                                    ?: com.venera.desktop.gallery.data.desktopComicLocalChapter(
+                                        root,
+                                        ch.sourceKey,
+                                        ch.comicId,
+                                        ch.chapterId,
+                                    )?.dir
                             }
                             if (dir == null) {
                                 filesUi.downloadsNote = "盘上没再认出这一话 ⇒ 目录开不了"
@@ -752,6 +757,16 @@ internal fun DesktopComicAndSourceHost(
                                 .map { it.folderName }
                                 .toSet()
                             com.venera.desktop.detail.DesktopComicDetailScreen(
+                                downloadDirLabel = downloadsRoot?.absolutePath,
+                                onPickDownloadDir = galleryPrefs?.let { prefs ->
+                                    {
+                                        val picked = com.venera.desktop.gallery.data.DesktopDirChooser.pickDirectory(
+                                            "选择漫画下载目录",
+                                            downloadsRoot?.absolutePath,
+                                        )
+                                        if (picked != null) prefs.setComicDownloadDir(picked)
+                                    }
+                                },
                                 followPort = remember(detailCacheKey, followDao) {
                                     followDao?.let { com.venera.desktop.follow.DesktopFollowDetailPort(it) }
                                 },
@@ -924,12 +939,30 @@ internal fun DesktopComicAndSourceHost(
                         queueNote = filesUi.queueNote,
                         onQueuePauseResume = { task ->
                             val root = downloadsRoot
-                            if (task.status == com.venera.desktop.gallery.data.DesktopComicQueueStatus.RUNNING) {
-                                DesktopComicDownloadQueue.requestStop(task.taskId)
-                                filesUi.queueNote = desktopComicQueueStoppedLine(task)
-                            } else if (root != null) {
-                                DesktopComicDownloadQueue.resume(root, task.taskId)
-                                filesUi.queueNote = "已恢复下载：${task.comicTitle} · ${task.chapterTitle}"
+                            when (task.status) {
+                                com.venera.desktop.gallery.data.DesktopComicQueueStatus.RUNNING -> {
+                                    DesktopComicDownloadQueue.requestStop(task.taskId)
+                                    filesUi.queueNote = desktopComicQueueStoppedLine(task)
+                                }
+                                com.venera.desktop.gallery.data.DesktopComicQueueStatus.PENDING -> {
+                                    if (root != null) {
+                                        DesktopComicDownloadQueue.pause(root, task.taskId)
+                                        filesUi.queueNote = desktopComicQueueStoppedLine(task)
+                                    }
+                                }
+                                com.venera.desktop.gallery.data.DesktopComicQueueStatus.STOPPED,
+                                com.venera.desktop.gallery.data.DesktopComicQueueStatus.FAILED,
+                                -> {
+                                    if (root != null) {
+                                        DesktopComicDownloadQueue.resume(root, task.taskId)
+                                        filesUi.queueNote = if (task.status == com.venera.desktop.gallery.data.DesktopComicQueueStatus.FAILED) {
+                                            "已重试下载：${task.comicTitle} · ${task.chapterTitle}"
+                                        } else {
+                                            "已恢复下载：${task.comicTitle} · ${task.chapterTitle}"
+                                        }
+                                    }
+                                }
+                                com.venera.desktop.gallery.data.DesktopComicQueueStatus.DONE -> Unit
                             }
                         },
                         onQueueRemove = { task ->
@@ -949,13 +982,15 @@ internal fun DesktopComicAndSourceHost(
                             val rawIndex = com.venera.desktop.gallery.data.DesktopComicShelfRawIdIndex.of(queueTasks)
                             val rawComicId = rawIndex.rawIdOf(ch.sourceKey, ch.comicId) ?: com.venera.desktop.gallery.data.restoreSafeComicId(ch.comicId)
                             val mappedTask = queueTasks.firstOrNull { it.comicId == rawComicId || it.comicId == ch.comicId }
-                            val effectiveTitle = mappedTask?.comicTitle?.takeIf { it.isNotBlank() && !it.startsWith("http") } ?: ch.title
-                            // 主人口径「观看后首页历史要正确记录（含预览画面）」：封面从队列任务
-                            // 回查官方 coverUrl —— 恒空串的话历史行/首页 Hero 就是永久空白框。
+                            val effectiveTitle = ch.comicTitle.takeIf { it.isNotBlank() && !it.startsWith("http") }
+                                ?: mappedTask?.comicTitle?.takeIf { it.isNotBlank() && !it.startsWith("http") }
+                                ?: ch.title
+                            val effectiveCover = ch.coverUrl.ifBlank { mappedTask?.comicCover.orEmpty() }
+                            // 主人口径「观看后首页历史要正确记录（含预览画面）」：优先从台账读取，再回查队列任务 coverUrl。
                             route = DesktopRoute.Reader(
                                 comicId = rawComicId,
                                 title = effectiveTitle,
-                                cover = mappedTask?.comicCover.orEmpty(),
+                                cover = effectiveCover,
                                 sourceKey = ch.sourceKey,
                                 episode = com.venera.engineprobe.EngineSession.Episode(name = ch.title, id = ch.chapterId),
                                 startPage = 0,
@@ -975,8 +1010,19 @@ internal fun DesktopComicAndSourceHost(
                             )
                         },
                         localComicScan = localComicScan,
+                        importedComics = filesUi.importedComics,
                         localComicNote = filesUi.localComicNote,
                         onImportComics = localImportPickAction,
+                        onImportComicFolder = {
+                            val picked = com.venera.desktop.gallery.data.DesktopDirChooser.pickDirectory(
+                                "选择要导入的漫画文件夹",
+                                downloadsRoot?.absolutePath,
+                            )
+                            if (picked != null) {
+                                filesUi.localFolderImportPick = java.io.File(picked)
+                                filesUi.localComicNote = null
+                            }
+                        },
                         onOpenLocalComic = { comic ->
                             route = DesktopRoute.LocalComicReader(
                                 title = comic.title,
@@ -985,10 +1031,26 @@ internal fun DesktopComicAndSourceHost(
                                 from = DesktopRoute.Files,
                             )
                         },
+                        onOpenLocalComicChapter = { title, chapterDir ->
+                            route = DesktopRoute.LocalComicReader(
+                                title = title,
+                                rootPath = chapterDir.absolutePath,
+                                startPage = 0,
+                                from = DesktopRoute.Files,
+                            )
+                        },
                         onDeleteLocalComic = { comic ->
                             scope.launch {
                                 withContext(Dispatchers.IO) {
-                                    runCatching { java.io.File(comic.rootPath).deleteRecursively() }
+                                    com.venera.desktop.downloads.DesktopDownloadsDb.deleteImportedComic(comic.rootPath)
+                                    if (!comic.isLinked) {
+                                        runCatching { java.io.File(comic.rootPath).deleteRecursively() }
+                                    }
+                                }
+                                filesUi.localComicNote = if (comic.isLinked) {
+                                    "已移除文件夹关联「${comic.title}」（硬盘原文件夹未删除）"
+                                } else {
+                                    null
                                 }
                                 downloadsTick++
                                 localComicImportTick++
@@ -1057,14 +1119,14 @@ internal fun DesktopComicAndSourceHost(
                         },
                         onDeleteImages = { list ->
                             scope.launch {
+                                val pathsToDelete = list.flatMap { it.allPaths }
                                 val (ok, bad) = withContext(Dispatchers.IO) {
-                                    com.venera.desktop.downloads.deleteDesktopLocalImages(list.flatMap { it.allPaths })
+                                    val res = com.venera.desktop.downloads.deleteDesktopLocalImages(pathsToDelete)
+                                    com.venera.desktop.downloads.DesktopDownloadsDb.deleteImagesByPaths(pathsToDelete)
+                                    res
                                 }
                                 filesUi.imageItems = withContext(Dispatchers.IO) {
-                                    com.venera.desktop.downloads.scanDesktopLocalImages(
-                                        galleryPaths,
-                                        galleryPrefs?.downloadDir?.value,
-                                    )
+                                    com.venera.desktop.downloads.DesktopDownloadsDb.listImageItems()
                                 }
                                 filesUi.imageNote = com.venera.desktop.downloads.desktopImageDeleteReceipt(ok, bad)
                             }
@@ -1186,7 +1248,7 @@ internal fun DesktopComicAndSourceHost(
                                 listOf("cover.jpg", "cover.png", "cover.webp")
                                     .map { java.io.File(dir, it) }
                                     .firstOrNull { it.isFile }?.absolutePath
-                            }.orEmpty()
+                            } ?: pageFiles.firstOrNull()?.absolutePath.orEmpty()
                             val progress = com.venera.desktop.gallery.data.DesktopReadingProgress(
                                 comicId = r.title,
                                 title = r.title,

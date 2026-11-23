@@ -390,7 +390,6 @@ internal fun DesktopLargeScreenMiscEffects(
         }
     }
     LaunchedEffect(Unit) {
-        com.venera.desktop.platform.DesktopNotifier.install()
         kotlinx.coroutines.delay(8_000)
         runCatching { performSourceUpdateCheck(true) }
             .onFailure {
@@ -437,13 +436,11 @@ internal fun DesktopLargeScreenMiscEffects(
             DesktopPetCueBus.emit(DesktopPetCue.DOWNLOAD_ALL_DONE)
         }
     }
-    LaunchedEffect(route, filesUi.imageScanTick, downloadsRoot, galleryPaths, galleryPrefs?.downloadDir?.value) {
-        if (route is DesktopRoute.Files || filesUi.imageScanTick > 0) {
+    val downloadsDbVersion by com.venera.desktop.downloads.DesktopDownloadsDb.version.collectAsState()
+    LaunchedEffect(route, filesUi.imageScanTick, downloadsDbVersion, downloadsRoot, galleryPaths) {
+        if (route is DesktopRoute.Files || filesUi.imageScanTick > 0 || downloadsDbVersion > 0) {
             filesUi.imageItems = withContext(Dispatchers.IO) {
-                com.venera.desktop.downloads.scanDesktopLocalImages(
-                    galleryPaths,
-                    galleryPrefs?.downloadDir?.value,
-                )
+                com.venera.desktop.downloads.DesktopDownloadsDb.listImageItems()
             }
         }
     }

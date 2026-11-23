@@ -288,30 +288,16 @@ val dwmsbtArg = "-Ddesktop.dwmsbt=" + providers.gradleProperty("desktop.dwmsbt")
 
 val desktopRuntimeJvmArgs = listOf(
     dwmsbtArg,
-    // 页面峰值实测只到 60MB 上下；上限压在 256m 是让老年代没有扩到 384 的余地，
-    // 收缩才有意义（配合下面两格 Max/MinHeapFreeRatio）。
-    "-Xmx256m",
-    // SerialGC 会把整个堆**预提交**（实测 NMT：heap committed=393MB，实际 used≈50MB）——
-    // 不给 -Xms 就是刚启动就白占三百多 MB 的 RSS。按需增长，上限不动。
+    // 桌面端含图库瀑布流、大图解码与切页双屏共存，上限放宽到 1024m 并使用低停顿 G1GC，
+    // 避免 256m + SerialGC 在切页时频繁触发单线程 Full GC 导致界面冻屏。
+    "-Xmx1024m",
     "-Xms64m",
-    // 老年代默认要空闲到 70% 才收缩：实测空载 committed 90MB 而 used 只有 49MB ⇒ 页收不回去。
-    // 收到 40%/20% 让每轮 full GC 真把空页还给系统；这两个参数只有 Serial/Parallel 认，
-    // 所以它跟上面那格 UseSerialGC 是一组，单独挪到 G1 上会被忽略。
-    "-XX:MaxHeapFreeRatio=40",
-    "-XX:MinHeapFreeRatio=20",
     "-XX:MaxMetaspaceSize=192m",
-    // 代码缓存只留 C1：桌面这一屏的热点方法多但单次执行都很短，C2 的优化收益抵不上它
-    // 那 25MB 的代码常驻（实测 CodeCache 用到 35MB）。观感上只影响超大列表的滚动帧率。
-    "-XX:TieredStopAtLevel=1",
-    "-XX:ReservedCodeCacheSize=96m",
-    "-XX:+UseSerialGC",
+    "-XX:ReservedCodeCacheSize=128m",
+    "-XX:+UseG1GC",
     "-XX:+UnlockExperimentalVMOptions",
     "-XX:+UseCompactObjectHeaders",
-    // GPU 纹理缓存的**唯一上限**。不设时 Skia 按自己的默认一直往里堆：块级实测浏览图库后
-    // 新出现一块 64MB 的 WriteCombine 映射，回首页也不释放 —— 那张纹理已经不在屏上，却仍挂在缓存里。
-    // 上限要设到「小到会真的触发淘汰」才有用：256M 比实际用量还宽、64M 也放得下那块 64MB，
-    // 两次都等于没设。32M 才是第一次真正越界，逼 Skia 把离开视口的纹理丢掉。
-    "-Dskiko.gpu.resourceCacheLimit=32M",
+    "-Dskiko.gpu.resourceCacheLimit=128M",
 )
 
 compose.desktop {
@@ -352,7 +338,9 @@ compose.desktop {
             // 它对 java.sql 的依赖 jlink 推不出来 ⇒ 交付包里 `java.sql.SQLException` 直接找不到，
             // 而开发跑用的是全 JDK，判据与 dev 起窗都抓不到 —— 只有打包跑看得见：
             // `D_异常 … 因=NoClassDefFoundError: java/sql/SQLException 栈=DesktopDatabasePorts.kt:200`（2026-10-10，批 82.9）。
-            modules("jdk.accessibility", "jdk.unsupported", "java.sql")
+            // java.net.http：ascii2d 搜图、CF 过盾、Edge/E 站网页登录的 CDP 客户端依赖，
+            // jlink 默认不会从未显式声明的跨线程/反射链路推导它，不加则在打包版报 NoClassDefFoundError。
+            modules("jdk.accessibility", "jdk.unsupported", "java.sql", "java.net.http")
             description = "VComic（漫画与图库）"
             vendor = "VComic"
             // 上面那两句"正式产物要改成写日志文件"本批做完了，所以这里从 true 改成 false：

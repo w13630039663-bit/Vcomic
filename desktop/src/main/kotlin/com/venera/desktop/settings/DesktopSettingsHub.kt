@@ -277,6 +277,7 @@ internal fun DesktopSettingsHub(
     val videoAutoPlay by prefs.videoAutoPlay.collectAsState()
     val downloadDir by prefs.downloadDir.collectAsState()
     val downloadUseDefaultDir by prefs.downloadUseDefaultDir.collectAsState()
+    val comicDownloadDir by prefs.comicDownloadDir.collectAsState()
     val maskMode by guard.nsfwMaskMode.collectAsState()
     val guardRules by guard.rules.collectAsState()
     val readingMode = readerPrefs?.readingMode?.collectAsState()?.value
@@ -1537,10 +1538,15 @@ internal fun DesktopSettingsHub(
             // 选择框是原生模态（DesktopDirChooser：Win32 Shell32 / 其余 Swing），点击回调线程直调；
             // 取消 ⇒ 不写盘。漫画队列目录仍在装配侧，没接进来就不摆进这张卡的话里。
             val shownDir = if (downloadDir.isBlank()) desktopGallerySaveDir(p).absolutePath else downloadDir
+            val shownComicDir = if (comicDownloadDir.isBlank()) {
+                com.venera.desktop.gallery.data.desktopComicDownloadsRoot(p.dataRoot).absolutePath
+            } else {
+                comicDownloadDir
+            }
             add(
                 DesktopSettingsCard(
                     title = "下载目录",
-                    caption = "图库与 Pixiv 存图目录",
+                    caption = "图库存图与漫画离线下载目录",
                     rows = listOf(
                         DesktopSettingRow.Toggle(
                             title = "默认目录直存",
@@ -1553,11 +1559,11 @@ internal fun DesktopSettingsHub(
                             onToggle = { prefs.setDownloadUseDefaultDir(it) },
                         ),
                         DesktopSettingRow.Entry(
-                            title = "下载目录",
+                            title = "图库下载目录",
                             caption = dirPickerError ?: "点右侧换目录；留空回内置 数据根/downloads/图库",
                             value = if (downloadDir.isBlank()) "内置默认" else downloadDir,
                             onOpen = {
-                                val picked = DesktopDirChooser.pickDirectory("选择下载目录", shownDir) {
+                                val picked = DesktopDirChooser.pickDirectory("选择图库下载目录", shownDir) {
                                     dirPickerError = it
                                 }
                                 if (picked != null) {
@@ -1567,7 +1573,7 @@ internal fun DesktopSettingsHub(
                             },
                         ),
                         DesktopSettingRow.Action(
-                            title = "打开下载文件夹",
+                            title = "打开图库文件夹",
                             caption = "在资源管理器里看已下载的图",
                             buttonLabel = "打开",
                             onAction = {
@@ -1577,11 +1583,46 @@ internal fun DesktopSettingsHub(
                             },
                         ),
                         DesktopSettingRow.Action(
-                            title = "恢复内置目录",
+                            title = "恢复图库内置目录",
                             caption = "清掉自定义，回到数据根下的 downloads/图库",
                             buttonLabel = "恢复",
                             enabled = downloadDir.isNotBlank(),
                             onAction = { prefs.setDownloadDir("") },
+                        ),
+                        DesktopSettingRow.Entry(
+                            title = "漫画下载目录",
+                            caption = "新下载漫画章节存放目录；留空回内置 数据根/downloads",
+                            value = if (comicDownloadDir.isBlank()) "内置默认" else comicDownloadDir,
+                            onOpen = {
+                                val picked = DesktopDirChooser.pickDirectory("选择漫画下载目录", shownComicDir) {
+                                    dirPickerError = it
+                                }
+                                if (picked != null) {
+                                    dirPickerError = null
+                                    prefs.setComicDownloadDir(picked)
+                                }
+                            },
+                        ),
+                        DesktopSettingRow.Action(
+                            title = "打开漫画文件夹",
+                            caption = "在资源管理器里看已下载的漫画章节",
+                            buttonLabel = "打开",
+                            onAction = {
+                                scope.launch {
+                                    runCatching {
+                                        val dir = java.io.File(shownComicDir)
+                                        dir.mkdirs()
+                                        java.awt.Desktop.getDesktop().open(dir)
+                                    }
+                                }
+                            },
+                        ),
+                        DesktopSettingRow.Action(
+                            title = "恢复漫画内置目录",
+                            caption = "清掉自定义，回到数据根下的 downloads（已下载的旧漫画仍保留）",
+                            buttonLabel = "恢复",
+                            enabled = comicDownloadDir.isNotBlank(),
+                            onAction = { prefs.setComicDownloadDir("") },
                         ),
                     ),
                 ),

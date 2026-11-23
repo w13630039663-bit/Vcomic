@@ -8,6 +8,7 @@
 |---|---|---|---:|---|
 | 核心库 | `venera_core.db` | 4 | 应用自维护 | 历史、收藏、源元数据、统计、插图收藏、屏蔽规则、追更账本与订阅绑定 |
 | 本地收藏夹库 | `local_favorite.db` | 1 | 遗留体系，仍在使用 | 一夹一表收藏、夹排序、网络夹绑定 |
+| 桌面下载台账库 | `desktop_downloads.db` | 1 | 桌面自维护 | 漫画下载台账（`comic_download_records`）、图片下载台账（`image_download_records`）与本地导入/关联漫画台账（`local_comic_imports`），「本机内容」纯读库不扫盘 |
 | 图库词典 | `gallery_tags_79415.sqlite` | 无 | 只读资产 | 标签离线词典 |
 
 落点统一为 `%LOCALAPPDATA%\venera\db\`。数据根取不到时直接抛异常，不退回临时目录。
@@ -243,6 +244,7 @@ v1 建表清单已提前包含 v3 三张表，因此 v2 分支提前 `return` �
 | `comic_follow_sync_source` | `ComicFollowDao` | `FollowSyncSourceRecord` |
 | `tags` | `TagDictionaryStore` | `TagDictRow` |
 | `folder_order` / `folder_sync` / 动态夹表 | `LocalFavoriteDatabase`、`LocalFavoritesManager` | `FavoriteItem` / `FavoriteItemWithUpdateInfo` |
+| `comic_download_records` / `image_download_records` / `local_comic_imports` | `DesktopDownloadsDb` | `DesktopComicDownloadedChapter` / `DesktopLocalImageItem` / `DesktopLocalComic` |
 | core 表备份 | `CoreTableBackup`、`DesktopBackup` | `DesktopBackupSnapshot` |
 | 全量归档 | `DesktopVeneraArchive` | — |
 

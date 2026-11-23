@@ -76,12 +76,21 @@ internal fun desktopLocalImageTitle(item: DesktopLocalImageItem): String {
     return if (site != null && id.all { c -> c.isLetterOrDigit() }) "$site · $id" else normalizedStem
 }
 
-/** 扫描落点根；仅收录软件下载的画廊图片，并将 Pixiv 多图作品聚合成单个卡片。 */
-internal fun scanDesktopLocalImages(paths: PathProvider?, customDir: String?): List<DesktopLocalImageItem> {
+/** 扫描落点根及手选保存过的额外目录；仅收录软件下载的画廊图片，并将 Pixiv 多图作品聚合成单个卡片。 */
+internal fun scanDesktopLocalImages(
+    paths: PathProvider?,
+    customDir: String?,
+    extraDirs: List<String> = emptyList(),
+): List<DesktopLocalImageItem> {
     if (paths == null) return emptyList()
-    val root = desktopGallerySaveDir(paths, customDir)
-    if (!root.isDirectory) return emptyList()
+    val roots = buildList {
+        add(desktopGallerySaveDir(paths, customDir))
+        extraDirs.forEach { if (it.isNotBlank()) add(File(it)) }
+    }.distinctBy { runCatching { it.canonicalPath }.getOrDefault(it.absolutePath) }
+        .filter { it.isDirectory }
+    if (roots.isEmpty()) return emptyList()
     val rawList = ArrayList<DesktopLocalImageItem>()
+    val seenPaths = HashSet<String>()
     fun collect(dir: File, relDir: String) {
         val files = dir.listFiles() ?: return
         for (f in files) {
@@ -90,6 +99,8 @@ internal fun scanDesktopLocalImages(paths: PathProvider?, customDir: String?): L
             if (!isSoftwareDownloadedImage(f.name)) continue
             val ext = f.name.substringAfterLast('.', "").lowercase(Locale.ROOT)
             if (ext !in WANTED_EXT) continue
+            val key = runCatching { f.canonicalPath }.getOrDefault(f.absolutePath)
+            if (!seenPaths.add(key)) continue
             rawList += DesktopLocalImageItem(
                 path = f.absolutePath,
                 dir = relDir,
@@ -100,11 +111,17 @@ internal fun scanDesktopLocalImages(paths: PathProvider?, customDir: String?): L
             )
         }
     }
-    collect(root, "")
-    root.listFiles()?.filter { it.isDirectory }?.sortedBy { it.name.lowercase(Locale.ROOT) }
-        ?.forEach { collect(it, it.name) }
+    for (root in roots) {
+        collect(root, "")
+        root.listFiles()?.filter { it.isDirectory }?.sortedBy { it.name.lowercase(Locale.ROOT) }
+            ?.forEach { collect(it, it.name) }
+    }
 
-    // Pixiv 多图作品聚合为单张卡片
+    return aggregateDesktopImageItems(rawList)
+}
+
+/** 将原始图片列表中的 Pixiv 多图作品（`pixiv_<id>_pN`）聚合成单张卡片，按时间倒序排列。 */
+internal fun aggregateDesktopImageItems(rawList: List<DesktopLocalImageItem>): List<DesktopLocalImageItem> {
     val pixivGrouped = LinkedHashMap<String, MutableList<DesktopLocalImageItem>>()
     val nonPixiv = ArrayList<DesktopLocalImageItem>()
     for (item in rawList) {
@@ -129,7 +146,7 @@ internal fun scanDesktopLocalImages(paths: PathProvider?, customDir: String?): L
                 mtime = latestMtime,
                 allPaths = sorted.map { it.path },
                 pageCount = sorted.size,
-            )
+            ),
         )
     }
     return out.sortedByDescending { it.mtime }

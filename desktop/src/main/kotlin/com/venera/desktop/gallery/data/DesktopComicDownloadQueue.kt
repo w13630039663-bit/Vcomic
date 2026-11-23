@@ -418,6 +418,28 @@ internal object DesktopComicDownloadQueue {
         stops.add(taskId)
     }
 
+    /** 暂停指定任务：进行中的走协作停止，排队等待中的直接转为已暂停并落盘。 */
+    fun pause(root: File, taskId: String) {
+        val current = _tasks.value.firstOrNull { it.taskId == taskId } ?: return
+        when (current.status) {
+            DesktopComicQueueStatus.RUNNING -> requestStop(taskId)
+            DesktopComicQueueStatus.PENDING -> {
+                mutate(taskId) { task ->
+                    if (task.status == DesktopComicQueueStatus.PENDING) {
+                        task.copy(
+                            status = DesktopComicQueueStatus.STOPPED,
+                            downloadedPages = desktopComicQueuePagesOnDisk(desktopComicQueueDir(root, task)),
+                        )
+                    } else {
+                        task
+                    }
+                }
+                save(root)
+            }
+            else -> Unit
+        }
+    }
+
     /** 恢复/继续已暂停或失败的下载任务，保留原本的作品名与封面 */
     fun resume(root: File, taskId: String) {
         stops.remove(taskId)
@@ -480,6 +502,25 @@ internal object DesktopComicDownloadQueue {
 
                 is DesktopComicChapterRun.Completed ->
                     if (desktopComicChapterIsComplete(dir, task.totalPages)) {
+                        val totalBytes = (0 until task.totalPages).sumOf { index ->
+                            val f = File(dir, desktopComicChapterPageFileName(index))
+                            if (f.isFile) f.length() else 0L
+                        }
+                        com.venera.desktop.downloads.DesktopDownloadsDb.recordComicChapter(
+                            sourceKey = task.sourceKey,
+                            comicId = task.comicId,
+                            comicTitle = task.comicTitle,
+                            coverUrl = task.comicCover,
+                            chapterId = task.chapterId,
+                            chapterOrder = task.chapterOrder,
+                            chapterTitle = task.chapterTitle,
+                            expectedPages = task.totalPages,
+                            writtenPages = onDisk,
+                            bytes = totalBytes,
+                            complete = true,
+                            sourceUrl = "${task.sourceKey}://${task.comicId}",
+                            localDir = dir.absolutePath,
+                        )
                         com.venera.desktop.platform.DesktopSystemTray.notifyDownloadComplete(
                             title = task.comicTitle.ifBlank { "下载完成" },
                             message = "${task.chapterTitle.ifBlank { "章节" }} 已下载完成（${onDisk} 页）",

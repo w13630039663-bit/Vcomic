@@ -112,6 +112,7 @@ class DesktopFollowUpdateChecker(
 
         val started = scope.launch(Dispatchers.IO) {
             var found = 0
+            val updatedTitles = mutableListOf<String>()
             var skipped = 0
             var failed = 0
             var notice = ""
@@ -179,7 +180,10 @@ class DesktopFollowUpdateChecker(
                     sourceFailures[record.sourceName] = 0
                     val latest = dao.get(record.comicId, record.sourceName) ?: record
                     val plan = FollowUpdateDiff.plan(latest, snapshot, clock())
-                    if (plan.kind == FollowDiffKind.UPDATED) found++
+                    if (plan.kind == FollowDiffKind.UPDATED) {
+                        found++
+                        if (updatedTitles.size < 3) updatedTitles += latest.title
+                    }
                     dao.applyCheckSuccess(
                         record.comicId,
                         record.sourceName,
@@ -230,6 +234,18 @@ class DesktopFollowUpdateChecker(
                         humanReason = "本轮有 $failed 本没查成，逐条原因已写进各自的追更记录；可稍后重查。",
                         detail = summary,
                         dedupKey = "comic:follow_check_failed",
+                    )
+                }
+                if (!cancelled && found > 0) {
+                    val body = if (updatedTitles.isNotEmpty()) {
+                        val preview = updatedTitles.joinToString("、")
+                        if (found > updatedTitles.size) "$preview 等 $found 本已更新" else preview
+                    } else {
+                        "发现 $found 本追更漫画有新章节"
+                    }
+                    com.venera.desktop.platform.DesktopSystemTray.notifyDownloadComplete(
+                        "漫画追更发现 $found 本更新",
+                        body,
                     )
                 }
             }

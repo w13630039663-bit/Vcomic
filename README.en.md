@@ -22,6 +22,9 @@ A multi-source manga reader and multi-site gallery browser for Windows desktop.<
 
 </div>
 
+> [!NOTE]
+> The Windows installer is currently unsigned (no commercial code-signing certificate). When running a downloaded `.exe` for the first time, if your browser or Windows Defender SmartScreen shows an "Unknown publisher" warning, click **"More info" → "Run anyway"** to proceed. The project is fully open source and can also be built from source.
+
 ---
 
 ## What is this

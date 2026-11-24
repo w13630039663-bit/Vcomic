@@ -51,7 +51,7 @@ jobs:
         run: .\gradlew.bat :desktop:compileKotlin --no-daemon
 
       - name: Run unit tests
-        run: .\gradlew.bat :desktop:test --no-daemon
+        run: .\gradlew.bat :desktop:test -PtestForks=2 -Djava.awt.headless=true --no-daemon --console=plain
 
   build-and-test-linux:
     name: Build & Unit Tests (Linux)
@@ -78,10 +78,12 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Check duplicate imports
-        run: ./gradlew :desktop:checkDuplicateImports --no-daemon
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :desktop:checkDuplicateImports --no-daemon
 
       - name: Compile desktop Kotlin
         run: ./gradlew :desktop:compileKotlin --no-daemon
 
       - name: Run unit tests
-        run: ./gradlew :desktop:test --no-daemon
+        run: ./gradlew :desktop:test -PtestForks=2 -Djava.awt.headless=true --no-daemon --console=plain

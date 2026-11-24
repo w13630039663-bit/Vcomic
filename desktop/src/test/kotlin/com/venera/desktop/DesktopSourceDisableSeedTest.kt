@@ -1,5 +1,6 @@
 package com.venera.desktop
 
+import com.venera.desktop.app.ForensicFlags
 import com.venera.desktop.gallery.data.DesktopSourcePick
 import com.venera.desktop.gallery.data.DesktopSourceSelection
 import com.venera.desktop.gallery.ui.DesktopSourceTree

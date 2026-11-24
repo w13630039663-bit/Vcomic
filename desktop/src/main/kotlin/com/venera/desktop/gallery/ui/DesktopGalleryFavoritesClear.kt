@@ -1,9 +1,9 @@
 package com.venera.desktop.gallery.ui
 
 import com.venera.compose.gallery.data.GalleryFavorites
-import com.venera.desktop.desktopFailureFrame
-import com.venera.desktop.desktopFailureType
-import com.venera.desktop.desktopOneLineMessage
+import com.venera.desktop.data.desktopFailureFrame
+import com.venera.desktop.data.desktopFailureType
+import com.venera.desktop.data.desktopOneLineMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

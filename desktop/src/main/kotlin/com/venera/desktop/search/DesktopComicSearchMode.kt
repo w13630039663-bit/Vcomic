@@ -1,5 +1,6 @@
 package com.venera.desktop.search
 
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -211,13 +212,13 @@ internal enum class DesktopSearchSourceFilterTab {
 }
 
 /**
- * 判定搜索源是否属于 R18 / 受限向，直接复用 [com.venera.desktop.DesktopSourceContentPresets] 单源分级表。
+ * 判定搜索源是否属于 R18 / 受限向，直接复用 [com.venera.desktop.data.DesktopSourceContentPresets] 单源分级表。
  * 同时剥离多账号变体后缀（如 `_multi_accounts`），确保同一站点的多账号克隆与主站分级一致。
  */
 internal fun isR18SearchSource(sourceKey: String): Boolean {
     val trimmed = sourceKey.trim()
     if (trimmed.isEmpty()) return false
-    val presets = com.venera.desktop.DesktopSourceContentPresets
+    val presets = com.venera.desktop.data.DesktopSourceContentPresets
     val levels = presets.levels
     if (presets.lastError != null) return presets.isGuarded(trimmed)
     val baseKey = trimmed.removeSuffix("_multi_accounts")

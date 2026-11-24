@@ -161,7 +161,7 @@ class DesktopFollowUpdateChecker(
                         if (failures >= maxSourceFailures && record.sourceName !in broken) {
                             broken += record.sourceName
                             notice = "源「${record.sourceName}」连续失败 $failures 次，已跳过本轮剩余条目：请手动过盾或重新登录"
-                            com.venera.desktop.DesktopErrorBus.report(
+                            com.venera.desktop.data.DesktopErrorBus.report(
                                 category = "漫画",
                                 headline = "追更巡检失败：${record.sourceName}",
                                 humanReason = "这颗源连续失败 $failures 次，本轮剩余条目已跳过；多半是被盾拦住，可手动过盾或重新登录后重查。",
@@ -228,7 +228,7 @@ class DesktopFollowUpdateChecker(
                     summary = summary,
                 )
                 if (failed > 0) {
-                    com.venera.desktop.DesktopErrorBus.report(
+                    com.venera.desktop.data.DesktopErrorBus.report(
                         category = "漫画",
                         headline = "追更巡检有失败",
                         humanReason = "本轮有 $failed 本没查成，逐条原因已写进各自的追更记录；可稍后重查。",

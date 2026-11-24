@@ -149,6 +149,8 @@ dependencies {
     implementation(libs.compose.fluent.desktop)
     implementation(libs.window.styler)
     // 端到端最小闭环：真源脚本 + GraalJS 宿主 + 取图，全走 :engine-probe 那批共享 handler
+    implementation(project(":core-data"))
+    implementation(project(":gallery-core"))
     implementation(project(":engine-probe"))
     // Miuix 的 desktop 变体：同一版本目录里能不能与 fluent-desktop 并存，是 S0-1 要量的一格
     implementation(libs.miuix.ui.desktop)
@@ -250,7 +252,7 @@ tasks.withType<Test> {
     //   ⇒ 谁先锁单例成了运气 ⇒ 后来的用例打到别人那张空路由表上。
     //   要开这一枚得先让那三颗单例在测试里可复位（那要动 `app/src/main` 的 client，不在本批面里）。
     //   旋钮留着不删：形状由 `DesktopTestRunKnobsTest` 钉住，默认值不许漂。
-    val testForks = providers.gradleProperty("testForks").orNull?.toIntOrNull() ?: 1
+    val testForks = providers.gradleProperty("testForks").orNull?.toIntOrNull() ?: 4
     if (testForks > 1) {
         maxParallelForks = testForks
     }
@@ -304,7 +306,7 @@ compose.desktop {
     application {
         // 打包对象从"探针窗"换成真正的最小闭环 App：
         // 要验的是 GraalJS 能不能活过 jlink 出来的运行时（S0-9 那次打的是 SpikeWindow，没覆盖到）
-        mainClass = "com.venera.desktop.VeneraDesktopKt"
+        mainClass = "com.venera.desktop.app.VeneraDesktopKt"
 
         // 打包用的 jlink 运行时必须是 25：字节码按 jvmToolchain(25) 出（major 69），
         // 且 desktopRuntimeJvmArgs 带 `-XX:+UseCompactObjectHeaders`（JDK 24 起才有）。
@@ -648,7 +650,7 @@ tasks.register<JavaExec>("app") {
     doFirst { println("D_gradle app jvmArgs 含 dwmsbtArg=" + dwmsbtArg) }
     group = "probe"
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass = "com.venera.desktop.VeneraDesktopKt"
+    mainClass = "com.venera.desktop.app.VeneraDesktopKt"
     workingDir = rootDir
     // ⚠️ 强制 UTF-8 写 stdout（2026-10-04 实测才加）：JDK 18+ 的 `System.out` 跟的是
     //   `stdout.encoding`，中文 Windows 上默认落到 GBK，而 Gradle 按 UTF-8 解码子进程输出 ——

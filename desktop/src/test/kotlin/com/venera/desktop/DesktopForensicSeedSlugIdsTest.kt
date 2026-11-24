@@ -1,5 +1,10 @@
 package com.venera.desktop
 
+import com.venera.desktop.app.ForensicFlags
+import com.venera.desktop.app.buildForensicArtistNote
+import com.venera.desktop.app.desktopForensicSegment
+import com.venera.desktop.app.parseForensicArtist
+import com.venera.desktop.app.parseForensicRanking
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -30,8 +35,13 @@ import org.junit.Test
  */
 class DesktopForensicSeedSlugIdsTest {
 
-    private fun code(): String =
-        DesktopSourceTree.codeText(DesktopSourceTree.desktopMainSources().first { it.name == "ForensicFlags.kt" })
+    private fun code(): String = listOf(
+        "ForensicFlagsComicSeeds.kt",
+        "ForensicFlagsScreenSeeds.kt",
+        "ForensicFlags.kt",
+    ).joinToString("\n") { name ->
+        DesktopSourceTree.codeText(DesktopSourceTree.desktopMainSources().first { it.name == name })
+    }
 
     private fun occurrences(hay: String, needle: String): Int {
         if (needle.isEmpty()) return 0
@@ -96,11 +106,9 @@ class DesktopForensicSeedSlugIdsTest {
     @Test
     fun 站点与榜单那两颗不许跟着改() {
         val code = code()
-        // 切段要避开那颗助手本身：它就长在 `fun artist(` 与 `fun comic(` 之间，
-        // 拿 `fun comic(` 当右界会把助手的定义行算进 artist 那一格（判式咬到自己，本仓那一族第六次）。
-        val artist = code.substringAfter("fun artist(").substringBefore("private fun desktopForensicSegment")
+        val artist = code.substringAfter("fun parseForensicArtist(").substringBefore("internal fun buildForensicArtistNote")
         assertEquals("`--artist` 的第一段是站点 routeKey，不是漫画号：", 0, occurrences(artist, "desktopForensicSegment("))
-        val ranking = code.substringAfter("fun ranking(")
+        val ranking = code.substringAfter("fun parseForensicRanking(").substringBefore("private fun parseForensicRankingPeriod")
         assertEquals("`--ranking` 的第一段是枚举名，不是漫画号：", 0, occurrences(ranking, "desktopForensicSegment("))
         // `--repair=` 是第五颗吃号段的判读（同一族：号里带斜杠就得写 `%2F`）⇒ 五处 + 定义 = 六处。
         assertEquals("五颗判读各接一跳，加上那颗助手自己的定义共六处：", 6, occurrences(code, "desktopForensicSegment("))

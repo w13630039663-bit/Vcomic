@@ -26,10 +26,9 @@ toolchain 由 `foojay-resolver-convention` 按需下载。daemon 目标版本记
 |---|---|
 | 编译 | `./gradlew :desktop:compileKotlin` |
 | 编译探针源集 | `./gradlew :desktop:compileProbeKotlin` |
-| 编译探针源集 | `./gradlew :desktop:compileProbeKotlin` |
 | 运行（开发态） | `./gradlew :desktop:app` |
 | 运行安装向导窗口 | `./gradlew :desktop:installer` |
-| 全量测试 | `./gradlew :desktop:test` |
+| 全量测试 | `./gradlew :core-data:test :gallery-core:test :engine-probe:test :desktop:test --console=plain -Djava.awt.headless=true` |
 | 点名测试 | `./gradlew :desktop:test --tests A --tests B` |
 | 清测试结果 | `./gradlew :desktop:cleanTest` |
 | 出可运行目录 | `./gradlew :desktop:createDistributable` |
@@ -92,6 +91,17 @@ toolchain 由 `foojay-resolver-convention` 按需下载。daemon 目标版本记
 | exe | 同上目录内 `venera-desktop.exe` |
 | MSI | `desktop/build/compose/binaries/main/msi/`（jpackage 默认布局） |
 | 自研安装器 | `desktop/build/compose/binaries/main/installer/` |
+
+### 4.1 Linux 打包链路（AppImage 与便携绿色包）
+
+在 Linux / WSL2 或 GitHub Actions 运行环境执行轻量独立脚本 `scripts/package-linux.sh`：
+
+1. 执行 `./gradlew :desktop:createDistributable` 生成 Linux 运行时 app-image；
+2. 提取并压缩为免安装便携包 `VComic-<版本>-linux-x64.tar.gz`；
+3. 组装标准 `AppDir`，自动注入 `venera.desktop`（含 `StartupWMClass=venera-desktop` 与协议关联）及启动脚本 `AppRun`；
+4. 调用 `appimagetool` 输出单文件 `VComic-<版本>-linux-x64.AppImage`（系统无工具时自动跳过并保留绿色包）。
+
+产物均输出至 `desktop/build/compose/binaries/main/installer/`。已在 `.github/workflows/ci.yml` 和 `release.yml` 挂载 `ubuntu-latest` 自动化矩阵。
 
 ## 5. 版本号
 

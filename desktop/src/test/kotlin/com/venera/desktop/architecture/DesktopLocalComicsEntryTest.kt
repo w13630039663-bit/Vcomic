@@ -1,5 +1,8 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.DesktopRoute
+import com.venera.desktop.app.VeneraDesktopLargeScreen
+import com.venera.desktop.data.desktopEngineCall
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -17,7 +20,7 @@ import org.junit.Test
  */
 class DesktopLocalComicsEntryTest {
 
-    private val shellFile = DesktopSourceTree.desktopSourceOf("VeneraDesktopLargeScreen.kt")
+    private val shellFile = DesktopSourceTree.desktopSourceOf("app/VeneraDesktopLargeScreen.kt")
     private val shell = DesktopSourceTree.desktopLargeScreenCode()
     private val explore = DesktopSourceTree.codeText(
         DesktopSourceTree.desktopSourceOf("explore/DesktopExploreScreen.kt"),
@@ -42,20 +45,22 @@ class DesktopLocalComicsEntryTest {
         )
 
         val tierIdx = lines.withIndex()
-            .filter { "filesSegment = com.venera.desktop.downloads.DesktopFilesSegment.LOCAL" in it.value }
+            .filter {
+                "filesSegment = com.venera.desktop.downloads.DesktopFilesSegment.LOCAL" in it.value ||
+                    "filesSegment = DesktopFilesSegment.LOCAL" in it.value
+            }
             .map { it.index }
-        // 宽屏双源批 2→3：首页新增第二套（宽屏双列）接线，本地漫画档多一处
-        // `onOpenLocalComics`（窄版/宽版各一枚 + 探索屏一枚），三处都仍挂在「按下载根决定摆不摆」的门上。
+        // 拆分与去重后，首页浅色/经典双分支复用同一 onOpenLocalComics 门（共 2 处：首页共用 + 探索屏）。
         assertEquals(
-            "切进合并页 LOCAL 档的入口赋值该恰三处（窄/宽两套首页 + 探索屏，都挂 onOpenLocalComics 门）：" +
+            "切进合并页 LOCAL 档的入口赋值该恰两处（首页共用 + 探索屏，都挂 onOpenLocalComics 门）：" +
                 tierIdx.map { lines[it] }.joinToString("\n"),
-            3, tierIdx.size,
+            2, tierIdx.size,
         )
         tierIdx.forEach { at ->
             val above = lines.drop((at - 4).coerceAtLeast(0)).take(6).joinToString("\n")
             assertTrue(
-                "档位入口没挂在 `onOpenLocalComics` 那枚按下载根决定摆不摆的门上：\n${lines[at]}",
-                "onOpenLocalComics = if (downloadsRoot == null) null else {" in above,
+                "档位入口没挂在 `if (downloadsRoot == null) null else` 那枚按下载根决定摆不摆的门上：\n${lines[at]}",
+                "if (downloadsRoot == null) null else {" in above,
             )
         }
         // .1 定案（「下载与本地和下载队列两个不要分离，就同一个就行，不能有两个入口」）：

@@ -1,5 +1,6 @@
 package com.venera.desktop
 
+import com.venera.desktop.app.ForensicFlags
 import com.venera.desktop.gallery.data.DesktopReaderMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

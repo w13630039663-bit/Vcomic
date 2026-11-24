@@ -98,7 +98,7 @@ internal fun DesktopWindowTitleBar(
             TitleBarTopScrim(com.venera.compose.ui.tokens.LocalVeneraDarkTheme.current)
         } else {
             val topBarBlur by com.venera.desktop.settings.DesktopTopBarBlur.visible.collectAsState()
-            val backdropTransparent = com.venera.desktop.DesktopDwmBackdrop.active && topBarBlur
+            val backdropTransparent = com.venera.desktop.ui.DesktopDwmBackdrop.active && topBarBlur
             // 与内容区/侧栏同源（page）+ 同一阶梯，三块玻璃才不会一深一浅。
             val palette = com.venera.desktop.gallery.ui.LocalChromePalette.current
             val titleBg = if (backdropTransparent) {
@@ -202,7 +202,7 @@ internal fun DesktopWindowTitleBar(
                 )
             }
         }
-        com.venera.desktop.DesktopFeedbackTriggerButton(
+        com.venera.desktop.ui.DesktopFeedbackTriggerButton(
             tint = tokens.color.textSecondary,
             hoverBackground = tokens.color.surfaceVariant.copy(alpha = 0.6f),
         )

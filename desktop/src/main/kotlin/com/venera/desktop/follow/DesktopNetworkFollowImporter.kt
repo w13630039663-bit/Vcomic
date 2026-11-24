@@ -110,7 +110,7 @@ class DesktopNetworkFollowImporter(
                         throw e
                     } catch (e: Throwable) {
                         println("D_追更导入 取页失败 page=${pages + 1} ${e.javaClass.simpleName}: ${e.message?.take(160) ?: ""}")
-                        com.venera.desktop.DesktopErrorBus.report(
+                        com.venera.desktop.data.DesktopErrorBus.report(
                             category = "漫画",
                             headline = "网络收藏导入取数失败",
                             humanReason = "导入到第 ${pages + 1} 页时断了，已取到的前几页仍在；可稍后重试。",

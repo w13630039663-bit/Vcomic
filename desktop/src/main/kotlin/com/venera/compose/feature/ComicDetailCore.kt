@@ -467,7 +467,7 @@ class ComicDetailCore(
                     }
                 }
                 .onFailure { e ->
-                    com.venera.desktop.DesktopErrorBus.report(
+                    com.venera.desktop.data.DesktopErrorBus.report(
                         category = "漫画",
                         headline = "网络收藏夹读取失败",
                         humanReason = "这颗源的收藏夹没读回来，本地收藏不受影响；重开收藏面板或稍后再试。",
@@ -509,7 +509,7 @@ class ComicDetailCore(
                 // 本地收藏夹是设备上的库操作，失败原因（SQLite 原文）对用户没有可操作性，
                 // 说清"没成"和"可以再试"就够了。
                 logger.warn("VeneraDebug", "toggleLocalFavorite($folder) failed", e)
-                com.venera.desktop.DesktopErrorBus.report(
+                com.venera.desktop.data.DesktopErrorBus.report(
                     category = "漫画",
                     headline = "本地收藏操作失败",
                     humanReason = "未能更新收藏夹「$folder」，请重试或检查本地数据库状态。",
@@ -540,7 +540,7 @@ class ComicDetailCore(
                 }
                 .onFailure { e ->
                     logger.warn("VeneraDebug", "createFolder($trimmed) failed", e)
-                    com.venera.desktop.DesktopErrorBus.report(
+                    com.venera.desktop.data.DesktopErrorBus.report(
                         category = "漫画",
                         headline = "新建收藏夹失败",
                         humanReason = "未能创建「$trimmed」，请检查名称是否重复或数据库是否可写。",
@@ -586,7 +586,7 @@ class ComicDetailCore(
                     _isNetworkFav.value = if (isAdded) false else true
                 }
                 .onFailure { e ->
-                    com.venera.desktop.DesktopErrorBus.report(
+                    com.venera.desktop.data.DesktopErrorBus.report(
                         category = "漫画",
                         headline = "网络收藏操作失败",
                         humanReason = "这颗源的收藏接口没成，本地收藏不受影响；可再点一次或稍后重试。",
@@ -624,7 +624,7 @@ class ComicDetailCore(
                 }
                 .onFailure { e ->
                     logger.warn("VeneraDebug", "quickFavorite($target) failed", e)
-                    com.venera.desktop.DesktopErrorBus.report(
+                    com.venera.desktop.data.DesktopErrorBus.report(
                         category = "漫画",
                         headline = "快捷收藏失败",
                         humanReason = "未能将漫画加入「$target」，请重试。",
@@ -900,7 +900,7 @@ class ComicDetailCore(
                 // 先算好文案再进 updateThread：那个 lambda 不是挂起上下文，
                 // 而 sourceSupportsLogin 是挂起的（要跑源 JS）。
                 val message = humanizeSourceError(e, sources.sourceSupportsLogin(key))
-                com.venera.desktop.DesktopErrorBus.report(
+                com.venera.desktop.data.DesktopErrorBus.report(
                     category = "漫画",
                     headline = "章节评论加载失败",
                     humanReason = "这一页评论没取回来，已经显示的那些仍在；可重试或稍后再看。",
@@ -992,7 +992,7 @@ class ComicDetailCore(
                     val upstreamError = raw.contains("Invalid Status Code: 5") ||
                         raw.contains("502") || raw.contains("503")
                     if (!upstreamError) {
-                        com.venera.desktop.DesktopErrorBus.report(
+                        com.venera.desktop.data.DesktopErrorBus.report(
                             category = "漫画",
                             headline = "评论发送失败",
                             humanReason = "这条评论没发出去，草稿仍在输入框里；可直接重试。",

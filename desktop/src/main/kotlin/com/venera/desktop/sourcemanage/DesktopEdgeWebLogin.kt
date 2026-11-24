@@ -49,17 +49,8 @@ internal object DesktopEdgeWebLogin {
         val secure: Boolean = false,
     )
 
-    /** 查找本地 Edge 可执行文件路径。 */
-    fun findEdgeExecutable(): File? {
-        val candidates = listOfNotNull(
-            System.getenv("ProgramFiles(x86)")?.let { File(it, "Microsoft/Edge/Application/msedge.exe") },
-            System.getenv("ProgramFiles")?.let { File(it, "Microsoft/Edge/Application/msedge.exe") },
-            System.getenv("LOCALAPPDATA")?.let { File(it, "Microsoft/Edge/Application/msedge.exe") },
-            File("C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"),
-            File("C:/Program Files/Microsoft/Edge/Application/msedge.exe"),
-        )
-        return candidates.firstOrNull { it.exists() && it.isFile }
-    }
+    /** 查找本地 Chromium / Edge 可执行文件路径（支持 Windows、Linux 与环境变量自定义）。 */
+    fun findEdgeExecutable(): File? = com.venera.desktop.platform.DesktopBrowserDetector.findBrowserExecutable()
 
     /** 是否支持网页登录（本机有 Edge 即支持）。 */
     val isSupported: Boolean

@@ -1,5 +1,6 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.app.ForensicFlags
 import androidx.compose.ui.input.key.Key
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

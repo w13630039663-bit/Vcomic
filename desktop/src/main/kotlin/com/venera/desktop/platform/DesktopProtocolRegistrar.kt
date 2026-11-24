@@ -17,13 +17,26 @@ internal object DesktopProtocolRegistrar {
     const val DISABLED_SENTINEL = "venera-protocols.disabled"
 
     fun registerIfNeeded(dataRoot: File) {
-        if (!System.getProperty("os.name").orEmpty().contains("win", ignoreCase = true)) return
+        val osName = System.getProperty("os.name").orEmpty()
+        val isWindows = osName.contains("win", ignoreCase = true)
+        val isLinux = osName.contains("linux", ignoreCase = true)
+        if (!isWindows && !isLinux) return
+
         // 停用开关（档三）：哨兵文件在 ⇒ 本次启动不注册。用文件当闸是因为
         // 这里只拿得到 dataRoot:File，没有 PathProvider（写侧在设置中枢「桌面」区）。
         if (File(dataRoot, DISABLED_SENTINEL).isFile) {
             println("D_pixiv 协议回调注册已停用（设置中枢「桌面」区可重新开启）")
             return
         }
+
+        if (isWindows) {
+            registerWindows(dataRoot)
+        } else if (isLinux) {
+            registerLinux(dataRoot)
+        }
+    }
+
+    private fun registerWindows(dataRoot: File) {
         val command = resolveLaunchCommand(dataRoot)
         if (command == null) {
             println("D_pixiv 协议回调未注册：拿不到当前启动命令")
@@ -35,7 +48,7 @@ internal object DesktopProtocolRegistrar {
             importRegFile(regFile)
         }.onFailure {
             println("D_pixiv 协议回调注册失败 ${it.javaClass.simpleName}: ${it.message.orEmpty()}")
-            com.venera.desktop.DesktopErrorBus.report(
+            com.venera.desktop.data.DesktopErrorBus.report(
                 category = "系统",
                 headline = "Pixiv 登录回调注册失败",
                 humanReason = "系统 URL 协议注册受限，浏览器登录授权后可能无法自动跳回本软件。",
@@ -43,6 +56,59 @@ internal object DesktopProtocolRegistrar {
                 dedupKey = "protocol:pixiv_reg_fail",
             )
         }
+    }
+
+    private fun registerLinux(dataRoot: File) {
+        val command = resolveLinuxLaunchCommand()
+        if (command == null) {
+            println("D_pixiv 协议回调未注册：拿不到 Linux 启动命令")
+            return
+        }
+        runCatching {
+            val userHome = System.getProperty("user.home").orEmpty()
+            val appsDir = File(userHome, ".local/share/applications")
+            appsDir.mkdirs()
+            val desktopFile = File(appsDir, "venera.desktop")
+            desktopFile.writeText(linuxDesktopEntryText(command), Charsets.UTF_8)
+            // 调用 xdg-mime 注册默认 URL Scheme 处理器
+            val process = ProcessBuilder("xdg-mime", "default", "venera.desktop", "x-scheme-handler/pixiv", "x-scheme-handler/venera")
+                .redirectErrorStream(true)
+                .start()
+            val output = process.inputStream.bufferedReader(Charsets.UTF_8).readText()
+            val exit = process.waitFor()
+            if (exit != 0) {
+                println("D_pixiv xdg-mime 注册非 0 退出：$exit ${output.take(120)}")
+            }
+        }.onFailure {
+            println("D_pixiv Linux 协议回调注册失败 ${it.javaClass.simpleName}: ${it.message.orEmpty()}")
+        }
+    }
+
+    internal fun linuxDesktopEntryText(command: String): String = buildString {
+        appendLine("[Desktop Entry]")
+        appendLine("Type=Application")
+        appendLine("Name=VComic")
+        appendLine("Comment=VComic（漫画与图库）")
+        appendLine("Exec=$command %u")
+        appendLine("Icon=vcomic_icon")
+        appendLine("Terminal=false")
+        appendLine("Categories=Utility;Graphics;Viewer;")
+        appendLine("MimeType=x-scheme-handler/pixiv;x-scheme-handler/venera;")
+        appendLine("StartupWMClass=venera-desktop")
+    }
+
+    private fun resolveLinuxLaunchCommand(): String? {
+        val jpackage = System.getProperty("jpackage.app-path")?.trim()?.takeIf { it.isNotBlank() }
+        if (jpackage != null && File(jpackage).isFile) {
+            return "\"$jpackage\""
+        }
+        val currentProc = runCatching {
+            ProcessHandle.current().info().command().orElse(null)
+        }.getOrNull()?.trim()
+        if (!currentProc.isNullOrBlank() && !currentProc.endsWith("java", ignoreCase = true) && File(currentProc).isFile) {
+            return "\"$currentProc\""
+        }
+        return currentProc?.let { "\"$it\"" }
     }
 
     private fun resolveLaunchCommand(dataRoot: File): String? {

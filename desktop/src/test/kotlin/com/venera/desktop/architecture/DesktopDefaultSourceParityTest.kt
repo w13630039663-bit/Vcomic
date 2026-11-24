@@ -1,5 +1,11 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.DESKTOP_EXPLORE_SOURCE
+import com.venera.desktop.app.DesktopRoute
+import com.venera.desktop.app.DesktopUxPlatformServices
+import com.venera.desktop.app.VeneraDesktopLargeScreen
+import com.venera.desktop.app.runAutofavEvidence
+import com.venera.desktop.data.DesktopSourceContentPresets
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import java.io.File
 import org.junit.Assert.assertEquals
@@ -38,13 +44,11 @@ import org.junit.Test
  */
 class DesktopDefaultSourceParityTest {
 
-    private val route = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("DesktopRoute.kt"))
+    private val route = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/DesktopRoute.kt"))
     private val shell = DesktopSourceTree.codeLinesOf(
-        DesktopSourceTree.desktopSourceOf("VeneraDesktopLargeScreen.kt"),
+        DesktopSourceTree.desktopSourceOf("app/VeneraDesktopLargeScreen.kt"),
     ).filter { it.isNotBlank() }
-    private val assembly = DesktopSourceTree.codeLinesOf(
-        DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt"),
-    ).filter { it.isNotBlank() }
+    private val assembly = DesktopSourceTree.desktopEntryLines().filter { it.isNotBlank() }
 
     /** 安卓预设表（桌面资源清单里那份是它的副本，④ 那一条量的是"有没有被带上"）。 */
     private val presetTable: String by lazy {
@@ -129,7 +133,7 @@ class DesktopDefaultSourceParityTest {
         )
         // 带上还不够：桌面那颗读它的类不许把它当"读不到就当没事"。
         val presets = DesktopSourceTree.codeText(
-            DesktopSourceTree.desktopSourceOf("DesktopSourceContentPresets.kt"),
+            DesktopSourceTree.desktopSourceOf("data/DesktopSourceContentPresets.kt"),
         )
         assertTrue(
             "预设表解析成 0 条时得能出声（这条是子因 (1) 的配套：静默的空表比没有表更危险）",

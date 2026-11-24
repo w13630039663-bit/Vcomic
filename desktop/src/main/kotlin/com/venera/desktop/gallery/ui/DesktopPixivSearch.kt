@@ -1,5 +1,6 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.app.DesktopRoute
 import com.venera.compose.gallery.data.GalleryContentGuard
 import com.venera.compose.gallery.data.GalleryPixivCollections
 import com.venera.compose.gallery.data.GalleryPorts

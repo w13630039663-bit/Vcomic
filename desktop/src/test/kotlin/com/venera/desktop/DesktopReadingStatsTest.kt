@@ -1,5 +1,11 @@
 package com.venera.desktop
 
+import com.venera.desktop.data.DesktopReadingStats
+import com.venera.desktop.data.desktopReadingStatsDuration
+import com.venera.desktop.data.desktopReadingStatsScreenReading
+import com.venera.desktop.data.desktopReadingStatsTopCells
+import com.venera.desktop.data.desktopReadingStatsTrend
+import com.venera.desktop.data.desktopTopicOf
 import com.venera.compose.data.db.TopComicRow
 import com.venera.compose.data.db.TrendRow
 import java.time.LocalDate

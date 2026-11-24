@@ -1,5 +1,6 @@
 package com.venera.desktop.gallery.data
 
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.compose.data.db.FavoriteRecord
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
@@ -189,11 +190,10 @@ class DesktopFavoriteFoldersTest {
         ) + DesktopSourceTree.codeText(
             DesktopSourceTree.desktopSourceOf("detail/DesktopComicDetailFavoriteDialog.kt"),
         )
-        // 详情页复用共享收藏面板后，校验文件夹列表由核提供、勾选写侧接入 LocalFavoritesManager，屏不直接查库。
-        val body = DesktopSourceTree.codeText(DesktopSourceTree.androidSource("feature/ComicDetailScreen.kt"))
+        // 详情页复用共享核 ComicDetailCore 与桌面独立收藏弹窗，校验文件夹列表由核提供、勾选写侧接回核或桌面主表。
         assertTrue("那一排的名字没从核递进面板：", "localFolders: List<String>" in DesktopSourceTree.codeText(DesktopSourceTree.androidSource("feature/ComicDetailCore.kt")))
-        assertTrue("收藏面板没渲那一排：", "FavoritePanelSheet(" in body)
-        assertTrue("那一排的把手没接上落笔（摆了而按不动）：", "onToggleLocal = { folder -> viewModel.toggleLocalFavorite(comic, folder) }," in body)
+        assertTrue("详情屏没渲收藏弹窗：", "FavoriteDialog(" in screen)
+        assertTrue("那一排的把手没接上落笔（摆了而按不动）：", "core.toggleLocalFavorite(comic, folder)" in screen)
         val favPort = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("business/DesktopBusinessPorts.kt"))
         assertTrue("桌面收藏口没接上 LocalFavoritesManager（那一排在桌面连不到库）：", "LocalFavoritesManager.getInstance" in favPort)
         // 记：仿制屏的"单夹换夹 + 整行不覆盖"（`desktopFavoriteRecordToWrite`）那格语义，共享面板按逐夹 toggle
@@ -222,16 +222,13 @@ class DesktopFavoriteFoldersTest {
             ),
         )
         assertTrue("点夹没把夹名交出去（摆了而按不动那一族）：", "onToggleFavoriteFolder(folder)" in screen)
-        // 壳里那颗"换夹不许整行覆盖"的件只有一个出处（别处另拼一遍就是能漂成两种的那一族）。
+        // 壳里原有的死函数 favoriteRecordFor 已清理，现剩声明处与装配点 deleteFavoriteFolder 两处引用。
         val sites = DesktopSourceTree.desktopMainGroupedOccurrences("desktopFavoriteRecordToWrite(")
         assertEquals(
-            "那颗件应当「声明一处 + 壳里用一处 + 装配点接一次」：$sites",
-            // VeneraDesktop.kt 装配点也接一次（收藏夹读/建/删三枚 port），
-            // 与壳里那一处不是同一件事 —— 装配点只递实现，不参与"换夹不许整行覆盖"的判据。
+            "那颗件应当「声明一处 + 装配点接一次」：$sites",
             listOf(
                 "DesktopFavoriteFolders.kt" to 1,
                 "VeneraDesktop.kt" to 1,
-                "VeneraDesktopLargeScreen.kt" to 1,
             ),
             sites,
         )

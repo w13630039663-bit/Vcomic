@@ -1,5 +1,6 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.data.desktopOneLineMessage
 import com.venera.engineprobe.EngineSession
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

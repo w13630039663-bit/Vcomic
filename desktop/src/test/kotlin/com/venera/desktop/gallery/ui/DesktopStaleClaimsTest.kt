@@ -172,7 +172,7 @@ class DesktopStaleClaimsTest {
     fun 历史那行不再说没有存储() {
         assertEquals("还有文件写着「还没有本地历史存储」", 0, hits("还没有本地历史存储").size)
         // 保留对已实现存储能力的过期文案禁用校验，其余转正与未实现行校验由对应专项测试负责。
-        val dbDir = File(DesktopSourceTree.repoRoot, "desktop/src/main/kotlin/com/venera/compose/data/db")
+        val dbDir = File(DesktopSourceTree.repoRoot, "core-data/src/main/kotlin/com/venera/compose/data/db")
         assertTrue(
             "对照组失效：`data/db` 不在桌面编译面上了（那存储就真算没有，那句该回来）",
             dbDir.isDirectory,

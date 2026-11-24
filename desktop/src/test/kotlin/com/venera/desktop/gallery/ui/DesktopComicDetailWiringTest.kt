@@ -1,5 +1,6 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.app.ForensicFlags
 import com.venera.desktop.gallery.data.DesktopComicChapterRun
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -29,7 +30,7 @@ class DesktopComicDetailWiringTest {
     /** ⑥ 种子那格登记了 `--comic`（漏登记时 `unknown` 会把它报成拼错的参数）。 */
     @Test
     fun 那枚参数登记在已知清单里() {
-        val flags = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("ForensicFlags.kt"))
+        val flags = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/ForensicFlags.kt"))
         // ⚠️ 只许截**表内那一段**：写成 `KNOWN = listOf\([\s\S]*?COMIC[\s\S]*?\)` 会一路跨过表尾
         // 吃到 464 行 `comic()` 自己用的那两枚 `COMIC` ⇒ 删掉登记也照样绿。
         // 这一条不是假设：扰动 P8 第一次跑就念 "BAD 一笔都没红"，抓到的就是本鱼这条假尺子。

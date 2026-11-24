@@ -9,6 +9,21 @@
 
 ## 新增功能（Features）
 
+- **2026-11-24 · 清理并拆分 TOP 10 巨型源码文件，完成 `app/`、`data/`、`ui/` 根目录三层归位与静态体积/分层护栏**（`VeneraDesktop`、`DesktopSettingsHub`、`DesktopReaderScreen`、`DesktopLargeScreenStateInit`、`DesktopTabHost`、`DesktopGalleryAndAccountHost`、`DesktopComicAndSourceHost`、`ForensicFlags`、`EngineSession`、`ContributorAvatars`、`DesktopFileSizeAndLayerGuardTest.kt`）
+  - **功能说明**：① 将贡献者像素画内置为二进制资源，移除死代码，并将 139.6 KB–81.4 KB 的 10 个头部巨型文件按单一职责拆分为模块化小文件（均控制在 40 KB 以内）；② 将 `com.venera.desktop` 根目录 66 个散落裸文件按 `app/`（38）、`data/`（11）、`ui/`（17）三层归位，实现根目录零散落文件且 `data` 层零 Compose 依赖；③ 新增 `DesktopFileSizeAndLayerGuardTest` 静态护栏，强制约束新文件与已拆分文件 <= 40 KB 及三层单向依赖。
+
+- **2026-11-24 · 补齐 Gradle 多模块边界（`:core-data`、`:gallery-core`）并完成调试探针源码集隔离**（`settings.gradle.kts`、`core-data/`、`gallery-core/`、`DesktopWin32WindowUtils.kt`、`MicaProbe.kt`、`PlatformDiagHook.kt`、`DesktopSourceTree.kt`、`docs/02-architecture/architecture.md`）
+  - **功能说明**：① 拆分出纯 JVM 无 UI 依赖的 `:core-data`（承接 `data/platform`、`data/db`、`data/update`、`security/guard`）与 `:gallery-core`（承接 `gallery/data`、`gallery/domain`），解耦 `GalleryArtistAvatarStore` 对桌面错误总线的反向依赖（改走 `PlatformDiagHook`），从编译期强制杜绝数据/算法层反向依赖 UI；② 将混在生产源码树中的 `MicaProbe.kt` 拆出生产用 Win32 窗口工具函数（`DesktopWin32WindowUtils.kt`）后整体移入 `src/probe/kotlin`，确保打包与 `compileKotlin` 零探针残留。
+
+- **2026-11-24 · 美化「关于与更新」页面并新增自动检查更新与一键下载安装**（`DesktopUpdateCheck.kt`、`DesktopAboutUpdateSection.kt`、`SettingsDialogShell.kt`、`DesktopSettingsHub.kt`、`DesktopLargeScreenMiscEffects.kt`、`DesktopUpdateCheckTest.kt`）
+  - **功能说明**：① 在设置弹窗「关于与更新」新增软件介绍 Hero 卡片（应用徽章、版本胶囊、功能简介与技术特性标签）；② 新增「应用启动时自动检查更新」开关，并与启动后台 24 小时节流检查真正接线；③ 扩展桌面端 GitHub Release 解析以提取更新说明（`body`）与 Windows 安装包（`.exe`/`.msi`/`.zip`），发现新版后页内展示更新说明，并提供带实时进度、下载速度、SHA-256 校验与一键拉起安装程序的「一键下载安装」功能。
+
+- **2026-11-24 · 完善中英文 README 关于网络代理环境与加速使用的重要说明**（`README.md`、`README.en.md`）
+  - **功能说明**：在首页显著位置（`[!IMPORTANT]`）及「环境要求」章节明确标注网络代理环境建议，告知多数境外漫画源（如 CopyManga、JM、MangaDex）与 Pixiv/图库服务依赖国际网络访问，并指引系统代理跟随与应用内手动 HTTP 代理（`-Pproxy`）配置方式。
+
+- **2026-11-24 · 完整落地 Linux 端跨平台抽象与打包流水线**（`DesktopPaths.kt`、`DesktopBrowserDetector.kt`、`DesktopEdgeWebLogin.kt`、`DesktopCloudflareBridge.kt`、`DesktopDirChooser.kt`、`DesktopProtocolRegistrar.kt`、`VeneraDesktop.kt`、`package-linux.sh`、`ci.yml`、`release.yml`）
+  - **功能说明**：① 数据与缓存路径全面适配 Linux XDG 规范（`$XDG_DATA_HOME/venera` 与 `$XDG_CACHE_HOME/venera`），无环境变量时缺省回退至 `~/.local/share` 与 `~/.cache`；② 建立跨平台 Chromium 探测链（覆盖 `google-chrome(-stable)`、`chromium(-browser)`、`brave(-browser)`、`microsoft-edge(-stable)`），并支持 `VENERA_BROWSER_PATH` 环境变量指定自定义浏览器，实现 Linux 下无缝 CDP 自动化登录与 Cloudflare 过盾；③ 文件夹选择器在 Linux 下优先调起原生 `zenity` / `kdialog` GTK/KDE 对话框，无命令时平滑回退至 Swing；④ 支持生成标准 `venera.desktop` 文件并通过 `xdg-mime` 自动注册 `pixiv://` 与 `venera://` 协议（带 `StartupWMClass=venera-desktop`）；⑤ 窗口材质在非 Windows 环境自动跳过 DWM 调用；⑥ 新增轻量独立打包脚本 `scripts/package-linux.sh`，并在 `.github/workflows/ci.yml` 与 `release.yml` 中并入 `ubuntu-latest` 自动化构建与 AppImage / tar.gz 产物发布。
+
 - **2026-11-24 · 升级系统托盘右键菜单为 Windows 11 同步样式并加入实用后台功能**（`DesktopSystemTray.kt`、`VeneraDesktop.kt`、`DesktopLargeScreenRouter.kt`、`DesktopSystemTrayTest.kt`）
   - **功能说明**：托盘右键菜单由默认老式 `JPopupMenu` 升级为自绘无边框圆角弹窗（10px 圆角、抗锯齿字体与手绘线性图标），自动读取 Windows `SystemUsesLightTheme`/`AppsUseLightTheme` 同步深浅配色，并在任务栏呼出时自动贴合工作区边缘；菜单新增实时状态头、显示/隐藏主窗口、打开「下载与本地」、打开下载文件夹、立即检查追更、暂停/继续全部下载与隐私遮罩开关。
 
@@ -16,6 +31,10 @@
   - **功能说明**：在「下载与本地 → 本机内容 → 漫画」新增「导入文件夹」入口，通过系统文件夹选择器选中单个漫画文件夹后原地关联写入 `local_comic_imports` 表（零文件拷贝），自动兼容单话直接放图与多话子目录结构，支持直接阅读或先选话再阅读；切换下载目录不丢失记录，移除关联时仅清理台账不删除硬盘原文件夹。
 
 ## Bug 修复（Fixes）
+
+- **2026-11-24 · 修复详情页收藏弹窗未点完成即提前显示「已收藏」、加号图标偏位，并补全交互动效**（`DesktopComicDetailFavoriteDialog.kt`、`DesktopFavoriteFoldersUiTest.kt`、`DesktopNewScreensSemanticsTest.kt`）
+  - **原因**：① 收藏弹窗内点击复选框即立刻落库并显示「已收藏」，与底部的「关闭 / 完成」双按钮语义冲突，导致未收藏或仅点选时就抢先显示「已收藏」且点「关闭」无法取消；② 「新建收藏夹」左侧方框内使用 `Text("+")`，受字体行高与基线影响向右下偏位；③ 弹窗与列表行缺少交互过渡反馈。
+  - **解决方案**：① 改为草稿勾选模式：新勾选显示「待收藏」且不落库，原本已收项取消显示「将移出」，点「完成」统一提交差异，点「关闭」或遮罩放弃草稿；② 改用 `Canvas` 自绘居中加号，与复选框严丝合缝对齐；③ 按 `VeneraMotion` 规范补齐弹窗弹性入场、折叠箭头旋转、行悬停/按压缩放、复选框弹跳与状态徽章滑入动效。
 
 - **2026-11-24 · 清理仓库历史大图资产与重复截图并将 README 展示图统一优化为 WebP**（`README.md`、`README.en.md`、`docs/images/`、`assets/`）
   - **原因**：① `desktop/assets/screenshots/` 与 `desktop/assets/` 堆积了大量 2MB+ 的巨大未压缩 PNG 截图，以及与正式图片完全相同的 UUID 临时测试截图，无代码和文档引用，导致仓库被多塞了近 20MB 冗余数据；② README 展示图此前使用 JPG 格式，体积偏大且存在局部未去重；③ 外围 `_backup` 与 `_archive` 存有大量 2MB~3MB 的历史截图原图。

@@ -1,5 +1,6 @@
 package com.venera.desktop.ui.components
 
+import com.venera.desktop.data.DesktopErrorBus
 import com.venera.desktop.platform.DesktopErrorKind
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

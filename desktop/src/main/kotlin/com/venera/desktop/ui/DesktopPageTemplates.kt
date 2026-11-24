@@ -1,4 +1,6 @@
 package com.venera.desktop.ui
+
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.desktop.ui.theme.VeneraType
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -12,7 +14,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import kotlinx.coroutines.launch
 
-import com.venera.desktop.LocalShellBackHandled
+import com.venera.desktop.app.LocalShellBackHandled
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

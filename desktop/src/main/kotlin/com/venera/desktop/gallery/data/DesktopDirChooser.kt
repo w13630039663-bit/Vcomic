@@ -9,7 +9,7 @@ import com.sun.jna.platform.win32.User32
 import com.sun.jna.win32.StdCallLibrary
 import com.sun.jna.win32.W32APIOptions
 import java.io.File
-import com.venera.desktop.appendDesktopErrorLog
+import com.venera.desktop.data.appendDesktopErrorLog
 
 /**
  * 原生「挑一个文件夹」对话框 —— **新式 IFileDialog**（Vista+ 的现代框，带新建文件夹/地址栏，
@@ -89,13 +89,50 @@ internal object DesktopDirChooser {
                 onFailure?.invoke("目录框打不开：${it::class.java.simpleName}")
             }.getOrNull()
         } else {
-            runCatching { pickSwing(title, initialDir) }.onFailure {
+            runCatching { pickLinuxNativeOrSwing(title, initialDir) }.onFailure {
                 onFailure?.invoke("目录框打不开：${it::class.java.simpleName}")
             }.getOrNull()
         }
 
     private val isWindows: Boolean
         get() = System.getProperty("os.name", "").contains("Windows", ignoreCase = true)
+
+    /** Linux 下优先调起系统原生对话框（zenity/kdialog），无环境时平滑回退至 Swing JFileChooser。 */
+    internal fun pickLinuxNativeOrSwing(
+        title: String,
+        initialDir: String?,
+        commandRunner: (List<String>) -> String? = ::runProcessForSingleLine,
+        swingFallback: (String, String?) -> String? = ::pickSwing,
+    ): String? {
+        // 1. 尝试 zenity（GNOME / GTK 环境标配）
+        val zenityCmd = mutableListOf("zenity", "--file-selection", "--directory", "--title=$title")
+        if (!initialDir.isNullOrBlank()) {
+            val normalized = if (initialDir.endsWith("/")) initialDir else "$initialDir/"
+            zenityCmd += "--filename=$normalized"
+        }
+        val zenityResult = runCatching { commandRunner(zenityCmd) }.getOrNull()
+        if (!zenityResult.isNullOrBlank()) return zenityResult.trim()
+
+        // 2. 尝试 kdialog（KDE / Qt 环境标配）
+        val kdialogCmd = listOf("kdialog", "--getexistingdirectory", initialDir?.ifBlank { "~" } ?: "~", "--title", title)
+        val kdialogResult = runCatching { commandRunner(kdialogCmd) }.getOrNull()
+        if (!kdialogResult.isNullOrBlank()) return kdialogResult.trim()
+
+        // 3. 兜底回退 Swing
+        return swingFallback(title, initialDir)
+    }
+
+    private fun runProcessForSingleLine(command: List<String>): String? =
+        try {
+            val process = ProcessBuilder(command)
+                .redirectErrorStream(true)
+                .start()
+            val text = process.inputStream.bufferedReader(Charsets.UTF_8).readText().trim()
+            val exit = process.waitFor()
+            if (exit == 0 && text.isNotBlank()) text else null
+        } catch (_: Exception) {
+            null
+        }
 
     private fun pickWindowsNative(title: String, initialDir: String?): String? {
         // Compose 的点击回调在 EDT 上，活动窗即主窗 —— 对话框挂它做模态，永不被主窗盖住。

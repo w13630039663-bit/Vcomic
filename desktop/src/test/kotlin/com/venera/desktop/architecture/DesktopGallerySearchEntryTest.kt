@@ -1,5 +1,7 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.DesktopRoute
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -30,7 +32,7 @@ import org.junit.Test
  */
 class DesktopGallerySearchEntryTest {
 
-    private val shellFile = DesktopSourceTree.desktopSourceOf("VeneraDesktopLargeScreen.kt")
+    private val shellFile = DesktopSourceTree.desktopSourceOf("app/VeneraDesktopLargeScreen.kt")
     private val shellLines = DesktopSourceTree.desktopLargeScreenLines().filter { it.isNotEmpty() }
     private val screenFile = DesktopSourceTree.desktopSourceOf("gallery/ui/DesktopGallerySearchScreen.kt")
     private val screen = DesktopSourceTree.codeText(screenFile)
@@ -50,7 +52,7 @@ class DesktopGallerySearchEntryTest {
      */
     @Test
     fun 路由枚举里有那一档而两处入口各挂在两处把手上() {
-        val route = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("DesktopRoute.kt"))
+        val route = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/DesktopRoute.kt"))
         assertTrue(
             "`DesktopRoute` 里没有 `data object GallerySearch` ⇒ 那一屏进不去：",
             "data object GallerySearch : DesktopRoute" in route,

@@ -25,6 +25,9 @@ Windows 桌面端多源漫画阅读器 + 多站图库浏览器。<br/>
 > [!NOTE]
 > 当前发布的 Windows 安装包暂未配备商业代码签名。从网络下载后首次运行若遇到浏览器或 Windows Defender SmartScreen 提示「未知发布者」，点击 **「更多信息」→「仍要运行」** 即可正常安装；本项目全程开源，也可自行从源码构建。
 
+> [!IMPORTANT]
+> **网络环境与代理说明**：本软件内置的多数在线漫画源（如 CopyManga、JM、MangaDex 等）以及 Pixiv 与外网图库站服务，均依赖通畅的境外网络访问。**强烈建议在具备稳定系统代理（梯子/加速器）的环境下使用**。软件默认会自动跟随系统代理设置，亦可在应用内设置中手动配置 HTTP 代理主机与端口（开发调试启动时可直接传入 `-Pproxy=127.0.0.1:7890`）。
+
 ---
 
 ## 这是什么
@@ -33,7 +36,7 @@ VComic 是一个多端漫画与图库项目，目前包含三部分：
 
 | 端 | 说明 | 形态 |
 |---|---|---|
-| **Windows 桌面版**（本仓库） | Kotlin + Compose Multiplatform 原生单窗口应用，UI 与业务全部桌面自持 | `.exe` 安装器 / 便携目录 |
+| **Windows / Linux 桌面版**（本仓库） | Kotlin + Compose Multiplatform 原生单窗口应用，UI 与业务全部桌面自持 | Windows 安装器 / Linux AppImage 与便携包 |
 | **Android 手机版** | Miuix + Material 3 双风格的移动端实现，与桌面版同源、UI 各自独立 | APK（Android 13+） |
 | **官方宣传页** | 静态 HTML 宣传页，含交互式功能演示 | [在线访问](https://w13630039663-bit.github.io/Vcomic/#top) / `index.html` |
 
@@ -194,6 +197,7 @@ APK 提供 `universal`、`arm64-v8a`、`armeabi-v7a`、`x86_64` 四种 ABI，系
 - **JDK 25**：`:desktop` 模块编译与运行工具链（`jvmToolchain(25)`）
 - **JDK 21**：`:engine-probe` 模块与 Gradle Daemon 运行环境
 - **Gradle 9.7.1**：由项目内 Gradle Wrapper 提供，无需单独安装，Toolchain 可按需自动下载
+- **网络代理（强烈建议）**：稳定可用的系统代理或本地代理端口（多数境外漫画源与 Pixiv/图库服务依赖）
 - **7-Zip（`7z.exe`）**（可选）：仅执行 `packageSetupInstaller` 生成自研安装器时需要，`7zSD.sfx` 由构建按需缓存
 - **VLC**（可选）：仅图库视频播放时由 `vlcj` 运行期调用
 
@@ -251,15 +255,17 @@ node _tools/count_desktop_tests.js
 ```text
 desktop/
 ├── build.gradle.kts                  # 根构建配置
-├── settings.gradle.kts               # 模块声明（:desktop, :engine-probe）
+├── settings.gradle.kts               # 模块声明（:desktop, :core-data, :gallery-core, :engine-probe）
 ├── gradle.properties                 # JVM 内存与构建属性配置
 ├── gradle/libs.versions.toml         # 统一依赖版本目录
 ├── index.html                        # 官方网站宣传页（引用 website/assets）
 ├── run-venera.bat                    # Windows 交互式启动与测试菜单脚本
 ├── _tools/                           # 辅助工具脚本（如测试计数 count_desktop_tests.js）
-├── scripts/                          # 构建辅助脚本（如 enable-segment-heap.ps1）
+├── scripts/                          # 构建辅助脚本（如 package-linux.sh / enable-segment-heap.ps1）
 ├── docs/                             # 项目文档（架构、数据库、构建指南、设计稿、截图）
 │   └── images/                       # README 截图（桌面 / android / website）
+├── core-data/                        # [L2 纯数据与安全层 · JDK 25] 平台契约、SQLite DAO/Schema、更新模型与内容守卫（零 Compose）
+├── gallery-core/                     # [L2 画廊核心 · JDK 25] 图库纯算法、筛选排序策略与站点客户端（零 Compose）
 ├── engine-probe/                     # [L3 引擎层 · JDK 21] QuickJS 宿主、EngineSession、Cookie 罐、JS Handler
 └── desktop/                          # [L0-L2 应用层 · JDK 25]
     ├── build.gradle.kts              # 桌面应用打包与运行时 JVM 参数配置
@@ -267,8 +273,8 @@ desktop/
     └── src/
         ├── main/
         │   ├── kotlin/com/venera/
-        │   │   ├── desktop/          # [L0/L1] 进程入口（VeneraDesktop.kt）、窗口宿主、桌面 UI、平台实现与端口适配器
-        │   │   └── compose/          # [L2] 公共基建（BusinessPorts 端口、平台契约、DB Schema、共享组件与画廊域）
+        │   │   ├── desktop/          # [L0/L1] 按 app/（入口与路由）、data/（纯数据）、ui/（屏与组件）及功能子包分层
+        │   │   └── compose/          # [L2] 公共 UI 基建（BusinessPorts 端口、共享组件与画廊渲染）
         │   └── resources/
         │       ├── sources/          # 随包分发的 34 个 JS 漫画源脚本
         │       ├── venera-init.js    # JS 引擎初始化脚本
@@ -281,7 +287,7 @@ desktop/
 
 ### 架构边界约定
 
-- **单向依赖**：依赖方向严格为 `desktop` → `compose` 与 `desktop` → `engineprobe`。`compose` 公共层禁止反向引用 `desktop` 或 `engineprobe`，由 `DesktopUiIsolationTest` 与 `DesktopNoAndroidImportTest` 守护。
+- **单向依赖与体积护栏**：依赖方向严格为 `desktop` → `compose` 与 `desktop` → `engineprobe`；`:core-data`、`:gallery-core` 与 `com.venera.desktop.data` 禁止反向依赖 UI 与 Compose，由 `DesktopUiIsolationTest`、`DesktopNoAndroidImportTest` 与 `DesktopFileSizeAndLayerGuardTest` 守护。
 - **端口与副作用隔离**：业务边界通过 `BusinessPorts`（17 组端口）与 `DesktopBusinessPorts` 对接（桌面端禁用 `BusinessPorts.of`）；Toast、剪贴板、分享与封面打码状态统一通过 `LocalUxPlatformServices` 注入。
 
 ---

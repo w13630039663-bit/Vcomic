@@ -1,5 +1,8 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.DesktopLargeScreenChromeScaffold
+import com.venera.desktop.app.DesktopLargeScreenProviders
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import java.io.File
 import org.junit.Assert.assertEquals
@@ -54,7 +57,7 @@ class DesktopThemeLayerTest {
      * 但侧栏那一圈就吃不到色板 —— 与本仓 §139 那条"装 tee 早于读数"同一族量法。
      */
     @Test fun 主题壳包住了侧栏而不是排在它后面() {
-        val mainShell = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("VeneraDesktopLargeScreen.kt"))
+        val mainShell = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/VeneraDesktopLargeScreen.kt"))
         val themeAt = mainShell.lines().indexOfFirst { it.contains("DesktopLargeScreenProviders(") }
         val sideBarAt = mainShell.lines().indexOfFirst { it.contains("DesktopLargeScreenChromeScaffold(") }
         assertTrue("量具失效：壳里找不到主题那一行或侧栏那一行 theme=$themeAt sidebar=$sideBarAt",

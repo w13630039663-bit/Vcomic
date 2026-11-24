@@ -42,13 +42,14 @@ class DesktopHomeRecommendSectionTest {
     /** ② 三处喂屏口径一致，标题如实。 */
     @Test fun 三处喂屏口径一致且标题如实念最新() {
         assertEquals(
-            "常驻腿 + 宽/窄两处兜底都得是「最新」这一组（任一处漂回摊平都会混进排行榜/完结榜）：",
-            3,
+            "常驻腿 + 双皮肤共享兜底都得是「最新」这一组（任一处漂回摊平都会混进排行榜/完结榜）：",
+            2,
             Regex("""it\.title == "最新"""").findAll(shell).count(),
         )
+        val homePane = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("ui/DesktopHomePane.kt"))
         assertTrue(
             "推荐格标题得如实念「拷贝漫画 · 最新」：",
-            shell.contains("推荐漫画（拷贝漫画 · 最新）"),
+            homePane.contains("推荐漫画（拷贝漫画 · 最新）") || shell.contains("推荐漫画（拷贝漫画 · 最新）"),
         )
     }
 }

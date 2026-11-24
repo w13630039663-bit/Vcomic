@@ -1,10 +1,10 @@
 package com.venera.desktop.gallery.ui
 
 import com.venera.compose.gallery.data.GalleryReverseSearch
-import com.venera.desktop.desktopScrubSecrets
-import com.venera.desktop.desktopFailureFrame
-import com.venera.desktop.desktopFailureType
-import com.venera.desktop.desktopOneLineMessage
+import com.venera.desktop.data.desktopScrubSecrets
+import com.venera.desktop.data.desktopFailureFrame
+import com.venera.desktop.data.desktopFailureType
+import com.venera.desktop.data.desktopOneLineMessage
 import kotlinx.coroutines.CancellationException
 import java.awt.FileDialog
 import java.awt.Frame

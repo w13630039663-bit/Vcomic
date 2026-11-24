@@ -1,5 +1,8 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.DESKTOP_EXPLORE_SOURCE
+import com.venera.desktop.app.DesktopRoute
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -31,11 +34,11 @@ class DesktopSearchSourceEntryTest {
     )
     private val shellFile = File(
         DesktopSourceTree.repoRoot,
-        "desktop/src/main/kotlin/com/venera/desktop/VeneraDesktopLargeScreen.kt",
+        "desktop/src/main/kotlin/com/venera/desktop/app/VeneraDesktopLargeScreen.kt",
     )
     private val assemblyFile = File(
         DesktopSourceTree.repoRoot,
-        "desktop/src/main/kotlin/com/venera/desktop/VeneraDesktop.kt",
+        "desktop/src/main/kotlin/com/venera/desktop/app/VeneraDesktop.kt",
     )
 
     private val pickerFile = File(
@@ -105,7 +108,7 @@ class DesktopSearchSourceEntryTest {
         )
         assertTrue(
             "装配点装载那跳没吃形参 sourceKey（仍硬编默认）：",
-            codeOf(assemblyFile).contains("e.load(sourceKey)"),
+            DesktopSourceTree.desktopEntryCode().contains("e.load(sourceKey)"),
         )
     }
 

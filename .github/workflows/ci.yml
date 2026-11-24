@@ -52,3 +52,36 @@ jobs:
 
       - name: Run unit tests
         run: .\gradlew.bat :desktop:test --no-daemon
+
+  build-and-test-linux:
+    name: Build & Unit Tests (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25 (Desktop Toolchain)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up JDK 21 (Gradle Daemon & engine-probe)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Check duplicate imports
+        run: ./gradlew :desktop:checkDuplicateImports --no-daemon
+
+      - name: Compile desktop Kotlin
+        run: ./gradlew :desktop:compileKotlin --no-daemon
+
+      - name: Run unit tests
+        run: ./gradlew :desktop:test --no-daemon

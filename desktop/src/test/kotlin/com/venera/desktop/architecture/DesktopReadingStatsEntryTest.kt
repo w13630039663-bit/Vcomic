@@ -1,5 +1,12 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.DesktopRoute
+import com.venera.desktop.app.VeneraDesktopLargeScreen
+import com.venera.desktop.ui.DesktopReadingStatsScreen
+import com.venera.desktop.data.DesktopHomeStatsSource
+import com.venera.desktop.data.DesktopReadingStats
+import com.venera.desktop.data.DesktopReadingStatsSource
+import com.venera.desktop.data.desktopReadingStatsScreenReading
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -21,16 +28,16 @@ import org.junit.Test
  */
 class DesktopReadingStatsEntryTest {
 
-    private val shellFile = DesktopSourceTree.desktopSourceOf("VeneraDesktopLargeScreen.kt")
+    private val shellFile = DesktopSourceTree.desktopSourceOf("app/VeneraDesktopLargeScreen.kt")
     private val shell = DesktopSourceTree.desktopLargeScreenCode()
     private val shellLines = DesktopSourceTree.desktopLargeScreenLines().filter { it.isNotEmpty() }
     private val explore = DesktopSourceTree.codeText(
         DesktopSourceTree.desktopSourceOf("explore/DesktopExploreScreen.kt"),
     )
     private val screen = DesktopSourceTree.codeText(
-        DesktopSourceTree.desktopSourceOf("DesktopReadingStatsScreen.kt"),
+        DesktopSourceTree.desktopSourceOf("ui/DesktopReadingStatsScreen.kt"),
     )
-    private val route = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("DesktopRoute.kt"))
+    private val route = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/DesktopRoute.kt"))
 
     /** ① 路由枚举里真有那一档。 */
     @Test
@@ -94,7 +101,7 @@ class DesktopReadingStatsEntryTest {
                 "$why：",
                 0,
                 DesktopSourceTree.codeOccurrences(
-                    DesktopSourceTree.desktopSourceOf("DesktopReadingStatsScreen.kt"),
+                    DesktopSourceTree.desktopSourceOf("ui/DesktopReadingStatsScreen.kt"),
                     banned,
                 ),
             )

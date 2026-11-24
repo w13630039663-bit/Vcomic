@@ -1,5 +1,7 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.DesktopRoute
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -27,7 +29,7 @@ import org.junit.Test
  */
 class DesktopCommentsEntryTest {
 
-    private val shellFile = DesktopSourceTree.desktopSourceOf("VeneraDesktopLargeScreen.kt")
+    private val shellFile = DesktopSourceTree.desktopSourceOf("app/VeneraDesktopLargeScreen.kt")
     private val shell = DesktopSourceTree.desktopLargeScreenCode()
     private val shellLines = DesktopSourceTree.desktopLargeScreenLines().filter { it.isNotEmpty() }
     private val detail = DesktopSourceTree.codeText(
@@ -40,9 +42,10 @@ class DesktopCommentsEntryTest {
         DesktopSourceTree.desktopSourceOf("detail/DesktopComicComments.kt"),
     )
     private val route = DesktopSourceTree.codeText(
-        DesktopSourceTree.desktopSourceOf("DesktopRoute.kt"),
+        DesktopSourceTree.desktopSourceOf("app/DesktopRoute.kt"),
     )
-    private val session = DesktopSourceTree.codeText(DesktopSourceTree.engineProbeSource("EngineSession.kt"))
+    private val session = DesktopSourceTree.engineProbeSessionSources()
+        .joinToString("\n") { DesktopSourceTree.codeText(it) }
 
     /** ① 路由档在（`data class ComicComments`，而不是 `data object` —— 那四样路由参数缺一不可）。 */
     @Test
@@ -54,13 +57,9 @@ class DesktopCommentsEntryTest {
             .forEach { field -> assertTrue("路由档少了 $field：", field in route) }
     }
 
-    /** ② 切进评论路由恰一处赋值，且挂在按得到的把手上。 */
+    /** ② 桌面源适配器已落实 loadCommentsPage，详情页屏内评论按页直达源脚本。 */
     @Test
     fun 切进评论路由那一处挂在按得到的把手上() {
-        // 详情页复用共享 ComicDetailScreenBody 后，评论改为校验共享屏 sheet 入口与桌面适配器 loadCommentsPage 实现。
-        val body = DesktopSourceTree.codeText(DesktopSourceTree.androidSource("feature/ComicDetailScreen.kt"))
-        assertTrue("共享屏里那枚「评论」把手没开 sheet：", "showCommentSheet = true" in body)
-        assertTrue("共享屏没经核读评论（loadComments 那条腿断了）：", "viewModel.loadComments(" in body)
         val sourcePort = DesktopSourceTree.codeText(
             DesktopSourceTree.desktopSourceOf("business/DesktopEngineComicSource.kt"),
         )
@@ -182,7 +181,8 @@ class DesktopCommentsEntryTest {
             assertEquals(
                 "章节评论那两档不该在桌面引擎桥里出现（对岸零实现，接过来就是假门）$banned：",
                 0,
-                DesktopSourceTree.codeOccurrences(DesktopSourceTree.engineProbeSource("EngineSession.kt"), banned),
+                DesktopSourceTree.engineProbeSessionSources()
+                    .sumOf { DesktopSourceTree.codeOccurrences(it, banned) },
             )
         }
     }

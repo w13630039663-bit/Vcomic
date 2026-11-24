@@ -25,7 +25,7 @@ import javax.xml.parsers.DocumentBuilderFactory
  * srcDir 挂进来编不过也不跑得动（`sync/` 其余各颗还绑 `Context`）。所以这里自持一份**最小客户端**：
  * 标准 HTTP Basic Auth + PROPFIND（Depth 1）+ MKCOL + PUT/GET，XML 用 JDK 自带 DOM 解；
  * 配置读写走对岸**同名文件同名键**（`venera_webdav_prefs`：server_url / username / password /
- * remote_path），盘上互认。上传吃桌面既有备份导出链（[com.venera.desktop.desktopBackupExportTo]），
+ * remote_path），盘上互认。上传吃桌面既有备份导出链（[com.venera.desktop.data.desktopBackupExportTo]），
  * 下载落到中转盘（cacheRoot/webdav_staging），还原仍走备份页那条已验的路。
  *
  * ⚠️ 密码与对岸同形：盘上明文。公共机慎用（行上如实写着）。
@@ -155,12 +155,12 @@ object DesktopWebDavSync {
         if (config.serverUrl.isBlank()) return fail("先配置 WebDAV 服务器地址")
         _state.value = State.Running
         val local = File(stagingDir(paths), "venera-desktop-${System.currentTimeMillis()}.venera")
-        val export = com.venera.desktop.desktopVeneraExportTo(
+        val export = com.venera.desktop.data.desktopVeneraExportTo(
             path = local.absolutePath,
             paths = paths,
             assetDir = assetDir,
             overrideDir = overrideDir,
-            options = com.venera.desktop.DesktopVeneraExportOptions(includeSourceAccounts),
+            options = com.venera.desktop.data.DesktopVeneraExportOptions(includeSourceAccounts),
         )
         if (export.isFailure) {
             return fail("导出没成（${export.exceptionOrNull()?.javaClass?.simpleName ?: "未知"}）")

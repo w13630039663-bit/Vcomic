@@ -5,19 +5,53 @@ import java.io.File
 import java.io.IOException
 
 /**
- * 桌面侧的数据目录门面：唯一来源是 `%LOCALAPPDATA%\venera`。
+ * 桌面侧的数据目录门面：Windows 来源为 `%LOCALAPPDATA%\venera`；Linux 遵循 XDG 规范。
  *
- * S0-9 的判据是"数据落 `%LOCALAPPDATA%`"。这条要么成立要么当场炸，
+ * S0-9 的判据是"数据落 `%LOCALAPPDATA%`"（Linux 下落 XDG 数据目录）。这条要么成立要么当场炸，
  * 不能"取不到就退回临时目录"—— 退回 tmp 等于把判据假通过，且用户数据会在清临时目录时蒸发。
  */
 class DesktopPaths private constructor(override val dataRoot: File, override val cacheRoot: File) : PathProvider {
     companion object {
-        /** envProvider 可注入：判据是"拿不到 LOCALAPPDATA 就抛"，那就必须能在测试里造出拿不到的情形。 */
-        fun create(envProvider: (String) -> String? = System::getenv): PathProvider {
-            val base = envProvider("LOCALAPPDATA")?.takeIf { it.isNotBlank() }
-                ?: throw IllegalStateException("环境里没有 LOCALAPPDATA，桌面数据目录无从谈起")
-            val root = File(base, "venera")
-            val cache = File(root, "cache")
+        /**
+         * 兼容现有单参数尾随 lambda 调用的便利重载。
+         */
+        fun create(envProvider: (String) -> String?): PathProvider =
+            create(
+                envProvider = envProvider,
+                osName = System.getProperty("os.name", ""),
+                userHome = System.getProperty("user.home", ""),
+            )
+
+        /**
+         * 创建桌面路径提供器。
+         *
+         * @param envProvider 环境变量提供器，测试可注入模拟无变量情形。
+         * @param osName 操作系统标识，默认取系统属性 os.name。
+         * @param userHome 用户主目录路径，默认取系统属性 user.home。
+         */
+        fun create(
+            envProvider: (String) -> String? = System::getenv,
+            osName: String = System.getProperty("os.name", ""),
+            userHome: String = System.getProperty("user.home", ""),
+        ): PathProvider {
+            val isWindows = osName.contains("win", ignoreCase = true)
+            val (root, cache) = if (isWindows) {
+                val base = envProvider("LOCALAPPDATA")?.takeIf { it.isNotBlank() }
+                    ?: throw IllegalStateException("环境里没有 LOCALAPPDATA，桌面数据目录无从谈起")
+                val r = File(base, "venera")
+                val c = File(r, "cache")
+                r to c
+            } else {
+                val home = userHome.takeIf { it.isNotBlank() }
+                val dataBase = envProvider("XDG_DATA_HOME")?.takeIf { it.isNotBlank() }
+                    ?: home?.let { File(it, ".local/share").path }
+                    ?: throw IllegalStateException("环境里没有 XDG_DATA_HOME 且拿不到 user.home，Linux 桌面数据目录无从谈起")
+                val cacheBase = envProvider("XDG_CACHE_HOME")?.takeIf { it.isNotBlank() }
+                    ?: home?.let { File(it, ".cache").path }
+                    ?: dataBase
+                File(dataBase, "venera") to File(cacheBase, "venera")
+            }
+
             if (!root.mkdirs() && !root.isDirectory) throw IllegalStateException("建不出目录 $root")
             val probe = File(root, ".write-probe")
             try {

@@ -36,7 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.venera.desktop.DesktopErrorBus
+import com.venera.desktop.data.DesktopErrorBus
 import com.venera.desktop.gallery.ui.LocalChromePalette
 import com.venera.desktop.platform.desktopErrorKindOfText
 

@@ -217,6 +217,7 @@ internal fun SettingsDialogShell(
     palette: SettingsDialogPalette,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    customContent: (@Composable () -> Unit)? = null,
 ) {
     BoxWithConstraints(
         modifier = modifier
@@ -262,7 +263,11 @@ internal fun SettingsDialogShell(
                         .background(palette.divider),
                 )
                 Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                    DialogContent(cards = cards, palette = palette, query = query)
+                    if (customContent != null) {
+                        customContent()
+                    } else {
+                        DialogContent(cards = cards, palette = palette, query = query)
+                    }
                 }
             }
         }

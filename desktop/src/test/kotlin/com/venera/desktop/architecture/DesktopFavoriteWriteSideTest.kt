@@ -1,5 +1,7 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.favorite
+import com.venera.desktop.data.readDesktopFavoritesList
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -33,7 +35,7 @@ import org.junit.Test
 class DesktopFavoriteWriteSideTest {
 
     private val shell = DesktopSourceTree.desktopLargeScreenCode()
-    private val app = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt"))
+    private val app = DesktopSourceTree.desktopEntryCode()
     // 批 3：详情屏拆成六颗成员文件，接线断言按成员表合并（`desktopComicDetailSources()` 就是拆分契约）。
     private val detail = DesktopSourceTree.desktopComicDetailCode()
 
@@ -132,7 +134,7 @@ class DesktopFavoriteWriteSideTest {
      */
     @Test
     fun 收藏读侧那条等待还在() {
-        val block = app.lines().dropWhile { "readFavorites = {" !in it }.take(9).joinToString("\n")
+        val block = app.lines().dropWhile { "fun readDesktopFavoritesList(" !in it }.take(9).joinToString("\n")
         assertTrue("等一个非空的值那一句没了 ⇒ 会把'还没读回来'说成'没有收藏'：$block",
             "first { it.isNotEmpty() }" in block)
         assertTrue("超时回退没了 ⇒ 库确实空的时候白等：$block", "withTimeoutOrNull" in block)

@@ -19,7 +19,7 @@ class DesktopComicReaderWiringTest {
     private val paneFile = DesktopSourceTree.desktopSourceOf("gallery/ui/DesktopComicPane.kt")
     private val detailFile = DesktopSourceTree.desktopSourceOf("gallery/ui/DesktopComicDetail.kt")
     private val appFile = DesktopSourceTree.desktopUiSource("DesktopDomainRows.kt")
-    private val mainFile = DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt")
+    private val mainFile = DesktopSourceTree.desktopSourceOf("app/VeneraDesktop.kt")
     private val pipelineFile = DesktopSourceTree.desktopSourceOf("gallery/data/DesktopImagePipeline.kt")
     private val fetcherFile = DesktopSourceTree.desktopSourceOf("gallery/data/DesktopComicPageFetcher.kt")
 

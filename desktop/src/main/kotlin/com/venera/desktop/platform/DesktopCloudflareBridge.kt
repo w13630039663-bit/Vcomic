@@ -2,7 +2,7 @@ package com.venera.desktop.platform
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.venera.desktop.DesktopErrorBus
+import com.venera.desktop.data.DesktopErrorBus
 import com.venera.desktop.sourcemanage.DesktopEdgeWebLogin
 import com.venera.engineprobe.DesktopCloudflareCenter
 import java.io.File
@@ -39,7 +39,8 @@ internal object DesktopCloudflareBridge {
         val edgeExe = DesktopEdgeWebLogin.findEdgeExecutable() ?: run {
             DesktopErrorBus.report(
                 category = "过盾",
-                headline = "未找到 Microsoft Edge，无法自动过 Cloudflare 盾",
+                headline = "未找到 Chromium 内核浏览器（Chrome/Chromium/Edge/Brave），无法自动过 Cloudflare 盾",
+                humanReason = "自动过盾需要调用本地 Chromium 内核浏览器。若已安装非标准路径浏览器，可通过环境变量 VENERA_BROWSER_PATH 指定。",
                 detail = url,
                 dedupKey = "cf:no-edge",
             )

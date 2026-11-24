@@ -1,5 +1,7 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.DesktopRoute
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -22,7 +24,7 @@ import org.junit.Test
  */
 class DesktopGalleryDailyEntryTest {
 
-    private val shellFile = DesktopSourceTree.desktopSourceOf("VeneraDesktopLargeScreen.kt")
+    private val shellFile = DesktopSourceTree.desktopSourceOf("app/VeneraDesktopLargeScreen.kt")
     private val shell = DesktopSourceTree.desktopLargeScreenCode()
     private val bodyFile = DesktopSourceTree.androidSource("gallery/ui/GalleryDailyScreenBody.kt")
     private val body = DesktopSourceTree.codeText(bodyFile)
@@ -30,7 +32,7 @@ class DesktopGalleryDailyEntryTest {
     /** ① 路由这一档存在（`DesktopRoute` 里那一枚 `data object GalleryDaily`）。 */
     @Test
     fun 路由里有日榜这一档() {
-        val route = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("DesktopRoute.kt"))
+        val route = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/DesktopRoute.kt"))
         assertTrue("`DesktopRoute` 没有 `GalleryDaily` 这一档：", route.contains("data object GalleryDaily : DesktopRoute"))
     }
 

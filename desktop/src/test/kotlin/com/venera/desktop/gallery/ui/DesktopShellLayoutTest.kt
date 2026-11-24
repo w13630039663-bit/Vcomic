@@ -35,13 +35,10 @@ class DesktopShellLayoutTest {
      * 含进注释就把说明当成了违例 —— 于是要判据的人不得不把自己的判据删掉。
      * `DesktopSourceTree.codeText` 与 [DesktopSourceTree.codeOccurrences] 用同一套"跳注释"口径。
      */
-    private val shellCode: String =
-        DesktopSourceTree.codeText(
-            File(DesktopSourceTree.repoRoot, "desktop/src/main/kotlin/com/venera/desktop/VeneraDesktop.kt"),
-        )
+    private val shellCode: String = DesktopSourceTree.desktopEntryCode()
 
     private val shell: String =
-        File(DesktopSourceTree.repoRoot, "desktop/src/main/kotlin/com/venera/desktop/VeneraDesktop.kt").readText()
+        File(DesktopSourceTree.repoRoot, "desktop/src/main/kotlin/com/venera/desktop/app/VeneraDesktop.kt").readText()
 
     /**
      * ① 根布局不许再套 `NavigationView`。

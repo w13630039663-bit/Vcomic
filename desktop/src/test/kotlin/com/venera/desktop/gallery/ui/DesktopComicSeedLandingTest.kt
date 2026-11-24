@@ -1,7 +1,7 @@
 package com.venera.desktop.gallery.ui
 
-import com.venera.desktop.ForensicFlags
-import com.venera.desktop.ForensicFlags.ForensicLanding
+import com.venera.desktop.app.ForensicFlags
+import com.venera.desktop.app.ForensicFlags.ForensicLanding
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

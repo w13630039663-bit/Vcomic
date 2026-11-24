@@ -1,5 +1,9 @@
 package com.venera.desktop
 
+import com.venera.desktop.data.DesktopErrorBus
+import com.venera.desktop.ui.DesktopFeedbackBus
+import com.venera.desktop.ui.DesktopFeedbackTab
+import com.venera.desktop.data.normalizeIssueCategory
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

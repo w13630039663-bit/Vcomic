@@ -1,5 +1,9 @@
 package com.venera.desktop
 
+import com.venera.desktop.app.ArtistReadout
+import com.venera.desktop.app.ForensicFlags
+import com.venera.desktop.app.RankingReadout
+import com.venera.desktop.app.StartDomainReadout
 import com.venera.compose.gallery.data.GallerySite
 import com.venera.compose.gallery.domain.GalleryRanking
 import com.venera.desktop.gallery.ui.DesktopDomain
@@ -629,7 +633,7 @@ class ForensicFlagsTest {
      */
     @Test
     fun 声明过的每枚种子名都登记在KNOWN() {
-        val file = com.venera.desktop.gallery.ui.DesktopSourceTree.desktopSourceOf("ForensicFlags.kt")
+        val file = com.venera.desktop.gallery.ui.DesktopSourceTree.desktopSourceOf("app/ForensicFlags.kt")
         val declared = Regex("""= ("--[a-z][a-z-]*)""")
             .findAll(com.venera.desktop.gallery.ui.DesktopSourceTree.codeText(file))
             .map { it.groupValues[1].trim('"') }

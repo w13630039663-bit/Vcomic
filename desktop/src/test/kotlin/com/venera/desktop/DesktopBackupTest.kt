@@ -1,5 +1,16 @@
 package com.venera.desktop
 
+import com.venera.desktop.data.DESKTOP_BACKUP_KEY_GUARD
+import com.venera.desktop.data.DESKTOP_BACKUP_KEY_HISTORY
+import com.venera.desktop.data.DESKTOP_BACKUP_KEY_STATS
+import com.venera.desktop.data.DESKTOP_BACKUP_VERSION
+import com.venera.desktop.data.DesktopBackupCounts
+import com.venera.desktop.data.DesktopRestoreOutcome
+import com.venera.desktop.data.desktopBackupCountsNote
+import com.venera.desktop.data.desktopBackupDecodeJson
+import com.venera.desktop.data.desktopBackupDefaultFileName
+import com.venera.desktop.data.desktopBackupEncodeJson
+import com.venera.desktop.data.desktopRestoreOutcomeNote
 import com.venera.compose.data.db.parseJsonArray
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows

@@ -124,7 +124,7 @@ class DesktopCookieLoginTest {
         val shell = DesktopSourceTree.desktopLargeScreenCode()
         assertTrue(
             "壳里没给源管理屏递 `onSourceLogin`（那枚把手在真跑的屏上压根不会出现）：",
-            "onSourceLogin = if (loginWithCookies == null && loginWithPassword == null)" in shell,
+            "onSourceLogin = if (loginWithCookies == null && loginWithPassword == null && loginWithWebview == null)" in shell,
         )
         assertTrue(
             "壳里切进登录屏时没把脚本那份名单一起递过去（屏上会摆出一排没有格子的登录）：",

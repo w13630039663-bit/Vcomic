@@ -129,7 +129,7 @@ class SharedStoreAtomicWriteTest {
         var moves = 0
         files.forEach { name ->
             val code = DesktopSourceTree.codeText(
-                File(DesktopSourceTree.repoRoot, "desktop/src/main/kotlin/com/venera/compose/gallery/data/$name"),
+                File(DesktopSourceTree.repoRoot, "gallery-core/src/main/kotlin/com/venera/compose/gallery/data/$name"),
             )
             assertTrue("「$name」里又出现 tmp.renameTo —— Windows 上第二笔起全丢（成因见本类注释）",
                 code.contains("tmp.renameTo(").not())
@@ -153,7 +153,7 @@ class SharedStoreAtomicWriteTest {
      */
     @Test
     fun 桌面编译面里的任何store都不许改名盖到活文件上() {
-        val dir = File(DesktopSourceTree.repoRoot, "desktop/src/main/kotlin/com/venera/compose/gallery/data")
+        val dir = File(DesktopSourceTree.repoRoot, "gallery-core/src/main/kotlin/com/venera/compose/gallery/data")
         val shared = dir.walkTopDown().filter { it.isFile && it.extension == "kt" }
             .filterNot { DesktopSourceTree.codeText(it).contains("android.content.Context") }
             .toList()

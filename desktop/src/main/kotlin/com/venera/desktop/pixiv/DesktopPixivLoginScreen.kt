@@ -2,7 +2,7 @@ package com.venera.desktop.pixiv
 
 import com.venera.desktop.ui.theme.VeneraType
 import com.venera.desktop.ui.DesktopPushButton
-import com.venera.desktop.LocalShellBackHandled
+import com.venera.desktop.app.LocalShellBackHandled
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

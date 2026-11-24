@@ -1,5 +1,6 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.ui.copyTextToClipboard
 import com.venera.desktop.ui.theme.VeneraType
 import com.venera.desktop.ui.DesktopPushButton
 import com.venera.desktop.gallery.ui.GalleryTokens
@@ -146,7 +147,7 @@ internal fun DesktopGalleryPostDetailScreen(
     val tokens = VeneraTokens
     val ux = LocalUxPlatformServices.current
     val scope = rememberCoroutineScope()
-    val purgeGpuCache = com.venera.desktop.LocalGpuCachePurge.current
+    val purgeGpuCache = com.venera.desktop.app.LocalGpuCachePurge.current
     androidx.compose.runtime.DisposableEffect(purgeGpuCache) {
         onDispose { purgeGpuCache?.invoke("gallery_detail_dispose") }
     }

@@ -1,5 +1,9 @@
 package com.venera.desktop
 
+import com.venera.desktop.app.DesktopRoute
+import com.venera.desktop.app.ForensicFlags
+import com.venera.desktop.app.OpenScreenReadout
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.compose.components.VeneraNavTab
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
@@ -105,10 +109,10 @@ class DesktopOpenSeedTest {
      */
     @Test
     fun 集成方把它喂进route初值而非只在main念读数() {
-        val main = DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt").readText().lines()
+        val main = DesktopSourceTree.desktopEntryLines()
         assertTrue("main 没读这一枚判读：", main.any { "ForensicFlags.open(" in it })
-        assertTrue("main 没把它喂进 LargeScreen 的 initialRoute：", main.any { "initialRoute = initialRoute" in it })
-        assertTrue("main 没把它喂进 LargeScreen 的 initialTab：", main.any { "initialTab = initialTab" in it })
+        assertTrue("main 没把它喂进 LargeScreen 的 initialRoute：", main.any { "initialRoute = forensic.initialRoute" in it || "initialRoute = initialRoute" in it })
+        assertTrue("main 没把它喂进 LargeScreen 的 initialTab：", main.any { "initialTab = forensic.initialTab" in it || "initialTab = initialTab" in it })
         // LargeScreen：route 初值不再写死 DesktopRoute.Tab，而是吃 initialRoute。
         val shell = DesktopSourceTree.desktopLargeScreenCode()
         assertTrue(

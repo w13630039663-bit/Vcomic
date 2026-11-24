@@ -1,5 +1,6 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.app.ProvideDesktopUxPlatformServices
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File

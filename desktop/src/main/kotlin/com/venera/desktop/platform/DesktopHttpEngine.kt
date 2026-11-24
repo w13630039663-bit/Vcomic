@@ -86,7 +86,7 @@ class DesktopHttpEngine(private val paths: PathProvider) : HttpEngine {
                             manualProxyReady = true
                         }.onFailure {
                             println("D_代理 手动档装配失败 因=${it.javaClass.simpleName}")
-                            com.venera.desktop.DesktopErrorBus.report(
+                            com.venera.desktop.data.DesktopErrorBus.report(
                                 category = "系统",
                                 headline = "手动代理配置无效",
                                 humanReason = "无法按当前填写的代理地址（$host:$port）建立连接，请在设置中核对。",

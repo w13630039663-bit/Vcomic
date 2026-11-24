@@ -26,6 +26,8 @@ dependencyResolutionManagement {
 
 rootProject.name = "venera-compose"
 // :app（Android 模块）已随共享面自持退役：桌面不再借 app 源码，安卓主线在仓库外的独立检出里。
+include(":core-data")
+include(":gallery-core")
 include(":desktop")
 // S0-3 探针：GraalJS 顶替 WebView 跑真源脚本（复用 :app 的 engine handler 源文件）
 include(":engine-probe")

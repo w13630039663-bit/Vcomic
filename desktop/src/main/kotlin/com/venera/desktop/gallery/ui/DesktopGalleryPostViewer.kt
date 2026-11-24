@@ -246,7 +246,7 @@ internal fun DesktopGalleryPostViewer(
     // 提前加载：句柄必须自己留着 —— 换页/离屏 dispose 掉，否则请求尾跑完还按原图
     // 分辨率解码进内存缓存（PreloadPolicy 契约里的"收手"就是靠这个句柄收的）。
     val pendingPreloads = remember { mutableListOf<coil3.request.Disposable>() }
-    val purgeGpuCache = com.venera.desktop.LocalGpuCachePurge.current
+    val purgeGpuCache = com.venera.desktop.app.LocalGpuCachePurge.current
     DisposableEffect(purgeGpuCache) {
         onDispose {
             pendingPreloads.forEach { it.dispose() }

@@ -1,6 +1,6 @@
 package com.venera.desktop.gallery.ui
 
-import com.venera.desktop.ForensicFlags
+import com.venera.desktop.app.ForensicFlags
 import com.venera.desktop.gallery.data.DesktopComicDownloadedChapter
 import com.venera.desktop.gallery.data.DesktopComicDownloadQueue
 import com.venera.desktop.gallery.data.DesktopComicPageFixtures

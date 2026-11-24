@@ -1,5 +1,7 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.DesktopRoute
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -31,18 +33,26 @@ class DesktopSettingsEntryTest {
 
     private val routeFile = File(
         DesktopSourceTree.repoRoot,
-        "desktop/src/main/kotlin/com/venera/desktop/DesktopRoute.kt",
+        "desktop/src/main/kotlin/com/venera/desktop/app/DesktopRoute.kt",
     )
     private val shellFile = File(
         DesktopSourceTree.repoRoot,
-        "desktop/src/main/kotlin/com/venera/desktop/VeneraDesktopLargeScreen.kt",
+        "desktop/src/main/kotlin/com/venera/desktop/app/VeneraDesktopLargeScreen.kt",
     )
-    // 设置屏换成主从双栏中枢（DesktopSettingsHub）。
-    // 八枚 setter 的调用点从旧屏（DesktopGallerySettingsScreen，仍在编译面里当规格件）挪进了中枢。
-    private val screenFile = File(
-        DesktopSourceTree.repoRoot,
-        "desktop/src/main/kotlin/com/venera/desktop/settings/DesktopSettingsHub.kt",
-    )
+    // 设置屏拆分为中枢入口 + 卡片组构建器，静态测试扫描整组文件。
+    private val screenFiles = listOf(
+        "DesktopSettingsHub.kt",
+        "DesktopSettingsCardsGallery.kt",
+        "DesktopSettingsCardsReaderAndExplore.kt",
+        "DesktopSettingsCardsSystemAndNetwork.kt",
+        "DesktopSettingsDialogs.kt",
+    ).map { name ->
+        File(
+            DesktopSourceTree.repoRoot,
+            "desktop/src/main/kotlin/com/venera/desktop/settings/$name",
+        )
+    }
+    private val screenCodeLines: List<String> get() = screenFiles.flatMap { codeOf(it) }
     private val exploreFile = File(
         DesktopSourceTree.repoRoot,
         "desktop/src/main/kotlin/com/venera/desktop/explore/DesktopExploreScreen.kt",
@@ -87,7 +97,7 @@ class DesktopSettingsEntryTest {
 
     @Test
     fun `屏里逐枚点到七枚 setter 与 spec 同源`() {
-        val screen = codeOf(screenFile)
+        val screen = screenCodeLines
         // editable 的 setter 名住在 spec 账上；屏内逐枚出现才算线接上。
         // 列数档已由网格密度档覆盖，设置行撤除，不再是这里的写口。
         val expected = listOf(
@@ -141,7 +151,7 @@ class DesktopSettingsEntryTest {
     fun `屏不许去取静态口`() {
         // DesktopUiIsolationTest ② 扫的是整棵 gallery/ui 那颗目录里 `GalleryPorts.of(`；
         // 这一条把同一禁令点名到这颗新屏自己的文件（新文件漏扫那一族的老账，§130 记过一次）。
-        val offenders = codeOf(screenFile).filter { it.contains("GalleryPorts.of(") }
+        val offenders = screenCodeLines.filter { it.contains("GalleryPorts.of(") }
         // 用 assertTrue(isEmpty) 而不是 assertFalse(isNotEmpty)：assertFalse 在条件为真时才失败，
         // 传 offenders.isEmpty() 会把"干净"读成"违例"（本喵这一批第一次就把它写反，靠红抓到）。
         assertTrue("设置屏里出现了 GalleryPorts.of(...)：$offenders", offenders.isEmpty())

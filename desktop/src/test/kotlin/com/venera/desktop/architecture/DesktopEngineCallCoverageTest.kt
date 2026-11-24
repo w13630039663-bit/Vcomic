@@ -1,5 +1,8 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.DesktopLargeScreenMiscEffects
+import com.venera.desktop.app.VeneraDesktopLargeScreen
+import com.venera.desktop.data.desktopEngineCall
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -39,9 +42,11 @@ class DesktopEngineCallCoverageTest {
     // 补充 checkLoadable 与探索分类/排行方法至白名单，防止漏计新增引擎调用。
 
     /** 剥注释、剥空行之后的代码行（`DesktopSourceTree.codeLinesOf` 已 trim）。 */
-    private fun codeOnly(fileName: String): List<String> =
-        DesktopSourceTree.codeLinesOf(DesktopSourceTree.desktopSourceOf(fileName))
-            .filter { it.isNotEmpty() }
+    private fun codeOnly(fileName: String): List<String> {
+        val file = DesktopSourceTree.desktopMainSources().firstOrNull { it.name == fileName }
+            ?: DesktopSourceTree.desktopSourceOf(fileName)
+        return DesktopSourceTree.codeLinesOf(file).filter { it.isNotEmpty() }
+    }
 
     private data class Ask(val index: Int, val line: String, val distanceFromGuard: Int, val ownEngineNearby: Boolean)
 
@@ -75,7 +80,8 @@ class DesktopEngineCallCoverageTest {
     @Test
     fun UI问引擎的每一跳都紧跟在一层调用之后() {
         val all = DesktopSourceTree.desktopLargeScreenSources().flatMap { asksOf(it.name) } +
-            asksOf("VeneraDesktop.kt") + asksOf("DesktopAppSupport.kt")
+            DesktopSourceTree.desktopEntrySources().flatMap { asksOf(it.name) } +
+            asksOf("DesktopAppSupport.kt")
         // 17→20：源管理详情面板（主从双栏那一批）接上三跳 ——
         // 设置读值 load+loadSettingsAll、设置写 load+saveSettingValue、回调 load+runSettingCallback
         // 各占一趟 engineCall（每趟都先 load 把那一颗装载起来，与详情/搜索同一条纪律）。
@@ -135,9 +141,16 @@ class DesktopEngineCallCoverageTest {
     @Test
     fun desktopEngineCall的调用点恰好是那四处() {
         val largeNames = DesktopSourceTree.desktopLargeScreenSources().map { it.name }.toSet()
+        val entryNames = DesktopSourceTree.desktopEntrySources().map { it.name }.toSet()
         val counts = DesktopSourceTree.desktopMainSources()
             .filter { it.name != "DesktopEngineCall.kt" }
-            .groupBy { if (it.name in largeNames) "VeneraDesktopLargeScreen.kt" else it.name }
+            .groupBy {
+                when (it.name) {
+                    in largeNames -> "VeneraDesktopLargeScreen.kt"
+                    in entryNames -> "VeneraDesktop.kt"
+                    else -> it.name
+                }
+            }
             .mapValues { (_, files) -> files.sumOf { DesktopSourceTree.codeOccurrences(it, "desktopEngineCall(") } }
             .filterValues { it > 0 }
         assertEquals(
@@ -224,7 +237,7 @@ class DesktopEngineCallCoverageTest {
         }.map { it.name }
         assertEquals("`desktopEngineLockKey` 有了第二份定义：", listOf("DesktopComicPageFetcher.kt"), defs)
 
-        val call = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("DesktopEngineCall.kt"))
+        val call = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("data/DesktopEngineCall.kt"))
         assertTrue("`DesktopEngineCall` 没复用 `desktopEngineLockKey`（自己再算一份 identityHashCode）", "desktopEngineLockKey(" in call)
         assertTrue("`DesktopEngineCall` 没真取锁（只包了 withContext）", "withDesktopEngineLock(" in call)
         assertTrue("没切走 IO（阻塞的 JS 轮询会占住组合线程）", "withContext(Dispatchers.IO)" in call)

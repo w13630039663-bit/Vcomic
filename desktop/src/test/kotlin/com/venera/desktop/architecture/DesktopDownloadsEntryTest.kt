@@ -1,5 +1,7 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.DesktopRoute
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -23,7 +25,7 @@ import org.junit.Test
  */
 class DesktopDownloadsEntryTest {
 
-    private val shellFile = DesktopSourceTree.desktopSourceOf("VeneraDesktopLargeScreen.kt")
+    private val shellFile = DesktopSourceTree.desktopSourceOf("app/VeneraDesktopLargeScreen.kt")
     private val shell = DesktopSourceTree.desktopLargeScreenCode()
     private val explore = DesktopSourceTree.codeText(
         DesktopSourceTree.desktopSourceOf("explore/DesktopExploreScreen.kt"),
@@ -39,7 +41,10 @@ class DesktopDownloadsEntryTest {
         // 旧 `DesktopRoute.Downloads` 的入口赋值撤了，
         // 门统一切「下载与本地」合并页的 DOWNLOADED 档；回调那枚 `onOpenDownloads` 的门与判据不变。
         val idx = lines.withIndex()
-            .filter { "filesSegment = com.venera.desktop.downloads.DesktopFilesSegment.DOWNLOADED" in it.value }
+            .filter {
+                "filesSegment = com.venera.desktop.downloads.DesktopFilesSegment.DOWNLOADED" in it.value ||
+                    "filesSegment = DesktopFilesSegment.DOWNLOADED" in it.value
+            }
             .map { it.index }
         assertEquals(
             "切进「本机已下载」档的赋值不止一处（那多半是有人另开了第二个入口而没写进这里的口径）或一处都没有：" +

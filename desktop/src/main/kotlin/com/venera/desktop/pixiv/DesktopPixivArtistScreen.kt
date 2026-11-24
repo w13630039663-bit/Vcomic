@@ -89,7 +89,7 @@ internal fun DesktopPixivArtistScreen(
     /** 作品墙滚动状态：壳层 retained 锚点派生，进作品返回不丢位。 */
     wallState: androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState,
     /** 滚动锚点本体：空墙入场时初始 index 会被 clamp，feed 首次到货后按它补跳一次。 */
-    wallAnchor: com.venera.desktop.DesktopScrollAnchor,
+    wallAnchor: com.venera.desktop.ui.DesktopScrollAnchor,
     /** 点卡上画师名 → 壳接画师详情页路由；null = 回退浏览器。 */
     onOpenArtist: ((Long, String) -> Unit)? = null,
 ) {

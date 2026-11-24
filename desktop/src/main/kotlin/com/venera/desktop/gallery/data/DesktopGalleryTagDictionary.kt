@@ -5,8 +5,8 @@ import com.venera.compose.data.db.TagDictionaryStore
 import com.venera.compose.data.platform.PathProvider
 import com.venera.compose.gallery.domain.GalleryTagCategory
 import com.venera.compose.gallery.domain.GalleryTitleTag
-import com.venera.desktop.desktopFailureType
-import com.venera.desktop.desktopOneLineMessage
+import com.venera.desktop.data.desktopFailureType
+import com.venera.desktop.data.desktopOneLineMessage
 import com.venera.desktop.platform.JdbcSqliteDatabase
 
 /**

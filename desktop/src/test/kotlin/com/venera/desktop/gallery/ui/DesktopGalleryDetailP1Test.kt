@@ -4,7 +4,7 @@ import com.venera.compose.gallery.data.GalleryPost
 import com.venera.compose.gallery.data.GallerySite
 import com.venera.compose.gallery.domain.GalleryPreviewQuality
 import com.venera.compose.gallery.domain.GallerySettingsModel
-import com.venera.desktop.ForensicFlags
+import com.venera.desktop.app.ForensicFlags
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

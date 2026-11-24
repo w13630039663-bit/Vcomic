@@ -69,7 +69,7 @@ object DesktopBackdropMode {
     @Composable
     fun isTransparentActive(): Boolean {
         val current = mode.collectAsState().value
-        return com.venera.desktop.DesktopDwmBackdrop.active && isTransparent(current)
+        return com.venera.desktop.ui.DesktopDwmBackdrop.active && isTransparent(current)
     }
 
     /**

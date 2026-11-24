@@ -1,11 +1,12 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.app.favorites
 import com.venera.compose.data.db.FavoriteItem
 import com.venera.compose.data.db.LocalFavoriteDatabase
 import com.venera.compose.data.db.LocalFavoritesManager
-import com.venera.desktop.desktopFailureFrame
-import com.venera.desktop.desktopFailureType
-import com.venera.desktop.desktopOneLineMessage
+import com.venera.desktop.data.desktopFailureFrame
+import com.venera.desktop.data.desktopFailureType
+import com.venera.desktop.data.desktopOneLineMessage
 import com.venera.engineprobe.EngineSession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

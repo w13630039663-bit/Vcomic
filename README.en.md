@@ -25,6 +25,9 @@ A multi-source manga reader and multi-site gallery browser for Windows desktop.<
 > [!NOTE]
 > The Windows installer is currently unsigned (no commercial code-signing certificate). When running a downloaded `.exe` for the first time, if your browser or Windows Defender SmartScreen shows an "Unknown publisher" warning, click **"More info" → "Run anyway"** to proceed. The project is fully open source and can also be built from source.
 
+> [!IMPORTANT]
+> **Network & Proxy Recommendation**: Most bundled online comic sources (such as CopyManga, JM, MangaDex, etc.) and Pixiv / booru gallery services require unrestricted international network connectivity. It is **strongly recommended to run VComic with a reliable system proxy or VPN**. The app follows system proxy settings by default and allows manually configuring HTTP proxy host/port in settings (or via `-Pproxy=127.0.0.1:7890` in development mode).
+
 ---
 
 ## What is this
@@ -33,7 +36,7 @@ VComic is a multi-platform comics and gallery project with three parts:
 
 | Part | Description | Form |
 |---|---|---|
-| **Windows desktop** (this repository) | Native single-window app built with Kotlin and Compose Multiplatform; all UI and business code is desktop-owned | `.exe` installer / portable folder |
+| **Windows / Linux desktop** (this repository) | Native single-window app built with Kotlin and Compose Multiplatform; all UI and business code is desktop-owned | Windows Installer / Linux AppImage & Portable |
 | **Android app** | Mobile build sharing the same origin but with its own UI, styled with Miuix and Material 3 | APK (Android 13+) |
 | **Official landing page** | Static HTML page with interactive feature demos | [Live site](https://w13630039663-bit.github.io/Vcomic/#top) / `index.html` |
 
@@ -194,6 +197,7 @@ Run all commands from the repository root `desktop/` (use `gradlew.bat` on Windo
 - **JDK 25**: the compile and run toolchain of `:desktop` (`jvmToolchain(25)`)
 - **JDK 21**: the Gradle daemon runtime and `:engine-probe`
 - **Gradle 9.7.1**: provided by the project wrapper, no separate install needed; toolchains download on demand
+- **Network Proxy (Strongly Recommended)**: a reliable system proxy or local proxy port (required for most overseas comic sources and Pixiv/gallery services)
 - **7-Zip (`7z.exe`)** (optional): only needed for `packageSetupInstaller`; `7zSD.sfx` is cached automatically
 - **VLC** (optional): only used at runtime by `vlcj` when playing gallery videos
 
@@ -251,15 +255,17 @@ The project uses a four-layer, single-direction architecture. All source lives i
 ```text
 desktop/
 ├── build.gradle.kts                  # Root build configuration
-├── settings.gradle.kts               # Module declarations (:desktop, :engine-probe)
+├── settings.gradle.kts               # Module declarations (:desktop, :core-data, :gallery-core, :engine-probe)
 ├── gradle.properties                 # JVM memory and build property settings
 ├── gradle/libs.versions.toml         # Central dependency version catalog
 ├── index.html                        # Official landing page (references website/assets)
 ├── run-venera.bat                    # Interactive Windows launcher and test menu
 ├── _tools/                           # Helper tools (e.g. count_desktop_tests.js)
-├── scripts/                          # Build helper scripts (e.g. enable-segment-heap.ps1)
+├── scripts/                          # Build helper scripts (e.g. package-linux.sh / enable-segment-heap.ps1)
 ├── docs/                             # Project docs (architecture, database, guides, designs, screenshots)
 │   └── images/                       # README screenshots (desktop / android / website)
+├── core-data/                        # [L2 pure data & guard · JDK 25] Platform contracts, SQLite DAO/Schema, update model (zero Compose)
+├── gallery-core/                     # [L2 gallery core · JDK 25] Gallery algorithms, filters, and site clients (zero Compose)
 ├── engine-probe/                     # [L3 engine · JDK 21] QuickJS host, EngineSession, cookie jar, JS handlers
 └── desktop/                          # [L0-L2 application · JDK 25]
     ├── build.gradle.kts              # Desktop packaging and runtime JVM arguments
@@ -267,8 +273,8 @@ desktop/
     └── src/
         ├── main/
         │   ├── kotlin/com/venera/
-        │   │   ├── desktop/          # [L0/L1] entry point (VeneraDesktop.kt), window host, UI, platform implementations
-        │   │   └── compose/          # [L2] shared foundation (BusinessPorts, platform contracts, DB schema, shared UI)
+        │   │   ├── desktop/          # [L0/L1] Layered into app/ (entry & routes), data/ (pure data), ui/ (screens & widgets), and feature packages
+        │   │   └── compose/          # [L2] shared UI foundation (BusinessPorts, shared components, gallery rendering)
         │   └── resources/
         │       ├── sources/          # 34 bundled JS manga source scripts
         │       ├── venera-init.js    # JS engine init script
@@ -281,7 +287,7 @@ desktop/
 
 ### Architecture boundaries
 
-- **Single-direction dependency**: the dependency direction is strictly `desktop` → `compose` and `desktop` → `engineprobe`. The `compose` layer must never reference `desktop` or `engineprobe`, guarded by `DesktopUiIsolationTest` and `DesktopNoAndroidImportTest`.
+- **Single-direction dependency & size guards**: the dependency direction is strictly `desktop` → `compose` and `desktop` → `engineprobe`. `:core-data`, `:gallery-core`, and `com.venera.desktop.data` must never depend on Compose UI or `desktop.ui`, guarded by `DesktopUiIsolationTest`, `DesktopNoAndroidImportTest`, and `DesktopFileSizeAndLayerGuardTest`.
 - **Ports and side-effect isolation**: the business boundary is `BusinessPorts` (17 port groups) implemented by `DesktopBusinessPorts`; the desktop side never calls `BusinessPorts.of`. Toasts, clipboard, sharing and cover-masking state all go through `LocalUxPlatformServices`.
 
 ---

@@ -1,8 +1,8 @@
 package com.venera.desktop.gallery.ui
 
-import com.venera.desktop.desktopFailureFrame
-import com.venera.desktop.desktopFailureType
-import com.venera.desktop.desktopOneLineMessage
+import com.venera.desktop.data.desktopFailureFrame
+import com.venera.desktop.data.desktopFailureType
+import com.venera.desktop.data.desktopOneLineMessage
 import com.venera.desktop.gallery.data.desktopCoilBytes
 import coil3.PlatformContext
 import java.awt.GraphicsEnvironment
@@ -112,7 +112,7 @@ internal fun desktopCopyImageRefusalReading(cause: DesktopCopyImageCause, error:
 private fun refuse(cause: DesktopCopyImageCause, error: Throwable?): DesktopCopyImageOutcome.Refused {
     val reading = desktopCopyImageRefusalReading(cause, error)
     println(reading)
-    com.venera.desktop.DesktopErrorBus.report(
+    com.venera.desktop.data.DesktopErrorBus.report(
         category = "图库",
         headline = "复制图片失败",
         humanReason = "当前图片未能写入系统剪贴板，请重试或检查剪贴板占用。",

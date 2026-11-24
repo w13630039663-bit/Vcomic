@@ -83,7 +83,7 @@ class DesktopImageLoadCapabilityTest {
 
     @Test
     fun `JS 那一段的守卫串在取图这一路上恰一处`() {
-        val engine = DesktopSourceTree.engineProbeSource("EngineSession.kt")
+        val engine = DesktopSourceTree.engineProbeSource("EngineSessionComicAndComments.kt")
         // 与同文件 coverBytes 那枚缩略图守卫**同一颗守卫**，不加第三种说法。
         // 只有活的那一处（pageImage）：`imageBytes` 全仓零调用点，整颗撤掉了（见判式 ⑦）。
         assertEquals(
@@ -98,7 +98,7 @@ class DesktopImageLoadCapabilityTest {
 
     @Test
     fun `裸调那一形只许出现在守卫之后而缩略图那枚守卫不许被顺手改掉`() {
-        val engine = DesktopSourceTree.engineProbeSource("EngineSession.kt")
+        val engine = DesktopSourceTree.engineProbeSource("EngineSessionComicAndComments.kt")
         val code = DesktopSourceTree.codeText(engine)
         val call = "comic.onImageLoad("
         assertEquals("真调裸调都算在这一形上：加了守卫后只许剩下调用点那一处", 1, code.split(call).size - 1)
@@ -119,7 +119,7 @@ class DesktopImageLoadCapabilityTest {
 
     @Test
     fun `取页那一跳吃纯件而那颗死件不许回来`() {
-        val engine = DesktopSourceTree.engineProbeSource("EngineSession.kt")
+        val engine = DesktopSourceTree.engineProbeSource("EngineSessionComicAndComments.kt")
         assertEquals(
             "pageImage 里对纯件的那一跳恰一处（把它换回就地解析，判式 ①~④ 就全在测一颗没人叫的东西）",
             1,

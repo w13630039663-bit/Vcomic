@@ -1,6 +1,6 @@
 package com.venera.desktop.architecture
 
-import com.venera.desktop.desktopEngineCall
+import com.venera.desktop.data.desktopEngineCall
 import com.venera.engineprobe.DesktopJsHost
 import com.venera.engineprobe.EngineSession
 import java.nio.file.Files

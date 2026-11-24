@@ -190,7 +190,7 @@ class DesktopImagePipelineTest {
     /** ④ 接线：应用根装**恰好一次**，装的那一刻出声，而那颗件里三样都在。 */
     @Test
     fun 装载那一处真接上且出声() {
-        val appFile = DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt")
+        val appFile = DesktopSourceTree.desktopSourceOf("app/VeneraDesktop.kt")
         assertEquals(
             "应用根里 `DesktopImagePipeline.install(` 必须恰好一处（装好几处 = 后一处静默盖掉前一处）",
             1,
@@ -261,7 +261,7 @@ class DesktopImagePipelineTest {
 
     @Test
     fun 缓存目录走数据根那条路而与http那颗同一条() {
-        val root = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt"))
+        val root = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/VeneraDesktop.kt"))
             .filterNot { it.isWhitespace() }
         assertEquals("install 全应用只一处", 1, root.split("DesktopImagePipeline.install(").size - 1)
         assertTrue(
@@ -302,7 +302,7 @@ class DesktopImagePipelineTest {
      */
     @Test
     fun ImageIO那颗scratch在起图之前就关掉而不靠系统Temp() {
-        val root = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt"))
+        val root = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/VeneraDesktop.kt"))
             .filterNot { it.isWhitespace() }
         assertEquals("关缓存那一句只许一处", 1, root.split("ImageIO.setUseCache(false)").size - 1)
         assertTrue(

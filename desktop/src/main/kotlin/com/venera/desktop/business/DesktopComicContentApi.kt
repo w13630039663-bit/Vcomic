@@ -12,7 +12,7 @@ import com.venera.compose.source.model.ResolvedThumbnailConfig
 import com.venera.compose.source.model.SearchPage
 import com.venera.compose.source.model.ThumbnailPage
 import com.venera.compose.source.explore.SourceExploration
-import com.venera.desktop.desktopEngineCall
+import com.venera.desktop.data.desktopEngineCall
 import com.venera.engineprobe.EngineSession
 
 /**

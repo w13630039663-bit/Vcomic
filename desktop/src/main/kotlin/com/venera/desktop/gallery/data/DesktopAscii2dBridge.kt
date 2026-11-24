@@ -342,7 +342,7 @@ class DesktopAscii2dBridge private constructor() {
     /**
      * 把 Edge 的顶级窗口收进宿主窗口：摘标题栏 → SetParent → 定位。
      * [panelRect] 是面板区域在**屏幕坐标系**里的物理像素矩形（UI 侧负责换算）。
-     * 手艺与 [com.venera.desktop.DesktopDwmBackdrop] 同源（JNA user32，32 位读写）。
+     * 手艺与 [com.venera.desktop.ui.DesktopDwmBackdrop] 同源（JNA user32，32 位读写）。
      */
     fun embedInto(hostWindow: Window, panelRect: Rectangle): Boolean {
         val edgeHwnd = findEdgeWindow() ?: return false

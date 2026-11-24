@@ -1,5 +1,9 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.app.raiseOwnWindowForShot
+import com.venera.desktop.app.runAutofavEvidence
+import com.venera.desktop.app.selfShot
+import com.venera.desktop.app.setTopmost
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -199,9 +203,9 @@ class DesktopDomainNavigationTest {
     // 批 4：自截图与抬窗那颗函数已拆到 DesktopSelfShot.kt；判据按入口两颗成员文件读。
     private val shellCode: String =
         DesktopSourceTree.codeText(
-            File(DesktopSourceTree.repoRoot, "desktop/src/main/kotlin/com/venera/desktop/VeneraDesktop.kt"),
+            File(DesktopSourceTree.repoRoot, "desktop/src/main/kotlin/com/venera/desktop/app/VeneraDesktop.kt"),
         ) + "\n" + DesktopSourceTree.codeText(
-            File(DesktopSourceTree.repoRoot, "desktop/src/main/kotlin/com/venera/desktop/DesktopSelfShot.kt"),
+            File(DesktopSourceTree.repoRoot, "desktop/src/main/kotlin/com/venera/desktop/app/DesktopSelfShot.kt"),
         )
 
     /**

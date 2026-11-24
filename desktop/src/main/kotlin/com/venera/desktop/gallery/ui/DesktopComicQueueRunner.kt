@@ -9,7 +9,7 @@ import com.venera.desktop.gallery.data.desktopComicChapterProgressLine
 import com.venera.desktop.gallery.data.desktopComicDownloadChapter
 import com.venera.desktop.gallery.data.desktopComicQueueDir
 import com.venera.desktop.gallery.data.desktopComicQueueReading
-import com.venera.desktop.desktopEngineCall
+import com.venera.desktop.data.desktopEngineCall
 import com.venera.engineprobe.EngineSession
 import java.io.File
 import kotlinx.coroutines.CoroutineScope

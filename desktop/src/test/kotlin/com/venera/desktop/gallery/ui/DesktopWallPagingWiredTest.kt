@@ -1,5 +1,6 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.compose.gallery.data.GalleryContentGuard
 import com.venera.compose.gallery.data.GalleryPorts
 import com.venera.compose.gallery.data.GalleryPost
@@ -243,6 +244,6 @@ class DesktopWallPagingWiredTest {
 
     private companion object {
         const val FIRST_PAGE_FILE = "desktop/src/main/kotlin/com/venera/desktop/gallery/ui/DesktopWallFirstPage.kt"
-        const val SHELL_FILE = "desktop/src/main/kotlin/com/venera/desktop/VeneraDesktopLargeScreen.kt"
+        const val SHELL_FILE = "desktop/src/main/kotlin/com/venera/desktop/app/VeneraDesktopLargeScreen.kt"
     }
 }

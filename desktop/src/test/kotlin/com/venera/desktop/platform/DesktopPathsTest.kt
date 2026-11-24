@@ -49,4 +49,46 @@ class DesktopPathsTest {
         assertTrue(err!!.message!!.contains(root.path))
         base.deleteRecursively()
     }
+
+    @Test fun `Linux 环境下遵循 XDG 规范读取 XDG_DATA_HOME 与 XDG_CACHE_HOME`() {
+        val tmp = File(System.getProperty("java.io.tmpdir"), "r1f-xdg-${System.nanoTime()}")
+        val dataDir = File(tmp, "share")
+        val cacheDir = File(tmp, "cache")
+        val env = mapOf(
+            "XDG_DATA_HOME" to dataDir.path,
+            "XDG_CACHE_HOME" to cacheDir.path,
+        )
+        val paths = DesktopPaths.create(
+            envProvider = { env[it] },
+            osName = "Linux",
+            userHome = "/home/testuser",
+        )
+        assertEquals(File(dataDir, "venera").path, paths.dataRoot.path)
+        assertEquals(File(cacheDir, "venera").path, paths.cacheRoot.path)
+        tmp.deleteRecursively()
+    }
+
+    @Test fun `Linux 环境下无 XDG 环境变量时缺省回退到 user_home 的 local_share 与 cache`() {
+        val tmp = File(System.getProperty("java.io.tmpdir"), "r1f-home-${System.nanoTime()}")
+        val paths = DesktopPaths.create(
+            envProvider = { null },
+            osName = "Linux",
+            userHome = tmp.path,
+        )
+        assertEquals(File(tmp, ".local/share/venera").path, paths.dataRoot.path)
+        assertEquals(File(tmp, ".cache/venera").path, paths.cacheRoot.path)
+        tmp.deleteRecursively()
+    }
+
+    @Test fun `Linux 环境下无 XDG 且无 user_home 时抛错`() {
+        val err = runCatching {
+            DesktopPaths.create(
+                envProvider = { null },
+                osName = "Linux",
+                userHome = "",
+            )
+        }.exceptionOrNull()
+        assertNotNull(err)
+        assertTrue(err!!.message!!.contains("XDG_DATA_HOME") || err.message!!.contains("user.home"))
+    }
 }

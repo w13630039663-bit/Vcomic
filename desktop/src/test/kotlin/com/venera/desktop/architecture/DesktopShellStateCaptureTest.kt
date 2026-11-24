@@ -1,5 +1,6 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -21,7 +22,7 @@ class DesktopShellStateCaptureTest {
     @Test
     fun 壳捕获的状态不超过阈值() {
         val source = DesktopSourceTree.codeText(
-            DesktopSourceTree.desktopSourceOf("VeneraDesktopLargeScreen.kt"),
+            DesktopSourceTree.desktopSourceOf("app/VeneraDesktopLargeScreen.kt"),
         )
         val captured = SHELL_STATE_PATTERN.findAll(source).count()
         assertTrue(
@@ -35,7 +36,7 @@ class DesktopShellStateCaptureTest {
     @Test
     fun 壳字节码方法参数槽位不超过安全上限() {
         val bytes = DesktopShellStateCaptureTest::class.java.classLoader
-            .getResourceAsStream("com/venera/desktop/VeneraDesktopLargeScreenKt.class")
+            .getResourceAsStream("com/venera/desktop/app/VeneraDesktopLargeScreenKt.class")
             ?.use { it.readBytes() }
         assertNotNull("未在测试 classpath 中找到 VeneraDesktopLargeScreenKt.class", bytes)
         val methods = readMethodSlotCounts(bytes!!)

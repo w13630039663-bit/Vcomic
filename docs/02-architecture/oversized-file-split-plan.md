@@ -135,4 +135,18 @@
 
 **测试面同步**：`DesktopSourceTree` 维护 `desktopLargeScreenSources` 19 颗成员表及 `desktopMainGroupedOccurrences` 合并计数尺；`DesktopTabOwnershipTest`、`DesktopShellStateCaptureTest`、入口/单源/路由/收藏夹等 30 余颗源码扫描测试已同步按成员表与新成员文件读取。变更批次：`批4a`（阅读器屏）、`d4da3270`（入口支持件）、`20e0080b`（大屏外围件）、`eae9cf4b`–`批4d`（大屏主函数第 1–3 刀及状态/接线收口）。
 
+### 2026-11-24 全量 TOP 10 巨型文件清零与根目录三层归位（Batch 1–7）· 已完成
+
+- **死代码与二进制资源治理（Batch 1 `d3893b2e`）**：将 `ContributorAvatars.kt` 中的像素画数据迁移至 `resources/contributors/*.img` 二进制资源；正式下线并移除零生产调用的死代码 `compose/feature/ComicDetailScreen.kt`。
+- **TOP 10 头部巨型文件拆分（Batch 2–6 `f3159e49`..`84c129d5`）**：
+  - `DesktopSettingsHub.kt`（139.6 KB）拆分为 6 份独立分区/外壳文件；
+  - `DesktopReaderScreen.kt`（102.8 KB）拆分为 3 份文件（主屏、手势视口、导航/侧栏）；
+  - `VeneraDesktop.kt`（97.2 KB）拆出 `DesktopStartupBootstrap.kt`、`DesktopWindowHooks.kt` 与 `DesktopEngineHostActions.kt`；
+  - `DesktopLargeScreenStateInit.kt`、`DesktopTabHost.kt`、`DesktopGalleryAndAccountHost.kt`、`DesktopComicAndSourceHost.kt` 按职责拆分为多份 <= 40 KB 子文件；
+  - `ForensicFlags.kt`（84.0 KB）拆出 `ForensicFlagsScreenSeeds.kt` 与 `ForensicFlagsComicSeeds.kt`；
+  - `EngineSession.kt`（81.4 KB）按功能模块拆出 4 份内部扩展文件（ExploreAndSearch / NetworkFavorites / ComicAndComments / AuthAndSettings）。
+- **根目录三层归位与双静态护栏（Batch 7 `292c6008`..`312e3ea9`）**：
+  - 将 `com.venera.desktop` 根目录 66 个散落 `.kt` 文件按 `app/`（38）、`data/`（12，含新拆出的 `DesktopErrorBus.kt`）、`ui/`（17）彻底归位，实现根目录零散落文件且 `data` 层零 Compose UI 依赖；
+  - 新增 `DesktopFileSizeAndLayerGuardTest` 静态护栏，锁定新建与已拆分文件 `<= 40 KB`（39 个尚未拆分的 40–76 KB 历史文件登记于 `LEGACY_OVERSIZED_ALLOWLIST`，只减不增）及三层单向依赖约束。
+
 

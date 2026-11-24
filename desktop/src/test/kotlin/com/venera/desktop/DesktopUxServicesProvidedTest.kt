@@ -1,5 +1,6 @@
 package com.venera.desktop
 
+import com.venera.desktop.app.DesktopUxPlatformServices
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -62,7 +63,7 @@ class DesktopUxServicesProvidedTest {
 
     @Test
     fun `装配点必须把守卫件递进去 而不是留空 lambda`() {
-        val lines = code(src("VeneraDesktop.kt"))
+        val lines = code(src("app/VeneraDesktop.kt"))
         val modeLine = lines.filter { "maskModeOf" in it }
         assertTrue(
             "装配点没传 `maskModeOf` —— 遮罩档从哪来就没答案了",
@@ -87,7 +88,7 @@ class DesktopUxServicesProvidedTest {
 
     @Test
     fun `桌面实现类本身不许把 coverMaskStateOf 交回给 NoOp`() {
-        val lines = code(src("DesktopUxPlatformServices.kt"))
+        val lines = code(src("app/DesktopUxPlatformServices.kt"))
         assertTrue(
             "桌面实现里没有覆写 `coverMaskStateOf`",
             lines.any { "override fun coverMaskStateOf" in it },

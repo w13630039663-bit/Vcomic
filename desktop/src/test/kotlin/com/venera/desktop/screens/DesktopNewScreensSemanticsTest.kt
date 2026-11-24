@@ -178,7 +178,8 @@ class DesktopNewScreensSemanticsTest {
             }
             onNodeWithText("收藏").performClick()          // 心形钮扳开弹窗
             onNodeWithText(DESKTOP_FAVORITE_DEFAULT_FOLDER).performClick()
-            assertEquals("点夹恰好落一次（落两次就是连点会写两遍那一族）", listOf(DESKTOP_FAVORITE_DEFAULT_FOLDER), picks)
+            onNodeWithText("完成").performClick()
+            assertEquals("点夹并点完成恰好落一次（落两次就是连点会写两遍那一族）", listOf(DESKTOP_FAVORITE_DEFAULT_FOLDER), picks)
         }
 
         // 另外三档各起一层（平铺，不嵌套）：各念各的那句，不许塌成一句。

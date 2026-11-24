@@ -1,5 +1,6 @@
 package com.venera.desktop.gallery.data
 
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.engineprobe.EngineSession
 import java.io.File
 

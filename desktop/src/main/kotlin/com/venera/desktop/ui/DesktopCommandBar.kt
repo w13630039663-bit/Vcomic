@@ -124,7 +124,7 @@ internal fun DesktopCommandBar(
         )
 
         // ── 右段：反馈入口 + 三枚真窗控 ──
-        com.venera.desktop.DesktopFeedbackTriggerButton(
+        com.venera.desktop.ui.DesktopFeedbackTriggerButton(
             tint = palette.chrome,
             hoverBackground = palette.hover,
         )

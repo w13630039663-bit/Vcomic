@@ -1,5 +1,6 @@
 package com.venera.desktop.reader
 
+import com.venera.desktop.app.DesktopUxPlatformServices
 import com.venera.desktop.ui.vShadow
 import com.venera.desktop.ui.theme.VeneraType
 import androidx.compose.foundation.background

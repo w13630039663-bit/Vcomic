@@ -9,7 +9,7 @@ import com.venera.compose.source.model.CommentCapabilities
 import com.venera.compose.source.model.CommentPage
 import com.venera.compose.source.model.SearchPage
 import com.venera.desktop.gallery.data.DesktopSourceNames
-import com.venera.desktop.desktopEngineCall
+import com.venera.desktop.data.desktopEngineCall
 import com.venera.engineprobe.EngineSession
 import java.io.File
 

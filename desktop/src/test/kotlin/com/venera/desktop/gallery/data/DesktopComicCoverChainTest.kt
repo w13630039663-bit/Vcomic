@@ -95,7 +95,7 @@ class DesktopComicCoverChainTest {
 
     @Test
     fun 种子那一趟的载荷不猜封面() {
-        val seeded = com.venera.desktop.ForensicFlags.read(listOf("--read=1461316/g"), startPage = null)
+        val seeded = com.venera.desktop.app.ForensicFlags.read(listOf("--read=1461316/g"), startPage = null)
         assertEquals(
             "种子没经过详情那一行，手里就是没有地址 ⇒ 空串是实话（填一枚猜出来的会把没量过的东西写进共用的表）",
             "",

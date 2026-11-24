@@ -1,5 +1,18 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.app.DesktopComicAndFilesEffects
+import com.venera.desktop.app.DesktopComicAndSourceHost
+import com.venera.desktop.app.DesktopGalleryAndAccountHost
+import com.venera.desktop.app.DesktopGalleryWallEffects
+import com.venera.desktop.app.DesktopLargeScreenMiscEffects
+import com.venera.desktop.app.DesktopLargeScreenRouter
+import com.venera.desktop.app.DesktopLargeScreenState
+import com.venera.desktop.app.DesktopPixivRoutesHost
+import com.venera.desktop.app.DesktopSearchAndExploreEffects
+import com.venera.desktop.app.DesktopTabHost
+import com.venera.desktop.app.ForensicFlags
+import com.venera.desktop.app.VeneraDesktopLargeScreen
+import com.venera.desktop.ui.DesktopWallScaffold
 import java.io.File
 
 /**
@@ -20,8 +33,9 @@ internal object DesktopSourceTree {
         error("没找到仓库根（向上都没有 settings.gradle.kts）：起点 ${File("").absolutePath}")
     }
 
-    /** `desktop/src/main` 下的全部 .kt（隔离与口径漂移两条尺子都扫这一片）。 */
-    fun desktopMainSources(): List<File> = walkFiles(File(repoRoot, "desktop/src/main"))
+    /** `desktop/src/main` 及拆分出的 `:core-data`、`:gallery-core` 下的全部 .kt（隔离与口径漂移两条尺子都扫这一片）。 */
+    fun desktopMainSources(): List<File> = listOf("desktop/src/main", "core-data/src/main", "gallery-core/src/main")
+        .flatMap { rel -> walkFiles(File(repoRoot, rel)) }
 
     /**
      * 桌面**自有**片（`com.venera.desktop` 包）—— 壳与自制屏那一族判据的对象。
@@ -37,7 +51,9 @@ internal object DesktopSourceTree {
      * 不在这里留兜底去掩盖"判据对象已不存在"这件事。
      */
     fun androidSource(relative: String): File =
-        File(repoRoot, "desktop/src/main/kotlin/com/venera/compose/$relative").takeIf { it.isFile }
+        listOf("desktop/src/main", "core-data/src/main", "gallery-core/src/main")
+            .map { File(repoRoot, "$it/kotlin/com/venera/compose/$relative") }
+            .firstOrNull { it.isFile }
             ?: error("回核目标已不在桌面自持树（对岸退役后判据应一并退役）：$relative")
 
     /** `app/src/main` 下的全部 .kt；`:app` 退役后目录不存在 ⇒ 返回空，反向隔离断言自然失效。 */
@@ -134,6 +150,14 @@ internal object DesktopSourceTree {
         "detail/DesktopComicDetailFavoriteDialog.kt",
     ).map { desktopSourceOf(it) }
 
+    fun engineProbeSessionSources(): List<File> = listOf(
+        "EngineSession.kt",
+        "EngineSessionExploreAndSearch.kt",
+        "EngineSessionNetworkFavorites.kt",
+        "EngineSessionComicAndComments.kt",
+        "EngineSessionAuthAndSettings.kt",
+    ).map { engineProbeSource(it) }
+
     /** 成员文件的正文合并；跨文件的接线断言用这颗，单点形状仍指到具体文件。 */
     fun desktopComicDetailCode(): String = desktopComicDetailSources().joinToString("\n") { codeText(it) }
 
@@ -150,25 +174,33 @@ internal object DesktopSourceTree {
      * 显式列举而不是扫目录，理由同 [desktopComicDetailSources]；未拆前这里只有一颗主文件。
      */
     fun desktopLargeScreenSources(): List<File> = listOf(
-        "VeneraDesktopLargeScreen.kt",
-        "DesktopLargeScreenState.kt",
-        "DesktopLargeScreenStateInit.kt",
-        "DesktopLargeScreenWiring.kt",
-        "DesktopLargeScreenChrome.kt",
-        "DesktopLargeScreenRouter.kt",
-        "DesktopLargeScreenMiscEffects.kt",
-        "DesktopLargeScreenHelpers.kt",
-        "DesktopComicAndSourceHost.kt",
-        "DesktopPixivRoutesHost.kt",
-        "DesktopGalleryAndAccountHost.kt",
-        "DesktopSearchAndExploreEffects.kt",
-        "DesktopGalleryWallEffects.kt",
-        "DesktopComicAndFilesEffects.kt",
-        "DesktopTabHost.kt",
-        "DesktopSearchTabHost.kt",
-        "DesktopShellPanes.kt",
-        "DesktopWallScaffold.kt",
-        "DesktopWallUiStates.kt",
+        "app/VeneraDesktopLargeScreen.kt",
+        "app/DesktopLargeScreenState.kt",
+        "app/DesktopLargeScreenStateInit.kt",
+        "app/DesktopLargeScreenSearchAndSourceState.kt",
+        "app/DesktopLargeScreenWallAndHomeState.kt",
+        "app/DesktopLargeScreenWiring.kt",
+        "app/DesktopLargeScreenChrome.kt",
+        "app/DesktopLargeScreenRouter.kt",
+        "app/DesktopLargeScreenMiscEffects.kt",
+        "app/DesktopLargeScreenHelpers.kt",
+        "app/DesktopComicAndSourceHost.kt",
+        "app/DesktopSourceManageRoutesHost.kt",
+        "app/DesktopFilesAndLocalReaderRoutesHost.kt",
+        "app/DesktopPixivRoutesHost.kt",
+        "app/DesktopGalleryAndAccountHost.kt",
+        "app/DesktopAccountAndBackupRoutesHost.kt",
+        "app/DesktopGallerySearchAndDetailRoutesHost.kt",
+        "app/DesktopSearchAndExploreEffects.kt",
+        "app/DesktopGalleryWallEffects.kt",
+        "app/DesktopComicAndFilesEffects.kt",
+        "app/DesktopTabHost.kt",
+        "app/DesktopTabGalleryAndHomePanes.kt",
+        "app/DesktopTabFavoritesAndExplorePanes.kt",
+        "app/DesktopSearchTabHost.kt",
+        "ui/DesktopShellPanes.kt",
+        "ui/DesktopWallScaffold.kt",
+        "ui/DesktopWallUiStates.kt",
     ).map { desktopSourceOf(it) }
 
     /** 大屏成员文件的正文合并；跨文件的接线断言用这颗，单点形状仍指到具体文件。 */
@@ -181,11 +213,39 @@ internal object DesktopSourceTree {
     fun desktopLargeScreenOccurrences(literal: String): Int =
         desktopLargeScreenSources().sumOf { codeOccurrences(it, literal) }
 
-    /** 按主源码统计出现次数，并将所有大屏成员文件合并归入 `VeneraDesktopLargeScreen.kt`。 */
+    /** 桌面主入口与装配根成员表（启动偏好/取证引导、窗口钩子、引擎宿主回调）。 */
+    fun desktopEntrySources(): List<File> = listOf(
+        "app/VeneraDesktop.kt",
+        "app/DesktopStartupBootstrap.kt",
+        "app/DesktopWindowHooks.kt",
+        "data/DesktopEngineHostActions.kt",
+    ).map { desktopSourceOf(it) }
+
+    fun desktopEntryCode(): String = desktopEntrySources().joinToString("\n") { codeText(it) }
+
+    fun desktopEntryLines(): List<String> = desktopEntrySources().flatMap { codeLinesOf(it) }
+
+    /** 取证启动标志及其子种子定义成员表。 */
+    fun forensicFlagsSources(): List<File> = listOf(
+        "app/ForensicFlags.kt",
+        "app/ForensicFlagsScreenSeeds.kt",
+        "app/ForensicFlagsComicSeeds.kt",
+    ).map { desktopSourceOf(it) }
+
+    fun forensicFlagsCode(): String = forensicFlagsSources().joinToString("\n") { codeText(it) }
+
+    /** 按主源码统计出现次数，并将大屏与入口拆分成员分别合并归入各自根文件。 */
     fun desktopMainGroupedOccurrences(literal: String): List<Pair<String, Int>> {
         val largeNames = desktopLargeScreenSources().map { it.name }.toSet()
+        val entryNames = desktopEntrySources().map { it.name }.toSet()
         return desktopMainSources()
-            .groupBy { if (it.name in largeNames) "VeneraDesktopLargeScreen.kt" else it.name }
+            .groupBy {
+                when (it.name) {
+                    in largeNames -> "VeneraDesktopLargeScreen.kt"
+                    in entryNames -> "VeneraDesktop.kt"
+                    else -> it.name
+                }
+            }
             .mapValues { (_, files) -> files.sumOf { codeOccurrences(it, literal) } }
             .filterValues { it > 0 }
             .entries

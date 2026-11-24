@@ -1,5 +1,7 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.DesktopRoute
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -26,13 +28,13 @@ import org.junit.Test
  */
 class DesktopGalleryBookmarksHubEntryTest {
 
-    private val shellFile = DesktopSourceTree.desktopSourceOf("VeneraDesktopLargeScreen.kt")
+    private val shellFile = DesktopSourceTree.desktopSourceOf("app/VeneraDesktopLargeScreen.kt")
     private val shellLines = DesktopSourceTree.desktopLargeScreenLines().filter { it.isNotEmpty() }
 
     /** ① 路由枚举里有 hub 那一档，也有 pixiv 那枚诚实报屏那一档。 */
     @Test
     fun `DesktopRoute 里有 hub 那一档`() {
-        val route = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("DesktopRoute.kt"))
+        val route = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/DesktopRoute.kt"))
         assertTrue(
             "`DesktopRoute` 里没有 `data object GalleryBookmarksHub` ⇒ 那一屏进不去：",
             "data object GalleryBookmarksHub : DesktopRoute" in route,
@@ -62,10 +64,15 @@ class DesktopGalleryBookmarksHubEntryTest {
     /** ③ 渲的是安卓那一份屏（同 module 直调），不是桌面另写的壳。 */
     @Test
     fun `渲的是安卓大屏那一份屏`() {
+        val shellCode = DesktopSourceTree.desktopLargeScreenCode()
         val render = shellLines.firstOrNull { "DesktopRoute.GalleryBookmarksHub ->" in it }
         assertTrue(
             "hub 那一支没渲安卓那颗 `GalleryBookmarksHubScreen`（桌面另搭一份就等于没直连）：$render",
-            render != null && "com.venera.compose.gallery.ui.GalleryBookmarksHubScreen(" in render,
+            render != null && (
+                "com.venera.compose.gallery.ui.GalleryBookmarksHubScreen(" in render ||
+                    ("import com.venera.compose.gallery.ui.GalleryBookmarksHubScreen" in shellCode &&
+                        "GalleryBookmarksHubScreen(" in render)
+                ),
         )
     }
 

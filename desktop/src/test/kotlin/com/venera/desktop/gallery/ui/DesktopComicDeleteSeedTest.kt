@@ -1,6 +1,6 @@
 package com.venera.desktop.gallery.ui
 
-import com.venera.desktop.ForensicFlags
+import com.venera.desktop.app.ForensicFlags
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 import org.junit.Assert.assertEquals
@@ -37,8 +37,7 @@ class DesktopComicDeleteSeedTest {
 
     private val paneFile = DesktopSourceTree.desktopUiSource("DesktopComicDownloadsPane.kt")
     private val paneCode = DesktopSourceTree.codeText(paneFile)
-    private val hostFile = DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt")
-    private val hostCode = DesktopSourceTree.codeText(hostFile)
+    private val hostCode = DesktopSourceTree.desktopEntryCode()
     private val deleteFile = DesktopSourceTree.desktopUiSource("DesktopComicDownloadsDelete.kt")
     private val deleteCode = DesktopSourceTree.codeText(deleteFile)
 

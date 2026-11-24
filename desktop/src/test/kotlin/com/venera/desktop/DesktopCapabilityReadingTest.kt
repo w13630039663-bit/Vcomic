@@ -1,5 +1,6 @@
 package com.venera.desktop
 
+import com.venera.desktop.data.desktopCapabilityReading
 import com.venera.desktop.gallery.data.DesktopDictionaryPresence
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
@@ -100,7 +101,7 @@ class DesktopCapabilityReadingTest {
     // ⑤ 出口只许一处：集成方自己拼一句 `D_能力` 就是第二份口径（将来只改一处）。
     @Test
     fun `启动那行只从读数件里念`() {
-        val main = DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt")
+        val main = DesktopSourceTree.desktopSourceOf("app/VeneraDesktop.kt")
         assertEquals(
             "集成方自己拼了 `D_能力` 那句（该走读数件）",
             0,

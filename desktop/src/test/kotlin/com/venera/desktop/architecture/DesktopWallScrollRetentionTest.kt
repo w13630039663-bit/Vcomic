@@ -1,5 +1,9 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.VeneraDesktopLargeScreen
+import com.venera.desktop.ui.DesktopGalleryWallPane
+import com.venera.desktop.ui.DesktopScrollAnchor
+import com.venera.desktop.ui.rememberRetainedLazyListState
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -36,7 +40,7 @@ import org.junit.Test
  */
 class DesktopWallScrollRetentionTest {
 
-    private val shellFile = DesktopSourceTree.desktopSourceOf("VeneraDesktopLargeScreen.kt")
+    private val shellFile = DesktopSourceTree.desktopSourceOf("app/VeneraDesktopLargeScreen.kt")
     /** 批 4：pane 与 scaffold 已拆到成员文件；跨文件接线按大屏成员表合并读，壳层那两处仍指主文件。 */
     private val shell get() = DesktopSourceTree.desktopLargeScreenCode()
     private val shellLines get() = DesktopSourceTree.desktopLargeScreenLines().filter { it.isNotEmpty() }

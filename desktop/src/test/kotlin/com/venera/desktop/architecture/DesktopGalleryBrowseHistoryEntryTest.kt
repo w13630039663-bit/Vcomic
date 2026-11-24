@@ -1,5 +1,8 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.DesktopRoute
+import com.venera.desktop.app.VeneraDesktopLargeScreen
+import com.venera.desktop.ui.desktopSideBarGroups
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -23,11 +26,11 @@ import org.junit.Test
  */
 class DesktopGalleryBrowseHistoryEntryTest {
 
-    private val shellFile = DesktopSourceTree.desktopSourceOf("VeneraDesktopLargeScreen.kt")
+    private val shellFile = DesktopSourceTree.desktopSourceOf("app/VeneraDesktopLargeScreen.kt")
 
     /** 批 4：侧栏分组已拆到成员文件；"壳里有那一处"按大屏成员表合并读，装配点计数仍指主文件。 */
     private val shell get() = DesktopSourceTree.desktopLargeScreenCode()
-    private val route get() = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("DesktopRoute.kt"))
+    private val route get() = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/DesktopRoute.kt"))
     private val screenFile = DesktopSourceTree.desktopSourceOf("gallery/ui/DesktopGallerySavedScreen.kt")
     private val screen get() = DesktopSourceTree.codeText(screenFile)
 
@@ -176,7 +179,7 @@ class DesktopGalleryBrowseHistoryEntryTest {
             "装配点 `VeneraDesktop.kt` 递 `galleryPaths` 恰一处（漏了这一跳 = 那扇门永远念「这台机器还没定下数据根」）：",
             1,
             DesktopSourceTree.codeOccurrences(
-                DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt"),
+                DesktopSourceTree.desktopSourceOf("app/VeneraDesktop.kt"),
                 "galleryPaths = paths,",
             ),
         )
@@ -214,7 +217,7 @@ class DesktopGalleryBrowseHistoryEntryTest {
     /** ⑩ 取证种子认得那一屏（漏了这一枚 = 那一格只有主人鼠标点得动，而鼠标自验是禁的）。 */
     @Test
     fun 取证种子认得历史那一屏() {
-        val flags = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("ForensicFlags.kt"))
+        val flags = DesktopSourceTree.forensicFlagsCode()
         assertTrue("`--open=` 没登记 galleryhistory 那一档：", flags.contains("\"galleryhistory\" -> DesktopRoute.GalleryBrowseHistory"))
         // 可选值那一句要点名它，否则落空那一次用户读不到"能打什么"。
         assertTrue("落空那句的可选值清单里没有 GALLERYHISTORY：", flags.contains("GALLERYHISTORY"))

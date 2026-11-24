@@ -1,5 +1,6 @@
 package com.venera.desktop.gallery.data
 
+import com.venera.desktop.app.ForensicFlags
 /**
  * 阅读那一屏的模式档位 —— 桌面自持的一份同轨件（B 路）。
  *

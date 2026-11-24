@@ -263,7 +263,7 @@ internal object DesktopImagePipeline {
                                     "因=${result.throwable::class.java.simpleName}: " +
                                     "${result.throwable.message?.take(160)}",
                             )
-                            com.venera.desktop.DesktopErrorBus.reportImageError(
+                            com.venera.desktop.data.DesktopErrorBus.reportImageError(
                                 request.data.toString(),
                                 result.throwable,
                             )

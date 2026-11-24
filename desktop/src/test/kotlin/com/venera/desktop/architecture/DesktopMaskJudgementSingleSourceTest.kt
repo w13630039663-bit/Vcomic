@@ -1,5 +1,7 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.DesktopUxPlatformServices
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -97,9 +99,10 @@ class DesktopMaskJudgementSingleSourceTest {
                 "详情页只吃壳算好的 `masked` 成品位，不另立判据。" +
                 "\n2026-11-07 宽屏双源批 9→10：首页第二套（宽屏双列）接线再问一次（与窄版同一颗 `desktopUx`、"
                 + "同一源键 —— 两套首页是同一屏的两档布局，不是两套判据）。" +
-                "\n2026-11-22 10→11：收藏 Hub 第四档「追更」接线再问一次 —— 它问的是**同一颗 `ux.coverMaskStateOf`**"
-                + "（源键/标题/作者逐本现算，与本地收藏、网络收藏同一腿），追更屏只吃壳算好的 `maskedOf` 成品位，不另立判据。",
-            mapOf("VeneraDesktopLargeScreen.kt" to 11, "DesktopUxPlatformServices.kt" to 1),
+                "\n2026-11-22 10→11：收藏 Hub 第四档「追更」接线再问一次 —— 它问的是**同一颗 `ux.coverMaskStateOf`**" +
+                "（源键/标题/作者逐本现算，与本地收藏、网络收藏同一腿），追更屏只吃壳算好的 `maskedOf` 成品位，不另立判据。" +
+                "\n2026-11-24 11→10：首页双皮肤（经典/浅色）收拢共享局部变量 `comicMaskedOf`，减少重复调用一次。",
+            mapOf("VeneraDesktopLargeScreen.kt" to 10, "DesktopUxPlatformServices.kt" to 1),
             counts,
         )
     }
@@ -107,7 +110,7 @@ class DesktopMaskJudgementSingleSourceTest {
     /** ④ 那条链的源头是真守卫件（不是常量、不是默认档）。 */
     @Test
     fun 判据那条链的源头是真守卫() {
-        val app = DesktopSourceTree.codeLinesOf(DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt"))
+        val app = DesktopSourceTree.codeLinesOf(DesktopSourceTree.desktopSourceOf("app/VeneraDesktop.kt"))
         val maskLine = app.firstOrNull { it.startsWith("maskModeOf =") }
         assertTrue("装配点没递 `maskModeOf`（屏上判据会恒吃默认档）：$app", maskLine != null)
         // 源头是 `guard.nsfwMaskMode` 的订阅态，
@@ -150,11 +153,13 @@ class DesktopMaskJudgementSingleSourceTest {
         )
         // 那句写口失败读数仍点名这三档（写侧挪进设置中枢，
         // 成因句跟着挪进 DesktopSettingsHub —— 它仍是这一路的唯一成因出处，尺子照钉）。
+        val settingsHubCode = listOf(
+            "settings/DesktopSettingsHub.kt",
+            "settings/DesktopSettingsCardsReaderAndExplore.kt",
+        ).joinToString("\n") { DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf(it)) }
         assertTrue(
             "那句写口失败读数不再点名这三档（屏上选了而写不进去时，用户读不出为什么）：",
-            "档位只接受 OFF/BLUR/HIDE" in DesktopSourceTree.codeText(
-                DesktopSourceTree.desktopSourceOf("settings/DesktopSettingsHub.kt"),
-            ),
+            "档位只接受 OFF/BLUR/HIDE" in settingsHubCode,
         )
         assertTrue("那张表是空的（解析那颗文件失败？）：", labels.isNotEmpty())
     }
@@ -163,7 +168,9 @@ class DesktopMaskJudgementSingleSourceTest {
     @Test
     fun 阅读器的打码不造第二套文案而页格兜底还在() {
         // 批 4：视口 / 页图格 / 侧栏条已拆到 DesktopReaderOverlays.kt，两条断言跨两颗成员文件读。
-        val reader = text("reader/DesktopReaderScreen.kt") + "\n" + text("reader/DesktopReaderOverlays.kt")
+        val reader = text("reader/DesktopReaderScreen.kt") + "\n" +
+            text("reader/DesktopReaderViewports.kt") + "\n" +
+            text("reader/DesktopReaderOverlays.kt")
         assertTrue("那一档不再是 blur（改成藏起来会与墙上/封面的语义分家）：", "Modifier.blur(24.dp)" in reader)
         // 兜底比改吃单源常量 TRIPLE_RATIO_FALLBACK（书缝阴影/分组机制批把字面量收进常量，
         // Screen 里不再写字面量 0.7f）；约束语义保持：Screen 仍引用这一颗兜底，且不另写第二份字面量。

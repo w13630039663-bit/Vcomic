@@ -48,12 +48,12 @@ class DesktopTestRunKnobsTest {
         )
     }
 
-    /** ② 默认必须仍是"老跑法"：不传旋钮 ⇒ fork 数 1、一颗都不摘。 */
+    /** ② 默认跑法开启 4 进程并行提速，且不摘任何重锤（`skipEngineProbe` 必须显式开）。 */
     @Test
     fun `默认跑法仍是串行全量`() {
         assertTrue(
-            "testForks 的默认值不再是 1 ⇒ 并行成了默认，跨类推卸没被逐批证明过",
-            Regex("""testForks[^\n]*\?:\s*1""").containsMatchIn(text),
+            "testForks 的默认值不再是 4 ⇒ 并行配置漂了",
+            Regex("""testForks[^\n]*\?:\s*4""").containsMatchIn(text),
         )
         // 摘重锤那一枚必须是"给了才算"（isPresent），不能漂成默认开。
         assertTrue(

@@ -58,7 +58,7 @@ import coil3.compose.AsyncImage
 import org.jetbrains.skia.Image as SkiaImage
 import com.venera.compose.components.WideScreenLayoutMode
 import com.venera.compose.ui.tokens.VeneraTokens
-import com.venera.desktop.DesktopRoute
+import com.venera.desktop.app.DesktopRoute
 import com.venera.desktop.gallery.data.DesktopAscii2dBridge
 import com.venera.desktop.ui.DesktopPushButton
 import com.venera.desktop.ui.components.DesktopPetCue

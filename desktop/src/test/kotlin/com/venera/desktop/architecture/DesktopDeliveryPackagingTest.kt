@@ -65,7 +65,7 @@ class DesktopDeliveryPackagingTest {
 
     /** ④ 装 tee 排在**任何一句读数之前**，而那句读数只从件里搬。 */
     @Test fun 读数落盘排在读数之前只接一处() {
-        val main = DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt")
+        val main = DesktopSourceTree.desktopSourceOf("app/VeneraDesktop.kt")
         val mainCode = DesktopSourceTree.codeText(main)
         assertEquals("装配那一步必须恰一处：",
             1, DesktopSourceTree.codeOccurrences(main, "installDesktopRunLog("))

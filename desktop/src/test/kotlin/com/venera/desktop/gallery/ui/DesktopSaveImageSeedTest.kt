@@ -1,6 +1,6 @@
 package com.venera.desktop.gallery.ui
 
-import com.venera.desktop.ForensicFlags
+import com.venera.desktop.app.ForensicFlags
 import com.venera.desktop.gallery.data.DesktopSavedImage
 import com.venera.desktop.gallery.data.DesktopSavedListing
 import java.io.File
@@ -33,9 +33,9 @@ class DesktopSaveImageSeedTest {
     private val panel = DesktopSourceTree.codeText(DesktopSourceTree.desktopUiSource("DesktopGalleryDetailPanel.kt"))
     private val home = DesktopSourceTree.codeText(DesktopSourceTree.desktopUiSource("DesktopGalleryHomeSections.kt"))
     private val app = DesktopSourceTree.codeText(DesktopSourceTree.desktopUiSource("DesktopDomainRows.kt"))
-    private val main = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt"))
+    private val main = DesktopSourceTree.desktopEntryCode()
     private val gradle = DesktopSourceTree.codeText(File(DesktopSourceTree.repoRoot, "desktop/build.gradle.kts"))
-    private val flags = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("ForensicFlags.kt"))
+    private val flags = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/ForensicFlags.kt"))
 
     // ① 首页那一行真点亮了：有内容件，也没有了那句"还没接"的理由。
     @Test

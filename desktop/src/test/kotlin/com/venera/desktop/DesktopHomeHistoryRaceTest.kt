@@ -1,5 +1,8 @@
 package com.venera.desktop
 
+import com.venera.desktop.ui.DesktopHomeHistorySection
+import com.venera.desktop.data.DesktopHomeHistorySnapshot
+import com.venera.desktop.data.DesktopHomeHistorySource
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -54,7 +57,7 @@ class DesktopHomeHistoryRaceTest {
 
     @Test
     fun `refresh 之后不许直接读 value 那是初值`() {
-        val lines = code(src("DesktopHomeHistorySource.kt"))
+        val lines = code(src("data/DesktopHomeHistorySource.kt"))
         val refreshAt = lines.indexOfFirst { "dao.refresh()" in it }
         assertTrue("找不到 `dao.refresh()` —— 判据失效", refreshAt >= 0)
 
@@ -74,7 +77,7 @@ class DesktopHomeHistoryRaceTest {
 
     @Test
     fun `必须等 flow 真的出值 且有超时兜底`() {
-        val text = code(src("DesktopHomeHistorySource.kt")).joinToString("\n")
+        val text = code(src("data/DesktopHomeHistorySource.kt")).joinToString("\n")
         // 形状必须**带谓词**：`first()` 会立刻返回当前值（初值 emptyList()），
         // 而 `first { it.isNotEmpty() }` 才是"等一个满足条件的值"。这一条正是第二层坑
         // （第一版把它写成不带谓词的 `first()`，屏上与没修一模一样）。
@@ -91,7 +94,7 @@ class DesktopHomeHistoryRaceTest {
 
     @Test
     fun `还没读 与 确实没有 必须是两句话`() {
-        val section = code(src("DesktopHomeHistorySection.kt")).joinToString("\n")
+        val section = code(src("ui/DesktopHomeHistorySection.kt")).joinToString("\n")
         assertTrue(
             "历史区没有「还没读回来」那一句（`!loaded` 分支）—— " +
                 "少了它，冷启动那一帧与「确实没有记录」同形",

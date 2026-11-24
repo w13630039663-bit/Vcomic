@@ -110,7 +110,7 @@ class DesktopFavoriteFoldersUiTest {
         }
     }
 
-    /** ① 心形钮真摆出来，扳开弹窗后两夹各念自己那一格，每点一夹即落笔且弹窗不关。 */
+    /** ① 心形钮真摆出来，扳开弹窗后点某一夹只进草稿且不显示已收藏，点完成才落笔。 */
     @Test
     fun 心形钮扳开弹窗而点某一夹即落笔() {
         reset()
@@ -120,18 +120,21 @@ class DesktopFavoriteFoldersUiTest {
             onNodeWithText("收藏到", substring = false).assertExists()
             onNodeWithText(DESKTOP_FAVORITE_DEFAULT_FOLDER).assertExists()
             onNodeWithText("追更").performClick()
-            // 清单式：勾完不关窗，可以接着勾下一夹。
-            onNodeWithText("收藏到", substring = false).assertExists()
+            // 未收藏时新勾选只显示「待收藏」，不显示「已收藏」，且不提前落笔。
+            onNodeWithText("待收藏").assertExists()
+            onAllNodesWithText("已收藏").assertCountEquals(0)
+            assertTrue("未点完成前不落笔：", picked.isEmpty())
             onNodeWithText(DESKTOP_FAVORITE_DEFAULT_FOLDER).performClick()
+            onNodeWithText("完成").performClick()
         }
         assertEquals(
-            "每按一枚交出的都是那一枚的名字：",
+            "点完成后交出本次勾选的夹：",
             listOf("追更", DESKTOP_FAVORITE_DEFAULT_FOLDER),
             picked,
         )
     }
 
-    /** ② 已收藏那一档：心形念「已收藏」，弹窗里那一夹带勾选态与移出口。 */
+    /** ② 已收藏那一档：心形念「已收藏」，弹窗里那一夹取消勾选并点完成才移出。 */
     @Test
     fun 已收藏档弹窗里那一夹带移出口() {
         reset()
@@ -141,8 +144,10 @@ class DesktopFavoriteFoldersUiTest {
             onNodeWithText("已收藏").performClick()
             onNodeWithText("收藏到", substring = false).assertExists()
             onNodeWithText(DESKTOP_FAVORITE_DEFAULT_FOLDER).performClick()
+            onNodeWithText("将移出").assertExists()
+            onNodeWithText("完成").performClick()
         }
-        assertEquals("点已收那一夹交出的还是那一枚（移出语义由核判）：", listOf(DESKTOP_FAVORITE_DEFAULT_FOLDER), picked)
+        assertEquals("点完成后交出移出那一枚（移出语义由核判）：", listOf(DESKTOP_FAVORITE_DEFAULT_FOLDER), picked)
     }
 
     /** ③ 正在写那一档：心形禁用，按下去弹窗不开（连点双写那一族）。 */
@@ -185,7 +190,7 @@ class DesktopFavoriteFoldersUiTest {
         }
     }
 
-    /** ⑥ 两夹各交自己那一格（同一扇窗里连续勾两枚，弹窗不关）。 */
+    /** ⑥ 点「关闭」放弃草稿：勾选后不点完成而点关闭，不落笔。 */
     @Test
     fun 两夹各交自己那一格() {
         reset()
@@ -194,8 +199,9 @@ class DesktopFavoriteFoldersUiTest {
             onNodeWithText("收藏").performClick()
             onNodeWithText("追更").performClick()
             onNodeWithText(DESKTOP_FAVORITE_DEFAULT_FOLDER).performClick()
+            onNodeWithText("关闭").performClick()
         }
-        assertEquals("两枚各交自己那一格：", listOf("追更", DESKTOP_FAVORITE_DEFAULT_FOLDER), picked)
+        assertTrue("点关闭放弃草稿，不应落笔：", picked.isEmpty())
     }
 
     /**

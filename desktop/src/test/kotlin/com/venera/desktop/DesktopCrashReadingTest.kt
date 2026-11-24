@@ -1,5 +1,9 @@
 package com.venera.desktop
 
+import com.venera.desktop.app.ForensicFlags
+import com.venera.desktop.data.DesktopErrorBus
+import com.venera.desktop.data.desktopCrashReading
+import com.venera.desktop.data.installDesktopCrashHandler
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import java.io.File
 import org.junit.Assert.assertEquals
@@ -127,8 +131,9 @@ class DesktopCrashReadingTest {
     // 异常处理器仅在应用入口安装一次，且必须位于 nucleusApplication( 开窗之前以覆盖启动阶段。
     @Test
     fun `入口装了那颗handler且只装一次`() {
-        val entry = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt"))
-        val lines = DesktopSourceTree.codeLinesOf(DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt"))
+        val entry = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/VeneraDesktop.kt"))
+        val lines = DesktopSourceTree.codeLinesOf(DesktopSourceTree.desktopSourceOf("app/VeneraDesktop.kt"))
+            .filterNot { it.startsWith("import ") }
         val installed = lines.indexOfFirst { it.contains("installDesktopCrashHandler") }
         val windowed = lines.indexOfFirst { it.contains("nucleusApplication(") }
         assertEquals("入口没装那颗 handler（或装了多处）", 1, lines.count { it.contains("installDesktopCrashHandler") })
@@ -149,9 +154,9 @@ class DesktopCrashReadingTest {
     fun `崩一枚那枚种子三跳都在`() {
         val build = File(DesktopSourceTree.repoRoot, "desktop/build.gradle.kts").readText()
         assertTrue("构建脚本没把 -Pcrash 拼进 :desktop:app 的 args", build.contains("providers.gradleProperty(\"crash\")"))
-        val flags = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("ForensicFlags.kt"))
+        val flags = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/ForensicFlags.kt"))
         assertTrue("判读层不认 --crash", flags.contains("--crash"))
-        val entry = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt"))
+        val entry = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/VeneraDesktop.kt"))
         assertTrue("消费点没吃它", entry.contains("ForensicFlags.crash"))
     }
 

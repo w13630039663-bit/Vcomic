@@ -1,5 +1,6 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.app.favorite
 import com.venera.compose.gallery.data.GalleryFavorite
 import com.venera.compose.gallery.data.GalleryPost
 import com.venera.compose.gallery.data.GallerySite

@@ -1,5 +1,8 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.DesktopGalleryAndAccountHost
+import com.venera.desktop.app.DesktopRoute
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -34,9 +37,9 @@ import org.junit.Test
  */
 class DesktopGalleryPostViewerEntryTest {
 
-    private val shellFile = DesktopSourceTree.desktopSourceOf("VeneraDesktopLargeScreen.kt")
+    private val shellFile = DesktopSourceTree.desktopSourceOf("app/VeneraDesktopLargeScreen.kt")
     private val shell get() = DesktopSourceTree.desktopLargeScreenCode()
-    private val route get() = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("DesktopRoute.kt"))
+    private val route get() = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/DesktopRoute.kt"))
     private val screen get() = DesktopSourceTree.codeText(
         DesktopSourceTree.desktopSourceOf("gallery/ui/DesktopGalleryPostViewer.kt"),
     )
@@ -124,7 +127,7 @@ class DesktopGalleryPostViewerEntryTest {
     @Test
     fun 返回那一路落回那一面墙() {
         // `is DesktopRoute.GalleryPostViewer -> ...` 那一支里 `onBack` 收到 Tab。截那一支来看。
-        val branch = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("DesktopGalleryAndAccountHost.kt"))
+        val branch = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/DesktopGalleryAndAccountHost.kt"))
             .substringAfter("is DesktopRoute.GalleryPostViewer ->")
         assertTrue(
             "看大图那一支的 onBack 没落回 Tab（那一面墙回不去）：",

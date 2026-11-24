@@ -121,7 +121,7 @@ internal class DesktopVideoEngine(
         true
     }.getOrElse {
         com.venera.desktop.platform.DesktopLogger.warn("DesktopVideo", "起播失败(多半本机没装 VLC) media=$mediaUrl 因=${it.message}")
-        com.venera.desktop.DesktopErrorBus.report(
+        com.venera.desktop.data.DesktopErrorBus.report(
             category = "图库",
             headline = "视频起播失败",
             humanReason = "未检测到本机 VLC 播放器或播放器组件异常，请安装 VLC 后重试。",
@@ -247,7 +247,7 @@ internal class DesktopVideoEngine(
         override fun finished(mp: MediaPlayer) { onPhase(State.ENDED) }
         override fun error(mp: MediaPlayer) {
             com.venera.desktop.platform.DesktopLogger.warn("DesktopVideo", "投播出错 media=$mediaUrl")
-            com.venera.desktop.DesktopErrorBus.report(
+            com.venera.desktop.data.DesktopErrorBus.report(
                 category = "图库",
                 headline = "视频投播出错",
                 humanReason = "视频流解码或播放过程中断，请尝试重新打开或检查网络。",

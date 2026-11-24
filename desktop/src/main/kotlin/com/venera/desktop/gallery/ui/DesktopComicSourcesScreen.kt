@@ -25,7 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.venera.desktop.ForensicFlags
+import com.venera.desktop.app.ForensicFlags
 import com.venera.desktop.gallery.data.DesktopCookieLogin
 import com.venera.desktop.gallery.data.DesktopCookieOutcome
 import com.venera.desktop.gallery.data.DesktopSourceCatalog

@@ -1,5 +1,7 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.VeneraDesktopLargeScreen
+import com.venera.desktop.ui.VeneraLightRailSkin
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import java.io.File
 import org.junit.Assert.assertEquals

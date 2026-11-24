@@ -1,6 +1,6 @@
 package com.venera.desktop.gallery.ui
 
-import com.venera.desktop.ForensicFlags
+import com.venera.desktop.app.ForensicFlags
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.PrintStream
@@ -34,9 +34,8 @@ import org.junit.Test
  */
 class DesktopComicDownloadSeedTest {
 
-    private val flags = DesktopSourceTree.desktopSourceOf("ForensicFlags.kt")
-    private val hostFile = DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt")
-    private val host = DesktopSourceTree.codeText(hostFile)
+    private val flags = DesktopSourceTree.desktopSourceOf("app/ForensicFlags.kt")
+    private val host = DesktopSourceTree.desktopEntryCode()
     private val pane = DesktopSourceTree.desktopSourceOf("gallery/ui/DesktopComicPane.kt")
     private val detail = DesktopSourceTree.desktopSourceOf("gallery/ui/DesktopComicDetail.kt")
     private val gradle = File(DesktopSourceTree.repoRoot, "desktop/build.gradle.kts")

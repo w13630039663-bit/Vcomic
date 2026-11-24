@@ -256,7 +256,7 @@ internal fun DesktopComicDetailScreen(
                         )
                     )
                 }.onFailure {
-                    com.venera.desktop.DesktopErrorBus.report(
+                    com.venera.desktop.data.DesktopErrorBus.report(
                         category = "漫画",
                         headline = "追更写入失败",
                         humanReason = "这一本没写进追更账本，阅读进度不受影响；可再点一次。",

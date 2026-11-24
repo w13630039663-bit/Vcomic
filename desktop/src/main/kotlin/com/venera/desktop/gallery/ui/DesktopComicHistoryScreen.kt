@@ -1,5 +1,7 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.app.DesktopRoute
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.compose.data.db.HistoryRecord
 
 /**

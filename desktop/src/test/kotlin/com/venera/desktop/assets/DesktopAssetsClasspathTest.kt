@@ -1,5 +1,6 @@
 package com.venera.desktop.assets
 
+import com.venera.desktop.data.DesktopSourceContentPresets
 import com.venera.engineprobe.DesktopJsHost
 import com.venera.engineprobe.EngineAssets
 import com.venera.engineprobe.EngineSession

@@ -1,5 +1,6 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.app.ForensicFlags
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -20,8 +21,8 @@ import org.junit.Test
 class DesktopGalleryViewerWiringTest {
 
     private val app get() = DesktopSourceTree.codeText(DesktopSourceTree.desktopUiSource("DesktopDomainRows.kt"))
-    private val flags get() = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("ForensicFlags.kt"))
-    private val main get() = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt"))
+    private val flags get() = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/ForensicFlags.kt"))
+    private val main get() = DesktopSourceTree.desktopEntryCode()
     private val gradle get() = java.io.File(DesktopSourceTree.repoRoot, "desktop/build.gradle.kts").readText()
 
     /** ① 点卡时两层一起开（用户原话：点卡就进大图，不该再多一步）。 */

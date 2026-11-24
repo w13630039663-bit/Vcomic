@@ -1,5 +1,6 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.app.ForensicFlags
 import com.venera.desktop.gallery.data.DesktopReaderMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -29,8 +30,8 @@ class DesktopReaderPagedSeedTest {
     private val pagingFile = DesktopSourceTree.desktopSourceOf("gallery/ui/DesktopReaderPaging.kt")
     private val prefsFile = DesktopSourceTree.desktopSourceOf("gallery/data/DesktopComicReaderPreferences.kt")
     private val appFile = DesktopSourceTree.desktopUiSource("DesktopDomainRows.kt")
-    private val integrationFile = DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt")
-    private val flagsFile = DesktopSourceTree.desktopSourceOf("ForensicFlags.kt")
+    private val integrationFile = DesktopSourceTree.desktopSourceOf("app/VeneraDesktop.kt")
+    private val flagsFile = DesktopSourceTree.desktopSourceOf("app/ForensicFlags.kt")
 
     // ── ① 那枚键与对岸同轨 ─────────────────────────────────────────────────
 
@@ -89,7 +90,7 @@ class DesktopReaderPagedSeedTest {
         assertEquals("构建脚本那一跳", 1, build.lines().count { it.contains("providers.gradleProperty(\"readMode\")") })
         assertTrue("那一跳递的是程序参数而不是系统属性", build.contains("--read-mode="))
         assertEquals("判读层那一颗", 1, DesktopSourceTree.codeOccurrences(flagsFile, "fun readMode("))
-        assertTrue("集成方读了判读层那一颗", integrationFile.readText().contains("ForensicFlags.readMode("))
+        assertTrue("集成方读了判读层那一颗", DesktopSourceTree.desktopEntryCode().contains("ForensicFlags.readMode("))
     }
 
     // ── ⑦ B 路的接缝：桌面不引那一族，而三处口径逐字回核对岸 ────────────────

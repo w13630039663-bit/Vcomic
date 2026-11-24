@@ -73,7 +73,7 @@ internal fun DesktopSourceStore(
             },
             onFailure = { t ->
                 println("D_源清单更新 拉取失败 ${t.javaClass.simpleName}: ${t.message?.take(160) ?: ""}")
-                com.venera.desktop.DesktopErrorBus.report(
+                com.venera.desktop.data.DesktopErrorBus.report(
                     category = "漫画",
                     headline = "源清单更新拉取失败",
                     humanReason = "更新清单没拉到，多半是这条线路被挡住；可稍后重试或先配代理。",

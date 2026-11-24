@@ -139,7 +139,7 @@ internal fun DesktopPixivCollectionDetailScreen(
         }
         // 作品页左右箭头要翻的那一列 = 这本珍藏册屏上的顺序（首行横幅在前，再逐行）。
         androidx.compose.runtime.LaunchedEffect(wallPlan) {
-            com.venera.desktop.DesktopPixivWorkTrail.publishCollectionCards(
+            com.venera.desktop.data.DesktopPixivWorkTrail.publishCollectionCards(
                 listOfNotNull(wallPlan?.hero) + wallPlan?.rows?.flatten().orEmpty(),
             )
         }

@@ -1,5 +1,6 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.app.favorites
 import com.venera.compose.data.db.LocalFavoriteDatabase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -41,9 +42,9 @@ class DesktopComicFavoriteTest {
     /** ④ 按钮与种子共用同一枚动作，而集成方不许自带一份写。 */
     @Test
     fun 种子与按钮同一枚动作() {
-        val app = DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt")
+        val app = DesktopSourceTree.desktopSourceOf("app/VeneraDesktop.kt")
         // 批 4：取证那一路已拆到 DesktopAppSupport.kt，判据按两颗成员文件数。
-        val support = DesktopSourceTree.desktopSourceOf("DesktopAppSupport.kt")
+        val support = DesktopSourceTree.desktopSourceOf("app/DesktopAppSupport.kt")
         val code = DesktopSourceTree.codeText(app) + "\n" + DesktopSourceTree.codeText(support)
         assertEquals(
             "取证那一路没按抽出来的那一枚（出现 ${DesktopSourceTree.codeOccurrences(app, "desktopAddComicFavorite(") + DesktopSourceTree.codeOccurrences(support, "desktopAddComicFavorite(")} 次）——" +
@@ -106,8 +107,8 @@ class DesktopComicFavoriteTest {
         assertTrue("它自己建库而不是吃懒装载那颗（开机即建=白建两棵）", code.contains("favorites()"))
         assertFalse("那颗件直接 getInstance（懒装载就白做了）", code.contains("getInstance("))
         // 对照：集成方那颗懒取函数还在（批 4 起住在 DesktopAppSupport.kt），两处吃的都是它
-        val app = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt")) +
-            "\n" + DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("DesktopAppSupport.kt"))
+        val app = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/VeneraDesktop.kt")) +
+            "\n" + DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/DesktopAppSupport.kt"))
         assertTrue("对照组失效：集成方的懒取那颗没了", app.contains("fun favorites("))
     }
 

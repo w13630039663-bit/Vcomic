@@ -1,5 +1,6 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -37,7 +38,7 @@ class DesktopGalleryFavoritesWallEntryTest {
     )
     private val shellFile = File(
         DesktopSourceTree.repoRoot,
-        "desktop/src/main/kotlin/com/venera/desktop/VeneraDesktopLargeScreen.kt",
+        "desktop/src/main/kotlin/com/venera/desktop/app/VeneraDesktopLargeScreen.kt",
     )
 
     private fun codeOf(f: File): String {

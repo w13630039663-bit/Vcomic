@@ -1,5 +1,8 @@
 package com.venera.desktop
 
+import com.venera.desktop.app.DesktopGpuCacheGuard
+import com.venera.desktop.app.LocalGpuCachePurge
+import com.venera.desktop.ui.VeneraLightRailSkin
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -35,17 +38,17 @@ class DesktopGpuCacheGuardTest {
             gradleText.contains("nucleus.angle-natives"),
         )
 
-        val mainText = File(
-            DesktopSourceTree.repoRoot,
-            "desktop/src/main/kotlin/com/venera/desktop/VeneraDesktop.kt",
-        ).readText()
+        val mainText = listOf(
+            "desktop/src/main/kotlin/com/venera/desktop/app/VeneraDesktop.kt",
+            "desktop/src/main/kotlin/com/venera/desktop/app/DesktopWindowHooks.kt",
+        ).joinToString("\n") { File(DesktopSourceTree.repoRoot, it).readText() }
         assertTrue(mainText.contains("rememberTaoGpuRenderContext()"))
         assertTrue(mainText.contains("DesktopGpuCacheGuard.enforceLimit"))
         assertTrue(mainText.contains("LocalGpuCachePurge provides purgeGpuCache"))
         assertTrue(mainText.contains("evictLargeMemoryCache"))
 
         val railCode = DesktopSourceTree.codeText(
-            File(DesktopSourceTree.repoRoot, "desktop/src/main/kotlin/com/venera/desktop/VeneraLightRailSkin.kt"),
+            File(DesktopSourceTree.repoRoot, "desktop/src/main/kotlin/com/venera/desktop/ui/VeneraLightRailSkin.kt"),
         )
         assertFalse("侧栏桌宠 PetFloat 无限浮动动画应保持注释停用", railCode.contains("PetFloat"))
 

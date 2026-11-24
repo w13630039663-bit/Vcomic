@@ -1,5 +1,6 @@
 package com.venera.desktop
 
+import com.venera.desktop.app.ForensicFlags
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -85,7 +86,7 @@ class DesktopComicReadPageSeedTest {
 
     @Test
     fun 集成方两枚种子按次序合起来() {
-        val main = DesktopSourceTree.codeLinesOf(DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt"))
+        val main = DesktopSourceTree.desktopEntryLines()
         val pageAt = main.indexOfFirst { it.contains("ForensicFlags.readPage(") }
         val readAt = main.indexOfFirst { it.contains("ForensicFlags.read(") }
         assertTrue("集成方没读 --read-page", pageAt >= 0)

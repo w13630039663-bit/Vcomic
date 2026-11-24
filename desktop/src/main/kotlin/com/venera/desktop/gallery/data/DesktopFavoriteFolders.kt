@@ -26,7 +26,7 @@ import com.venera.compose.data.db.FavoriteRecord
  *
  * ## 为什么名字的出处是"那张表"而不是 `getFolders()`
  *
- * 壳里已经读回整张收藏表（[com.venera.desktop.VeneraDesktopLargeScreen] 那颗 `favorites`），
+ * 壳里已经读回整张收藏表（[com.venera.desktop.app.VeneraDesktopLargeScreen] 那颗 `favorites`），
  * 而 `getFolders()` 要再发一次 `SELECT DISTINCT` ⇒ 两轨读同一件事一定漂（同一时刻屏上
  * 那一排与那一本显示所在的那一格可能对不上）。这里从**已经读回来的那一份**现算，
  * 零额外 IO，也符合"屏只搬、算在外面"那条既有纪律。

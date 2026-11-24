@@ -1,5 +1,9 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.DESKTOP_EXPLORE_SOURCE
+import com.venera.desktop.app.DesktopRoute
+import com.venera.desktop.app.VeneraDesktopLargeScreen
+import com.venera.desktop.ui.DesktopHomePane
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -24,14 +28,14 @@ import org.junit.Test
  */
 class DesktopHistoryEntryTest {
 
-    private val shellFile = DesktopSourceTree.desktopSourceOf("VeneraDesktopLargeScreen.kt")
+    private val shellFile = DesktopSourceTree.desktopSourceOf("app/VeneraDesktopLargeScreen.kt")
     private val shell = DesktopSourceTree.desktopLargeScreenCode()
     private val shellLines = DesktopSourceTree.desktopLargeScreenLines().filter { it.isNotEmpty() }
     private val explore = DesktopSourceTree.codeText(
         DesktopSourceTree.desktopSourceOf("explore/DesktopExploreScreen.kt"),
     )
     private val homePane = DesktopSourceTree.codeText(
-        DesktopSourceTree.desktopSourceOf("DesktopHomePane.kt"),
+        DesktopSourceTree.desktopSourceOf("ui/DesktopHomePane.kt"),
     )
 
     /**
@@ -49,21 +53,24 @@ class DesktopHistoryEntryTest {
     @Test
     fun 切进那一路由的每一处都挂在按得到的把手上() {
         val cuts = shellLines.withIndex().filter { Regex("""(?:route\s*=|onRouteChange\()\s*DesktopRoute\.History\b""").containsMatchIn(it.value) }.map { it.index }
-        // 历史入口共 6 处（探索菜单、设置行、历史卡兜底、窄/宽首页「全部 ›」等），均走 historyTick++ + route = History。
+        // 历史入口共 5 处（探索菜单、设置行、首页历史卡去向（浅/宽首页共用）、窄/宽首页「全部 ›」），均走 historyTick++ + route = History。
         assertEquals(
-            "切进「阅读历史」路由的赋值数量变了（现状六处：探索屏溢出菜单 + 设置中枢那一行 + "
-                + "首页历史卡去向 + 首页「全部 ›」× 窄/宽两套）：" +
+            "切进「阅读历史」路由的赋值数量变了：" +
                 cuts.map { shellLines[it] },
-            6,
+            5,
             cuts.size,
         )
-        // 回调共 7 处：onOpenHistory 4 处 + onOpenAllHistory 2 处 + 合并页「收藏与历史」回原卡 1 处。
+        // 回调共 6 处：onOpenHistory 2 处 + 首页共享 openHistory 1 处 + onOpenAllHistory 2 处 + 设置/合并页「收藏与历史」回原卡 1 处。
         val heads = shellLines.withIndex()
-            .filter { it.value.startsWith("onOpenHistory = {") || it.value.startsWith("onOpenAllHistory = {") }
+            .filter {
+                it.value.startsWith("onOpenHistory = {") ||
+                    it.value.startsWith("onOpenAllHistory = {") ||
+                    it.value.startsWith("val openHistory:")
+            }
             .map { it.index }
         assertEquals(
             "壳里那些回调的头部读不全（判据失效，不是通过）：" + heads.map { shellLines[it] },
-            7,
+            6,
             heads.size,
         )
         val covered = heads.flatMap { callbackBody(it) }.toSet()
@@ -90,7 +97,7 @@ class DesktopHistoryEntryTest {
     /** ② 路由枚举里真有那一档（`when (route)` 那一支的前提）。 */
     @Test
     fun 路由枚举里有历史那一档() {
-        val route = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("DesktopRoute.kt"))
+        val route = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/DesktopRoute.kt"))
         assertTrue(
             "`DesktopRoute` 里没有 `data object History` ⇒ 那一屏仍然进不去：",
             "data object History : DesktopRoute" in route,
@@ -126,11 +133,14 @@ class DesktopHistoryEntryTest {
             "那颗形参不许出现带 `= {}` 的那一形：",
             0,
             DesktopSourceTree.codeOccurrences(
-                DesktopSourceTree.desktopSourceOf("DesktopHomePane.kt"),
+                DesktopSourceTree.desktopSourceOf("ui/DesktopHomePane.kt"),
                 "onOpenHistory: (com.venera.compose.data.db.HistoryRecord) -> Unit = {}",
             ),
         )
-        assertTrue("壳里没给首页那排卡递 `onOpenHistory`：", "onOpenHistory = { record ->" in shell)
+        assertTrue(
+            "壳里没给首页那排卡递 `onOpenHistory`：",
+            "onOpenHistory = openHistory" in shell || "onOpenHistory = { record ->" in shell,
+        )
     }
 
     /**
@@ -162,14 +172,13 @@ class DesktopHistoryEntryTest {
     fun 取键只有一处出处而壳里两路都问它() {
         val sites = DesktopSourceTree.desktopMainGroupedOccurrences("desktopComicHistoryOpenSourceOf(")
         assertEquals(
-            "`desktopComicHistoryOpenSourceOf` 的消费者形状变了（期望「屏侧那颗文件里一处声明 + 壳里三处按」）：$sites",
-            // 宽屏双源批 2→3：首页第二套（宽屏双列）接线再问一次（窄/宽两套各一次 + 历史屏那一支）。
-            listOf("DesktopComicHistoryScreen.kt" to 1, "VeneraDesktopLargeScreen.kt" to 3),
+            "`desktopComicHistoryOpenSourceOf` 的消费者形状变了（期望「屏侧那颗文件里一处声明 + 壳里两处按（首页共享 + 历史屏）」）：$sites",
+            listOf("DesktopComicHistoryScreen.kt" to 1, "VeneraDesktopLargeScreen.kt" to 2),
             sites,
         )
-        // 三路都必须带着当前源那枚常量（而不是库里那一枚 / 不是硬编码一颗键）。
+        // 两路都必须带着当前源那枚常量（而不是库里那一枚 / 不是硬编码一颗键）。
         val calls = shellLines.filter { "desktopComicHistoryOpenSourceOf(" in it }
-        assertEquals("壳里那三路各问一次：", 3, calls.size)
+        assertEquals("壳里那两路各问一次：", 2, calls.size)
         val blocks = calls.map { c -> shellLines.drop(shellLines.indexOf(c)).take(4).joinToString("\n") }
         blocks.forEach { block ->
             assertTrue(

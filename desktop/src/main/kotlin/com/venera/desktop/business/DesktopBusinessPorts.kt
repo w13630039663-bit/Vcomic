@@ -1,5 +1,7 @@
 package com.venera.desktop.business
 
+import com.venera.desktop.app.DesktopUxPlatformServices
+import com.venera.desktop.data.DesktopReadingStats
 import com.venera.compose.data.api.AppearancePreferences
 import com.venera.compose.data.api.BusinessPorts
 import com.venera.compose.data.api.ComicPreferences
@@ -600,7 +602,7 @@ private class NoOpReadingStats : ReadingStats {
             val fromDate = today.minusDays(days.toLong()).format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"))
             val rows = store.taggedRows(fromDate)
             com.venera.compose.stats.aggregateTagStats(rows, days, com.venera.compose.stats.ReadingContentRating.ALL) {
-                com.venera.desktop.desktopTopicOf(it)
+                com.venera.desktop.data.desktopTopicOf(it)
             }
         }.getOrDefault(TagStats())
     }

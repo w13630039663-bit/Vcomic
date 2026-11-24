@@ -8,7 +8,7 @@
 
 | 项 | 值 |
 |---|---|
-| Gradle 模块 | 两个：`:desktop`、`:engine-probe` |
+| Gradle 模块 | 四个：`:desktop`、`:core-data`、`:gallery-core`、`:engine-probe` |
 | UI 框架 | Compose Multiplatform 1.12.2（纯 JVM，非 KMP 多源集） |
 | 语言 | Kotlin 2.4.10 |
 | 构建 | Gradle 9.7.1 |
@@ -18,18 +18,18 @@
 
 ## 2. 分层模型
 
-四层，全部落在两个 Gradle 模块内。层级由包结构与测试守护，不由构建系统强制。
+四层，分布在四个 Gradle 模块内。`:core-data` 与 `:gallery-core` 为纯 JVM 模块（零 Compose UI 依赖），从构建边界上强制隔离数据层、纯算法层与桌面 UI 层。
 
 | 层 | Gradle 模块 | 包 | 文件数 | JDK | 职责 |
 |---|---|---|---:|---|---|
-| L0 进程外壳 | `:desktop` | `com.venera.desktop`（根） | 38 | 25 | `main`、窗口创建、路由根屏 |
-| L1 桌面实现 | `:desktop` | `com.venera.desktop.*` | 319 | 25 | 桌面 UI、平台副作用实现、端口适配器 |
-| L2 公共基建 | `:desktop` | `com.venera.compose.*` | 265 | 25 | 端口接口、平台契约、共享组件、共享画廊域 |
+| L0 进程外壳与路由装配 | `:desktop` | `com.venera.desktop.app` | 38 | 25 | `main`、窗口钩子、路由表、大屏状态与 Effects、Win32 窗口工具、取证标志 |
+| L1 桌面 UI 与数据实现 | `:desktop` | `com.venera.desktop.{ui,data}` 及各功能子包 | 319+ | 25 | 桌面主屏与弹窗组件（`ui`）、纯数据与读源/备份归档（`data`，零 Compose 依赖）、平台适配器 |
+| L2 UI 与公共组件 | `:desktop` | `com.venera.compose.components/feature/ui/source/download/stats` | 150 | 25 | 端口接口、共享组件、功能内核与令牌 |
+| L2 纯数据与安全层 | `:core-data` | `com.venera.compose.data.{platform,db,update}`、`security.guard` | 38 | 25 | 平台契约、SQLite DAO/Schema、更新模型、内容守卫 |
+| L2 画廊领域与客户端 | `:gallery-core` | `com.venera.compose.gallery.{data,domain}` | 96 | 25 | 图库纯算法、筛选排序策略、各站点 API 客户端 |
 | L3 引擎 | `:engine-probe` | `com.venera.engineprobe`、`com.venera.compose.engine` | 25 | 21 | JS 宿主、`EngineSession`、Cookie 罐、JS handler |
 
-关键事实：`com.venera.compose` **不是独立 Gradle 模块**，它是 `:desktop` 模块 `src/main/kotlin` 下的第二个一级包。修改共享层与修改桌面层属于同一个编译单元。
-
-`:desktop` 另有一个 `src/probe/kotlin` 源集（`probe` compilation，`associateWith(main)`）：调试探针入口住在这里，不进安装包，也不参与 `compileKotlin`；测试源集同时关联 probe，以便直接验探针里的纯函数。兼作生产工具的窗口函数仍留在 `src/main`。
+`:desktop` 另有一个 `src/probe/kotlin` 源集（`probe` compilation，`associateWith(main)`）：调试探针入口（如 `MicaProbe`、`GlassProbe`、`BlurCostProbe` 等）全部隔离在这里，不进安装包，也不参与 `compileKotlin`；测试源集同时关联 probe，以便直接验探针里的纯函数。兼作生产工具的窗口函数（`DesktopWin32WindowUtils`）已从 `MicaProbe` 拆出留在 `src/main`。
 
 ### L1 桌面实现层分布
 
@@ -116,6 +116,13 @@ Toast、剪贴板、分享、显示模式读写、封面打码判据统一经 `L
 - 导入：`DesktopNetworkFollowImporter` 分页取网站收藏 → 单事务整批写 `comic_follow` → 记 `comic_follow_sync_source`；单次上限 200 本、可随时取消。
 - 备份：`.venera` 归档写入 `comic_follow.json` / `comic_follow_sync_source.json`，恢复走 `CoreTableBackup.importTable` 整表往返（列由 `PRAGMA table_info` 驱动）。
 
+### 4.7 文件体积与三层静态护栏
+
+由 `DesktopFileSizeAndLayerGuardTest` 强制执行：
+- 新建及已完成拆分的生产源码文件字节数上限为 `<= 40 KB`（39 个尚未重构的历史超大文件登记于 `LEGACY_OVERSIZED_ALLOWLIST`，只减不增）。
+- `com.venera.desktop` 根目录禁止保留散落 `.kt` 文件，必须归入 `app/`（入口与路由宿主）、`data/`（纯数据/读源/归档/错误总线）、`ui/`（桌面屏与公共组件）或对应功能子包。
+- `com.venera.desktop.data`、`:core-data`、`:gallery-core` 禁止出现 `import androidx.compose` 或反向 `import com.venera.desktop.ui`。
+
 ## 5. 架构图
 
 ```mermaid
@@ -193,18 +200,23 @@ flowchart TB
 
 ```
 desktop/
+├── core-data/src/main/kotlin/com/venera/compose/   L2 纯数据与安全层（零 Compose UI）
+├── gallery-core/src/main/kotlin/com/venera/compose/ L2 画廊纯算法与站点客户端（零 Compose UI）
 ├── desktop/src/main/kotlin/com/venera/
-│   ├── desktop/           L0 + L1
-│   └── compose/           L2
-├── desktop/src/test/kotlin/com/venera/desktop/   L0-L2 测试
-├── engine-probe/src/main/kotlin/com/venera/      L3
-├── docs/                                         本文档
-└── gradle/libs.versions.toml                     版本目录
+│   ├── desktop/
+│   │   ├── app/           L0 入口、窗口钩子、路由表、大屏状态与 Effects
+│   │   ├── data/          L1 纯数据、读源、归档与错误总线（零 Compose UI）
+│   │   ├── ui/            L1 桌面屏与公共 UI 组件
+│   │   └── ...            L1 各业务功能子包（gallery / reader / settings / platform ...）
+│   └── compose/           L2 公共 UI 组件与端口定义
+├── desktop/src/probe/kotlin/com/venera/desktop/    调试探针源码集（不进安装包）
+├── desktop/src/test/kotlin/com/venera/desktop/     L0-L2 单元测试、UI 语义测试与静态护栏测试
+├── engine-probe/src/main/kotlin/com/venera/        L3 QuickJS 引擎与会话
+├── docs/                                           本文档
+└── gradle/libs.versions.toml                       版本目录
 ```
 
 ## 8. 已知不一致
-
-`README.en.md` 尚未同步：仍描述「与 Android 共享同一份源码（经 `srcDir` 接进编译面）」，并引用不存在的 `docs/HANDOFF-2026-10-22.md`。该描述自 2026-11-17 起已失效，以本文为准。中文 `README.md` 已于 2026-11-21 修正。
 
 `engine-probe` 命名易被理解为一次性探针，实际是生产依赖（`implementation(project(":engine-probe"))`）。
 

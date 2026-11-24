@@ -74,3 +74,62 @@ jobs:
         with:
           files: release-assets/*
           generate_release_notes: true
+
+  package-linux:
+    name: Package Linux AppImage & Portable
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25 (Desktop Toolchain)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up JDK 21 (Gradle Daemon & engine-probe)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install AppImage packaging tool
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse2 file curl
+          curl -Lo /tmp/appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x /tmp/appimagetool
+          mkdir -p /tmp/appimagetool-extracted
+          cd /tmp/appimagetool-extracted && /tmp/appimagetool --appimage-extract
+          sudo ln -s /tmp/appimagetool-extracted/squashfs-root/AppRun /usr/local/bin/appimagetool
+
+      - name: Run Linux package script
+        run: |
+          chmod +x scripts/package-linux.sh
+          bash scripts/package-linux.sh
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          cp desktop/build/compose/binaries/main/installer/VComic-*-linux-x64.* release-assets/ 2>/dev/null || true
+          ls -lh release-assets
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: VComic-Linux-Release
+          path: release-assets/*
+          retention-days: 14
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          generate_release_notes: true

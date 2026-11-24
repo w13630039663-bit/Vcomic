@@ -1,5 +1,6 @@
 package com.venera.desktop.pixiv
 
+import com.venera.desktop.data.DesktopPixivWorkTrail
 import com.venera.desktop.ui.theme.VeneraType
 import com.venera.desktop.ui.DesktopPushButton
 import com.venera.desktop.gallery.ui.GalleryTokens
@@ -535,7 +536,7 @@ internal fun DesktopPixivWorkScreen(
     // 多图作品：当前页落定后顺手预取下一页的 1200 大图（按画布测量尺寸限制解码，避免原图大小进缓存）。
     val platformCtx = coil3.compose.LocalPlatformContext.current
     var canvasSizePx by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
-    val purgeGpuCache = com.venera.desktop.LocalGpuCachePurge.current
+    val purgeGpuCache = com.venera.desktop.app.LocalGpuCachePurge.current
     androidx.compose.runtime.DisposableEffect(purgeGpuCache) {
         onDispose { purgeGpuCache?.invoke("pixiv_work_dispose") }
     }
@@ -1002,7 +1003,8 @@ internal fun DesktopPixivWorkScreen(
                     bottom = 10.dp,
                 ),
         ) {
-            if (showArtistPane && detail?.authorId != null) {
+            val authorId = detail?.authorId
+            if (showArtistPane && authorId != null) {
                 // 画师面板仍是一整页，自己保留玻璃底；信息栏那侧改由多张浮卡拼成。
                 Box(
                     modifier = Modifier
@@ -1012,7 +1014,7 @@ internal fun DesktopPixivWorkScreen(
                         .border(0.5.dp, tokens.color.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
                 ) {
                 DesktopPixivArtistSidePane(
-                    userId = detail.authorId,
+                    userId = authorId,
                     fallbackName = detail.post.author.ifBlank { detail.authorAccount.ifBlank { "画师" } },
                     pixiv = pixiv,
                     account = account,

@@ -1,5 +1,7 @@
 package com.venera.desktop
 
+import com.venera.desktop.data.DesktopHomeStats
+import com.venera.desktop.data.DesktopHomeStatsSource
 import com.venera.compose.data.db.ReadingStatsStore
 import com.venera.compose.data.db.SchemaSql
 import com.venera.compose.data.db.SqlDatabaseSource

@@ -360,9 +360,8 @@ fun ContributorAvatar(
 ) {
     val bitmap: androidx.compose.ui.graphics.ImageBitmap? = remember(githubLogin) {
         githubLogin?.let { login ->
-            ContributorAvatars.data[login]?.let { b64 ->
+            ContributorAvatars.bytesOf(login)?.let { bytes ->
                 runCatching {
-                    val bytes = java.util.Base64.getDecoder().decode(b64)
                     org.jetbrains.skia.Image.makeFromEncoded(bytes).use { it.toComposeImageBitmap() }
                 }.getOrNull()
             }

@@ -1,5 +1,10 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.app.VeneraDesktopLargeScreen
+import com.venera.desktop.ui.DailyGalleryUiState
+import com.venera.desktop.ui.DesktopHomePane
+import com.venera.desktop.ui.DesktopNotWiredPane
+import com.venera.desktop.ui.DesktopWallScaffold
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -37,7 +42,7 @@ class DesktopHomeUsesSharedWidgetsTest {
     private fun homePane(): File {
         val f = File(
             DesktopSourceTree.repoRoot,
-            "desktop/src/main/kotlin/com/venera/desktop/DesktopHomePane.kt",
+            "desktop/src/main/kotlin/com/venera/desktop/ui/DesktopHomePane.kt",
         )
         assertTrue("读不到桌面首页文件，判据失效（不是通过）：${f.path}", f.isFile)
         return f
@@ -103,13 +108,14 @@ class DesktopHomeUsesSharedWidgetsTest {
         // 扫壳里 HOME 那一支的四枚具名实参 —— 少一枚就是那一格又回到了"摆着但没货"。
         val shell = File(
             DesktopSourceTree.repoRoot,
-            "desktop/src/main/kotlin/com/venera/desktop/VeneraDesktopLargeScreen.kt",
+            "desktop/src/main/kotlin/com/venera/desktop/app/VeneraDesktopLargeScreen.kt",
         )
         assertTrue("读不到壳文件，判据失效（不是通过）：${shell.path}", shell.isFile)
         val lines = DesktopSourceTree.desktopLargeScreenLines()
         val missing = listOf(
             // 每日热门使用独立 DailyGalleryUiState holder 并按栏头档位选腿，避免切档不换数。
-            "daily = if (dailyGallery.homePixivPick) dailyGallery.homePixivCards else dailyGallery.homeCards,",
+            "val dailyCards = if (dailyGallery.homePixivPick) dailyGallery.homePixivCards else dailyGallery.homeCards",
+            "daily = dailyCards,",
             "followedArtists = homeArtists,",
             "recommendComics =",
             "localComicCount = localComicScan?.comics?.size,",

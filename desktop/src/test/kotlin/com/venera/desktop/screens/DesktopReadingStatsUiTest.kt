@@ -1,5 +1,6 @@
 package com.venera.desktop.screens
 
+import com.venera.desktop.data.ReadingStatsRecentRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -14,13 +15,13 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
 import com.venera.compose.components.WideScreenLayoutMode
-import com.venera.desktop.DESKTOP_READING_STATS_EMPTY_MESSAGE
-import com.venera.desktop.DESKTOP_READING_STATS_EMPTY_TITLE
-import com.venera.desktop.DESKTOP_READING_STATS_SCREEN_TITLE
-import com.venera.desktop.DesktopReadingStats
-import com.venera.desktop.DesktopReadingStatsScreen
-import com.venera.desktop.ReadingStatsTopCell
-import com.venera.desktop.ReadingStatsTrendCell
+import com.venera.desktop.data.DESKTOP_READING_STATS_EMPTY_MESSAGE
+import com.venera.desktop.data.DESKTOP_READING_STATS_EMPTY_TITLE
+import com.venera.desktop.data.DESKTOP_READING_STATS_SCREEN_TITLE
+import com.venera.desktop.data.DesktopReadingStats
+import com.venera.desktop.ui.DesktopReadingStatsScreen
+import com.venera.desktop.data.ReadingStatsTopCell
+import com.venera.desktop.data.ReadingStatsTrendCell
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -71,7 +72,7 @@ class DesktopReadingStatsUiTest {
         activeDays = 1,
         heatPages = List(84) { 0 },
         recent = listOf(
-            com.venera.desktop.ReadingStatsRecentRow("雨季的第五页", "JM", 380, "42 分钟", "今天 22:14"),
+            com.venera.desktop.data.ReadingStatsRecentRow("雨季的第五页", "JM", 380, "42 分钟", "今天 22:14"),
         ),
         tagStats = com.venera.compose.stats.TagStats(
             buckets = listOf(

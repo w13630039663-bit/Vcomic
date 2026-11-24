@@ -562,7 +562,7 @@ fun VeneraSideBar(
             // （见 DesktopHomeSkin.CLASSIC）：现行浅皮档总会递 railSurface。改外观勿动 else 分支。
             val railBg = if (railSurface != null) {
                 railSurface
-            } else if (com.venera.desktop.DesktopDwmBackdrop.active && railBlur) {
+            } else if (com.venera.desktop.ui.DesktopDwmBackdrop.active && railBlur) {
                 tokens.color.surfaceContainerHigh.copy(alpha = 0.62f)
             } else {
                 tokens.color.surfaceContainerHigh

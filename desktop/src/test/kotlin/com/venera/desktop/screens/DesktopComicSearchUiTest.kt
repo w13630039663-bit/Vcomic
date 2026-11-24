@@ -1,5 +1,6 @@
 package com.venera.desktop.screens
 
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable

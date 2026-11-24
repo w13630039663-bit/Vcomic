@@ -2,7 +2,7 @@ package com.venera.desktop.pixiv
 
 import com.venera.desktop.ui.theme.VeneraType
 import com.venera.desktop.ui.DesktopPushButton
-import com.venera.desktop.LocalShellBackHandled
+import com.venera.desktop.app.LocalShellBackHandled
 
 import com.venera.desktop.gallery.ui.GalleryTokens
 import com.venera.desktop.gallery.ui.columnsFor
@@ -220,7 +220,7 @@ internal fun DesktopPixivWall(
     val tokens = VeneraTokens
     // 作品页左右箭头要翻的那一列 = 这面 pixiv 墙此刻的卡序（打码 / 点不开的卡不入账）。
     androidx.compose.runtime.LaunchedEffect(cards) {
-        com.venera.desktop.DesktopPixivWorkTrail.publishPixivWallCards(cards)
+        com.venera.desktop.data.DesktopPixivWorkTrail.publishPixivWallCards(cards)
     }
     val windowWidth = com.venera.compose.components.LocalWindowWidth.current ?: 1280.dp
     // pixiv 账号墙也吃统一规格的密度（列数偏置 + 列距）。

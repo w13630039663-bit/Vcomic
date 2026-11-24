@@ -1,5 +1,10 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.app.DesktopTabHost
+import com.venera.desktop.ui.DesktopGalleryWallPane
+import com.venera.desktop.ui.DesktopHomePane
+import com.venera.desktop.ui.DesktopNotWiredPane
+import com.venera.desktop.ui.DesktopWallScaffold
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -37,7 +42,7 @@ class DesktopTabOwnershipTest {
 
     private fun shellFile(): File {
         val candidates = listOf(
-            File(DesktopSourceTree.repoRoot, "desktop/src/main/kotlin/com/venera/desktop/DesktopTabHost.kt"),
+            File(DesktopSourceTree.repoRoot, "desktop/src/main/kotlin/com/venera/desktop/app/DesktopTabHost.kt"),
         )
         val found = candidates.firstOrNull { it.isFile }
         assertTrue(

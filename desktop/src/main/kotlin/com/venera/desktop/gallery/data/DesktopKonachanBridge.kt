@@ -269,7 +269,7 @@ internal object DesktopKonachanBridge {
 }
 
 /**
- * 壳根挂载点（[com.venera.desktop.VeneraDesktopLargeScreen] 在主题层挂**一次**）：
+ * 壳根挂载点（[com.venera.desktop.app.VeneraDesktopLargeScreen] 在主题层挂**一次**）：
  *
  * - 平时隐形：1dp 小盒 + 全透明 —— 浏览器活着供页内 fetch，CPU 占用趋近零，
  *   也不占布局不拦点击；

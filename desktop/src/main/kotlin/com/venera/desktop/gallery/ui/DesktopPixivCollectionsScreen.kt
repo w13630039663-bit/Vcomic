@@ -149,7 +149,7 @@ internal fun DesktopPixivCollectionsScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (!com.venera.desktop.LocalShellBackHandled.current) {
+            if (!com.venera.desktop.app.LocalShellBackHandled.current) {
                 com.venera.desktop.ui.DesktopPushButton(
                     onClick = onBack,
                     modifier = Modifier

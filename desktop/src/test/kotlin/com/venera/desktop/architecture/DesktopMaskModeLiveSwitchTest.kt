@@ -1,5 +1,6 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -28,7 +29,7 @@ class DesktopMaskModeLiveSwitchTest {
     /** ① 装配点必须订阅成 Compose 状态，裸读 .value 的 lambda 不触发重组。 */
     @Test
     fun 装配点把遮罩档订阅成状态() {
-        val app = text("VeneraDesktop.kt")
+        val app = text("app/VeneraDesktop.kt")
         assertTrue(
             "装配点没订阅 guard.nsfwMaskMode —— 切档不会让主屏重组（退回旧「假开关」形状）。",
             "guard.nsfwMaskMode.collectAsState()" in app,
@@ -89,7 +90,10 @@ class DesktopMaskModeLiveSwitchTest {
     /** ③ 写盘失败在界面有出口，而不是只打一行 stdout（桌面 toast 空实现，等于静默）。 */
     @Test
     fun 写盘失败在设置页有可见提示() {
-        val hub = codeLines("settings/DesktopSettingsHub.kt").joinToString("\n")
+        val hub = (
+            codeLines("settings/DesktopSettingsHub.kt") +
+                codeLines("settings/DesktopSettingsCardsReaderAndExplore.kt")
+            ).joinToString("\n")
         assertTrue(
             "设置页没有 maskModeError 状态 —— 写盘失败没有界面出口。",
             "maskModeError" in hub,

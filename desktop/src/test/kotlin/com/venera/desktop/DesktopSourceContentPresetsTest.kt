@@ -1,5 +1,8 @@
 package com.venera.desktop
 
+import com.venera.desktop.app.DesktopUxPlatformServices
+import com.venera.desktop.app.ProvideDesktopUxPlatformServices
+import com.venera.desktop.data.DesktopSourceContentPresets
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -104,7 +107,7 @@ class DesktopSourceContentPresetsTest {
         assertNotNull(f)
         val ux = java.io.File(
             DesktopSourceTree.repoRoot,
-            "desktop/src/main/kotlin/com/venera/desktop/DesktopUxPlatformServices.kt",
+            "desktop/src/main/kotlin/com/venera/desktop/app/DesktopUxPlatformServices.kt",
         )
         assertTrue("读不到 DesktopUxPlatformServices.kt —— 判据失效（不是通过）", ux.isFile)
         val code = ux.readText().lines().filterNot { ln ->

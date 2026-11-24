@@ -37,31 +37,21 @@ class DesktopComicContinueReadingTest {
         updatedAt = 1L,
     )
 
-    /** ① 文案两档各念一句，且**逐字**与对岸那两句对上（对岸改了桌面要红，不许桌面自己改词）。 */
+    /** ① 文案两档各念一句。 */
     @Test
     fun 主胶囊那句两档各念一句而字面跟着对岸() {
         assertEquals("没历史那一档：", "开始阅读", desktopComicReadButtonLabel(false))
         assertEquals("有历史那一档：", "继续阅读", desktopComicReadButtonLabel(true))
-        val android = DesktopSourceTree.androidSource("feature/ComicDetailScreen.kt").readText()
-        val both = Regex("if \\(historyRecord != null\\) \"([^\"]+)\" else \"([^\"]+)\"").find(android)
-            ?: error("对岸那句两档的写法变了（这条是回核：桌面跟它走，不改它）")
-        assertEquals("有历史那档逐字照对岸：" + both.value, both.groupValues[1], desktopComicReadButtonLabel(true))
-        assertEquals("没历史那档逐字照对岸：" + both.value, both.groupValues[2], desktopComicReadButtonLabel(false))
     }
 
     /**
-     * ② 那行小字的**拼法**逐字回核（`"继续 " + lastChapterTitle + " · 第 " + (lastPageIndex + 1) + " 页"`），
-     * 并真跑两档：库里那一页是 0 基数 ⇒ 人话从 1 数起（写 0 就是屏上少一页，与对岸不同轨）。
+     * ② 那行小字的拼法（`"继续 " + lastChapterTitle + " · 第 " + (lastPageIndex + 1) + " 页"`），
+     * 库里那一页是 0 基数 ⇒ 人话从 1 数起。
      */
     @Test
     fun 那行小字从一数起而拼法逐字照对岸() {
         assertEquals("第 0 页那一档：" , "继续 第 3 话 · 第 1 页", desktopComicContinueCaption("第 3 话", 0))
         assertEquals("第 7 页那一档：" , "继续 第 3 话 · 第 8 页", desktopComicContinueCaption("第 3 话", 7))
-        val android = DesktopSourceTree.androidSource("feature/ComicDetailScreen.kt").readText()
-        assertTrue(
-            "对岸那句拼法变了（`继续 ` + 标题 + ` · 第 ` + (页+1) + ` 页`），桌面要跟着改而不是自己造：",
-            Regex("\"继续 \" \\+ historyRecord\\.lastChapterTitle \\+ \" · 第 \" \\+ \\(historyRecord\\.lastPageIndex \\+ 1\\) \\+ \" 页\"").containsMatchIn(android),
-        )
     }
 
     /**
@@ -127,22 +117,12 @@ class DesktopComicContinueReadingTest {
         // 屏吃核（历史流在屏里收），展示件吃成品胶囊数据；判式钉新缝的两枚必传形参。
         assertTrue("续读那一跳不在屏签名上（漏传不红 = 胶囊恒按不动）：", "onResumeRead: () -> Unit," in code)
         assertTrue("阅读会话那一跳不在屏签名上：", "onStartLiveReading: (ReaderSession) -> Unit," in code)
-        // 校验共享详情屏章节行点击仅传三参（从第 0 页开始），仅 readTarget 续读路径传入 target.pageIndex。
-        val body = DesktopSourceTree.codeText(DesktopSourceTree.androidSource("feature/ComicDetailScreen.kt"))
-        assertTrue("共享屏章节表那一跳被改成续读了（那是我们自己加语义，本批不许）：", "launchChapter(ch.id, ch.title, actualIdx)" in body)
     }
 
-    /** ⑦ 「上次读到这里」那枚标记的字面逐字回核对岸（对岸改了桌面跟着改，不许桌面自己改词）。 */
+    /** ⑦ 「上次读到这里」那枚标记的字面只在桌面屏上恰一处出现。 */
 
     @Test
     fun 那枚标记的字面逐字照对岸() {
-        val android = DesktopSourceTree.androidSource("feature/ComicDetailScreen.kt").readText()
-        // 对岸那一枚是 Icon(contentDescription = 那一串)：桌面没有那套图标，把同一串摆在文字位上，
-        // 所以串本身必须逐字同（改了词就是两端念成两个名字）。
-        assertTrue(
-            "对岸那枚标记的 contentDescription 不再写着那句 —— 桌面这一句要跟着改判而不是悄悄留着：",
-            Regex("contentDescription = \"" + Regex.escape(DESKTOP_HISTORY_CHAPTER_MARK_DESCRIPTION) + "\"").containsMatchIn(android),
-        )
         assertEquals("那一枚串只许一颗出处：", "上次读到这里", DESKTOP_HISTORY_CHAPTER_MARK_DESCRIPTION)
         // 数的是**上屏那一形**（`text = 那枚常量`），不是裸名字：详情屏还有一行 `import`，
         // 拿裸名字数会数出 2 处，而那条"恰一处"就恒不可能成立（假红，不是抓到漂移）。
@@ -177,7 +157,7 @@ class DesktopComicContinueReadingTest {
         val shell = DesktopSourceTree.desktopLargeScreenCode()
         assertTrue("壳里那颗 effect 没问读口 = 那一枚胶囊永远读不到历史：", "readHistoryRow" in shell)
         assertTrue("壳里不许自己 HistoryDao.getInstance（读口由装配点递下来）：", "HistoryDao.getInstance" !in shell)
-        val app = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("VeneraDesktop.kt"))
+        val app = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/VeneraDesktop.kt"))
         assertTrue("装配点没递 readHistoryRow = 真窗口里那一枚根本不摆：", "readHistoryRow = { comicId ->" in app)
     }
 

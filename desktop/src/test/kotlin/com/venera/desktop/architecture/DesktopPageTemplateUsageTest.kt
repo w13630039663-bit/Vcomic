@@ -1,5 +1,7 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.VeneraDesktopLargeScreen
+import com.venera.desktop.ui.DesktopBackupScreen
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -32,7 +34,7 @@ class DesktopPageTemplateUsageTest {
             "settings/DesktopSettingsHub.kt",
             "sourcemanage/DesktopSourceManageScreen.kt",
             "sourcemanage/DesktopSourceLoginScreen.kt",
-            "DesktopBackupScreen.kt",
+            "ui/DesktopBackupScreen.kt",
         )
         val missing = files.filter { relative ->
             val code = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf(relative))

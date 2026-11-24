@@ -42,10 +42,7 @@ class DesktopGalleryPixivWorksTest {
         "desktop/src/main/kotlin/com/venera/desktop/gallery/data/DesktopGalleryPixivWorks.kt",
     )
 
-    private val apiFile = File(
-        DesktopSourceTree.repoRoot,
-        "desktop/src/main/kotlin/com/venera/compose/gallery/data/GalleryBusinessApi.kt",
-    )
+    private val apiFile = DesktopSourceTree.androidSource("gallery/data/GalleryBusinessApi.kt")
 
     /** ① 装配点那两枚不再是默认 `null`。 */
     @Test

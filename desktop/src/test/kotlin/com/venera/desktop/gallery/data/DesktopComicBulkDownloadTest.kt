@@ -296,8 +296,8 @@ class DesktopComicBulkDownloadTest {
         assertEquals("屏里不许出现读盘那颗件：", 0, screen.split("desktopComicDownloadedScan(").size - 1)
         assertEquals("屏里不许自己算档位：", 0, screen.split("desktopComicBulkOfflineOf(").size - 1)
         assertEquals("屏里不许自己净化：", 0, screen.split("desktopComicSafePathKey(").size - 1)
-        // 详情页复用共享屏后，校验 DesktopDownloadQueuePort 真实接入本地章节扫描与状态判定，且共享屏不直接扫盘。
-        val body = DesktopSourceTree.codeText(DesktopSourceTree.androidSource("feature/ComicDetailScreen.kt"))
+        // 详情页复用共享内核后，校验 DesktopDownloadQueuePort 真实接入本地章节扫描与状态判定，且共享内核不直接扫盘。
+        val body = DesktopSourceTree.codeText(DesktopSourceTree.androidSource("feature/ComicDetailCore.kt"))
         assertEquals("共享屏不许出现读盘那颗件：", 0, body.split("desktopComicDownloadedScan(").size - 1)
         assertEquals("共享屏不许自己净化：", 0, body.split("desktopComicSafePathKey(").size - 1)
         val port = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("business/DesktopDownloadQueuePort.kt"))

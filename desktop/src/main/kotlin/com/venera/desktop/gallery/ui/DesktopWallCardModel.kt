@@ -1,5 +1,7 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.app.DesktopUxPlatformServices
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.compose.gallery.data.GalleryPost
 import com.venera.compose.gallery.data.GallerySite
 import com.venera.compose.gallery.domain.GalleryPreviewQuality

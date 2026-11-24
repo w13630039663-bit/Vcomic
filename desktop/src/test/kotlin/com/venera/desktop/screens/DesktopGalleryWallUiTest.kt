@@ -1,5 +1,6 @@
 package com.venera.desktop.screens
 
+import com.venera.desktop.ui.DesktopWallScaffold
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasClickAction
@@ -17,7 +18,7 @@ import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import com.venera.compose.components.WideScreenLayoutMode
 import com.venera.compose.gallery.domain.GalleryHomeDomain
-import com.venera.desktop.DesktopGalleryWallPane
+import com.venera.desktop.ui.DesktopGalleryWallPane
 import com.venera.desktop.gallery.ui.DesktopGalleryBatch
 import com.venera.desktop.gallery.ui.DesktopGalleryMorePhase
 import com.venera.desktop.gallery.ui.DesktopSourceTree
@@ -160,7 +161,7 @@ class DesktopGalleryWallUiTest {
                 previewCards = emptyList(),
                 // 发现带 / 关注新作 / pixivision 三腿与新动作门。台架全递空
                 //（这一把尺不测那几节；取数与接线形状由壳的 effect 与各自源码尺钉）。
-                pixivDiscover = com.venera.desktop.PixivDiscoverLeg(
+                pixivDiscover = com.venera.desktop.ui.PixivDiscoverLeg(
                     users = emptyList(),
                     followedIds = emptySet(),
                     followingCards = emptyList(),
@@ -512,5 +513,5 @@ class DesktopGalleryWallUiTest {
         )
     }
 
-    private fun scaffoldFile() = DesktopSourceTree.desktopSourceOf("DesktopWallScaffold.kt")
+    private fun scaffoldFile() = DesktopSourceTree.desktopSourceOf("ui/DesktopWallScaffold.kt")
 }

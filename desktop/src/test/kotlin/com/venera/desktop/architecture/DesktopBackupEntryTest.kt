@@ -1,5 +1,16 @@
 package com.venera.desktop.architecture
 
+import com.venera.desktop.app.DesktopRoute
+import com.venera.desktop.app.VeneraDesktopLargeScreen
+import com.venera.desktop.ui.DesktopBackupScreen
+import com.venera.desktop.data.desktopBackupExportTo
+import com.venera.desktop.data.desktopBackupRestoreFrom
+import com.venera.desktop.data.desktopBackupScreenReading
+import com.venera.desktop.data.desktopPickBackupOpenPath
+import com.venera.desktop.data.desktopPickBackupSavePath
+import com.venera.desktop.data.desktopVeneraExportTo
+import com.venera.desktop.data.desktopVeneraImportFromPreview
+import com.venera.desktop.data.desktopVeneraInspectFile
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -17,16 +28,16 @@ import org.junit.Test
  */
 class DesktopBackupEntryTest {
 
-    private val shellFile = DesktopSourceTree.desktopSourceOf("VeneraDesktopLargeScreen.kt")
+    private val shellFile = DesktopSourceTree.desktopSourceOf("app/VeneraDesktopLargeScreen.kt")
     private val shell = DesktopSourceTree.desktopLargeScreenCode()
     private val shellLines = DesktopSourceTree.desktopLargeScreenLines().filter { it.isNotEmpty() }
     private val explore = DesktopSourceTree.codeText(
         DesktopSourceTree.desktopSourceOf("explore/DesktopExploreScreen.kt"),
     )
     private val screen = DesktopSourceTree.codeText(
-        DesktopSourceTree.desktopSourceOf("DesktopBackupScreen.kt"),
+        DesktopSourceTree.desktopSourceOf("ui/DesktopBackupScreen.kt"),
     )
-    private val route = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("DesktopRoute.kt"))
+    private val route = DesktopSourceTree.codeText(DesktopSourceTree.desktopSourceOf("app/DesktopRoute.kt"))
 
     /** ① 路由枚举里真有那一档。 */
     @Test
@@ -116,7 +127,7 @@ class DesktopBackupEntryTest {
                 "$why：",
                 0,
                 DesktopSourceTree.codeOccurrences(
-                    DesktopSourceTree.desktopSourceOf("DesktopBackupScreen.kt"),
+                    DesktopSourceTree.desktopSourceOf("ui/DesktopBackupScreen.kt"),
                     banned,
                 ),
             )

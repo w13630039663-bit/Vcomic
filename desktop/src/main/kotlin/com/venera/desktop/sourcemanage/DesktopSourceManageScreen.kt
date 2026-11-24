@@ -1,5 +1,6 @@
 package com.venera.desktop.sourcemanage
 
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -74,7 +75,7 @@ import com.venera.compose.components.venera.VeneraSwitch
 import com.venera.compose.components.venera.VeneraTextField
 import com.venera.compose.ui.tokens.VeneraCardEnter
 import com.venera.compose.ui.tokens.VeneraTokens
-import com.venera.desktop.LocalShellBackHandled
+import com.venera.desktop.app.LocalShellBackHandled
 import com.venera.desktop.gallery.data.DesktopSourceIcons
 import com.venera.desktop.ui.DesktopPopUpButton
 import com.venera.desktop.ui.DesktopPushButton

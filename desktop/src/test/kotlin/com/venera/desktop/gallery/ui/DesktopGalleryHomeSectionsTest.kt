@@ -1,5 +1,6 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.ui.DesktopStartupSplash
 import com.venera.compose.gallery.data.GalleryFavorite
 import com.venera.compose.gallery.data.GallerySite
 import com.venera.compose.gallery.domain.GalleryArtistFollow

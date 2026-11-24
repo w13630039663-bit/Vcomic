@@ -1,5 +1,7 @@
 package com.venera.desktop
 
+import com.venera.desktop.ui.DesktopScrollAnchor
+import com.venera.desktop.ui.putBoundedMapEntry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

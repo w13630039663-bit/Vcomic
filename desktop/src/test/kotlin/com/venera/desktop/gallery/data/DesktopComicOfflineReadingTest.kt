@@ -1,5 +1,6 @@
 package com.venera.desktop.gallery.data
 
+import com.venera.desktop.app.VeneraDesktopLargeScreen
 import com.venera.desktop.gallery.ui.DesktopSourceTree
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

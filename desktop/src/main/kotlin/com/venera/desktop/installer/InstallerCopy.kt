@@ -8,9 +8,9 @@ data class InstallSceneItem(
 
 /** 安装向导全部文案（严格遵守主标 ≤ 6 字、副标 ≤ 15 字及克制桌面端术语）。 */
 object InstallerCopy {
-    const val AppTitle = "VComic 安装程序 · 1.0.0"
+    const val AppTitle = "VComic 安装程序 · 1.0.1"
     const val Brand = "VComic"
-    const val VersionBadge = "v1.0.0"
+    const val VersionBadge = "v1.0.1"
     const val Tagline = "开源跨源桌面漫画阅读器"
 
     const val InstallNow = "立即安装"
@@ -22,7 +22,7 @@ object InstallerCopy {
 
     const val UpgradeNotice = "检测到已安装旧版本，本次将覆盖升级并保留全部数据与设置"
     const val CompleteTitle = "安装已完成"
-    const val CompleteSubtitle = "VComic 1.0.0 已就绪，可立即开启阅读体验"
+    const val CompleteSubtitle = "VComic 1.0.1 已就绪，可立即开启阅读体验"
     const val LaunchOnFinish = "立即启动 VComic"
     const val StartUsing = "开始使用"
 
@@ -46,7 +46,7 @@ object InstallerCopy {
 
     // 扩展态文案
     const val MigrationTitle = "检测到旧版安装"
-    const val MigrationDesc = "当前系统已安装旧版 Venera 桌面端（MSI 版），需先卸载旧版再继续安装 VComic 1.0.0"
+    const val MigrationDesc = "当前系统已安装旧版 Venera 桌面端（MSI 版），需先卸载旧版再继续安装 VComic 1.0.1"
     const val MigrationConfirm = "卸载旧版并继续"
 
     const val ConflictTitle = "应用正在运行"
@@ -59,5 +59,5 @@ object InstallerCopy {
     const val CancelModalAbort = "取消安装"
 
     const val MaintTitle = "管理已安装的 VComic"
-    const val MaintDesc = "当前已安装 VComic 1.0.0，请选择需要执行的维护操作"
+    const val MaintDesc = "当前已安装 VComic 1.0.1，请选择需要执行的维护操作"
 }

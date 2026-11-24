@@ -1,4 +1,4 @@
-name: Release Windows Installer
+name: Release Desktop Installers
 
 on:
   push:
@@ -73,6 +73,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: release-assets/*
+          body_path: docs/RELEASE_NOTES_v1.0.1.md
           generate_release_notes: true
 
   package-linux:
@@ -132,4 +133,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: release-assets/*
+          body_path: docs/RELEASE_NOTES_v1.0.1.md
           generate_release_notes: true

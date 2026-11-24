@@ -3,7 +3,7 @@ package com.venera.desktop.settings
 import androidx.compose.ui.graphics.Color
 
 /** 桌面版本号：关于区、更新检查与弹窗尾注的唯一出处。 */
-internal const val DESKTOP_APP_VERSION = "1.0.0"
+internal const val DESKTOP_APP_VERSION = "1.0.1"
 
 internal enum class DesktopSettingsSection(
     val titleZh: String,

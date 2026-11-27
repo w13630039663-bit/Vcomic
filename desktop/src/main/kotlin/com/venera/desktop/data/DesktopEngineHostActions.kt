@@ -32,7 +32,8 @@ internal fun readDesktopSourceRows(
     seedDisabled: Set<String>,
     uiEngine: EngineSession?,
 ): List<DesktopSourceRowUi> {
-    val bundled = EngineAssets.listSourceKeys(assetDir).sorted()
+    val bundledList = EngineAssets.listSourceKeys(assetDir).sorted()
+    val bundledSet = bundledList.toSet()
     val imported = overrideDir?.let { dir ->
         File(dir, "sources")
             .listFiles { f -> f.isFile && f.extension == "js" }
@@ -40,7 +41,7 @@ internal fun readDesktopSourceRows(
             ?.filter { DesktopSourceOverrides.isSafeKey(it) }
             .orEmpty()
     }.orEmpty()
-    val all = (bundled + imported).distinct()
+    val all = (bundledList + imported).distinct()
     val saved = sourceState.orderKeys().orEmpty()
     val keys = if (saved.isEmpty()) {
         all.sorted()
@@ -63,7 +64,9 @@ internal fun readDesktopSourceRows(
         cookieFields[k] = DesktopSourceNames.cookieFieldsOf(text)
         passwordLogin[k] = DesktopSourceNames.supportsPasswordLoginOf(text)
         webLogin[k] = DesktopSourceNames.supportsWebLoginOf(text)
-        versions[k] = DesktopSourceNames.versionOf(text)
+        versions[k] = DesktopSourceNames.versionOf(text).ifBlank {
+            overrideDir?.let { com.venera.desktop.gallery.data.DesktopSourceUpdater.installedVersionOf(it, k) }.orEmpty()
+        }
         settingsCounts[k] = DesktopSourceSettings.definitionsOf(text).size
         hosts[k] = DesktopSourceNames.apiHostOf(text)
     }
@@ -91,6 +94,15 @@ internal fun readDesktopSourceRows(
         hosts = hosts,
     )
     return catalog.map { r ->
+        val isBundled = r.key in bundledSet
+        val repoId = overrideDir?.let {
+            com.venera.desktop.gallery.data.DesktopSourceUpdater.repoIdOf(it, r.key)
+        }
+        val originLabel = com.venera.desktop.gallery.data.DesktopSourceUpdater.originLabelOf(
+            isBundled = isBundled,
+            overridden = r.overridden,
+            repoId = repoId,
+        )
         DesktopSourceRowUi(
             key = r.key,
             title = r.title,
@@ -107,21 +119,40 @@ internal fun readDesktopSourceRows(
                 runCatching { host.isLogged(r.key) }.getOrDefault(false)
             } ?: false,
             canDisable = DesktopSourceSelection.canDisable(keys, effectiveEnabled, r.key),
+            originLabel = originLabel,
+            repoId = repoId,
+            isBundled = isBundled,
         )
     }
 }
 
-/** 切换单个漫画源的启用状态并写回本地清单。 */
+/** 切换或设置单个漫画源的启用状态并写回本地清单（含随包与导入/社区新增源）。 */
 internal fun writeDesktopSourceEnabled(
     assetDir: File,
     sourceState: DesktopSourceState,
     key: String,
+    overrideDir: File? = null,
+    enabled: Boolean? = null,
 ) {
+    val bundled = EngineAssets.listSourceKeys(assetDir)
+    val imported = overrideDir?.let { dir ->
+        File(dir, "sources")
+            .listFiles { f -> f.isFile && f.extension == "js" }
+            ?.map { it.nameWithoutExtension }
+            ?.filter { DesktopSourceOverrides.isSafeKey(it) }
+            .orEmpty()
+    }.orEmpty()
+    val allKeys = (bundled + imported).distinct().sorted()
     val base = DesktopSourceState.effectiveEnabled(
-        EngineAssets.listSourceKeys(assetDir).sorted(),
+        allKeys,
         sourceState.enabledKeys(),
     )
-    sourceState.setEnabledKeys(DesktopSourceSelection.toggle(base, key))
+    val next = when (enabled) {
+        true -> base + key
+        false -> base - key
+        null -> DesktopSourceSelection.toggle(base, key)
+    }
+    sourceState.setEnabledKeys(next)
 }
 
 /** 校验并保存源脚本到覆盖层目录；校验未通过时不落盘。 */

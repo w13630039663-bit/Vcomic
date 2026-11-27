@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Venera Desktop · 漫画搜索 & 画廊搜索 × 像素伙伴高保真方案稿</title>
+<style>
+  :root {
+    --bg: #1e2026;
+    --mica-grad: radial-gradient(circle at 28% 12%, rgba(92, 118, 168, 0.24), transparent 46%),
+                 radial-gradient(circle at 78% 18%, rgba(148, 127, 214, 0.16), transparent 44%),
+                 #1e2026;
+    --sidebar: rgba(24, 26, 32, 0.86);
+    --card: rgba(36, 39, 46, 0.88);
+    --card-hover: rgba(45, 49, 58, 0.94);
+    --elevated: rgba(32, 35, 42, 0.96);
+    --border: rgba(255, 255, 255, 0.09);
+    --hairline: rgba(255, 255, 255, 0.12);
+    --text: #f1f3f8;
+    --ink2: #a0a7b8;
+    --ink3: #6f7688;
+    --accent: #8b7bff;
+    --accent-soft: rgba(139, 123, 255, 0.18);
+  }
+  * { box-sizing: border-box; user-select: none; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: var(--mica-grad); color: var(--text);
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    overflow: hidden;
+  }
+
+  /* 顶部演示控制台 */
+  .demo-bar {
+    height: 40px; padding: 0 14px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: rgba(18, 20, 25, 0.92); border-bottom: 1px solid var(--border);
+    font-size: 12px; position: relative; z-index: 40;
+  }
+  .demo-group { display: flex; align-items: center; gap: 6px; }
+  .pill-btn {
+    border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: var(--ink2);
+    padding: 4px 10px; border-radius: 7px; font-size: 12px; cursor: pointer;
+    transition: all .14s ease;
+  }
+  .pill-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.22); }
+  .pill-btn.active { background: var(--accent-soft); border-color: var(--accent); color: #d8d2ff; font-weight: 600; }
+
+  /* 模拟桌面窗体 */
+  .app-shell {
+    display: flex; width: 100%; height: calc(100vh - 40px); position: relative; overflow: hidden;
+  }
+
+  /* 左侧栏（支持展开 / 收起） */
+  .sidebar {
+    width: 224px; flex-shrink: 0;
+    background: var(--sidebar); border-right: 1px solid var(--hairline);
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 12px 10px; transition: width 220ms cubic-bezier(0.2, 0, 0, 1);
+    z-index: 5;
+  }
+  .sidebar.collapsed { width: 0; padding: 0; border-right: none; overflow: hidden; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px;
+    font-size: 13px; color: var(--ink2); cursor: pointer; white-space: nowrap;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+  .nav-item.active { background: var(--accent-soft); color: #e2ddff; font-weight: 600; }
+  .nav-dot { width: 14px; height: 14px; border-radius: 4px; background: currentColor; opacity: 0.35; }
+
+  /* 主内容区（像素伙伴覆盖层挂在此容器内，左边界恒为 x=0） */
+  .content-host {
+    flex: 1; position: relative; display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  /* 模拟真实顶部窗口栏 */
+  .win-topbar {
+    height: 44px; padding: 0 20px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; color: var(--ink2);
+  }
+  .win-actions { display: flex; align-items: center; gap: 16px; color: var(--ink2); }
+
+  /* 页面滚动主体 */
+  .page-scroll {
+    flex: 1; overflow-y: auto; padding: 4px 28px 36px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .page-scroll::-webkit-scrollbar { width: 6px; }
+  .page-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 99px; }
+
+  /* 顶部搜索工具条（还原截图结构：左分段 + 中可伸缩搜索框 + 右选源） */
+  .search-toolbar {
+    display: flex; align-items: center; gap: 14px; min-height: 40px;
+  }
+  .seg-box {
+    display: inline-flex; padding: 3px; border-radius: 9px;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border); flex-shrink: 0;
+  }
+  .seg-item {
+    padding: 5px 12px; border-radius: 6px; font-size: 12px; color: var(--ink2); cursor: pointer;
+  }
+  .seg-item.active { background: rgba(20,22,28,0.92); color: var(--text); font-weight: 600; }
+
+  .search-slot {
+    flex: 1; display: flex; align-items: center; position: relative;
+  }
+  .search-wrap {
+    width: 56%; min-width: 260px; position: relative;
+    transition: width 260ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  .search-wrap.expanded { width: 100%; }
+  .search-wrap.sweeping::after {
+    content: ""; position: absolute; inset: 0; border-radius: 8px; pointer-events: none;
+    background: linear-gradient(112deg, transparent 18%, rgba(139,123,255,0.28) 48%, rgba(255,255,255,0.22) 52%, transparent 82%);
+    background-size: 220% 100%;
+    animation: searchSweep 460ms cubic-bezier(0.05, 0.7, 0.1, 1) forwards;
+  }
+  @keyframes searchSweep {
+    from { background-position: 130% 0; opacity: 1; }
+    to   { background-position: -30% 0; opacity: 0; }
+  }
+  .search-input {
+    width: 100%; height: 34px; padding: 0 34px 0 32px;
+    border-radius: 8px; border: 1px solid var(--hairline);
+    background: rgba(255,255,255,0.06); color: var(--text); font-size: 13px;
+    outline: none; user-select: text;
+    transition: border-color .16s ease, background .16s ease;
+  }
+  .search-input:focus {
+    border-color: var(--accent); border-width: 2px; padding-left: 31px;
+    background: rgba(255,255,255,0.09);
+  }
+  .search-icon {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    color: var(--ink3); font-size: 13px; pointer-events: none;
+  }
+  .search-clear {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    width: 18px; height: 18px; border-radius: 50%; border: none;
+    background: rgba(255,255,255,0.14); color: var(--text); font-size: 11px;
+    cursor: pointer; display: none; align-items: center; justify-content: center;
+  }
+  .search-clear.show { display: flex; }
+
+  .history-pop {
+    position: absolute; left: 0; right: 0; top: 40px; z-index: 20;
+    background: var(--elevated); border: 1px solid var(--hairline); border-radius: 10px;
+    padding: 10px 12px; display: none; box-shadow: 0 14px 36px rgba(0,0,0,0.45);
+  }
+  .history-pop.open { display: block; }
+  .history-head { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink2); margin-bottom: 8px; }
+  .history-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    padding: 4px 10px; border-radius: 999px; font-size: 12px;
+    background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+    color: var(--text); cursor: pointer;
+  }
+  .chip:hover { border-color: var(--accent); }
+
+  .source-pill {
+    display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px;
+    border-radius: 9px; background: rgba(20,22,28,0.88); border: 1px solid var(--hairline);
+    font-size: 12px; font-weight: 600; flex-shrink: 0;
+  }
+  .source-badge { width: 18px; height: 18px; border-radius: 5px; background: #2b82d9; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; }
+
+  /* 标题与筛选区 */
+  .section-head { display: flex; align-items: baseline; gap: 10px; }
+  .section-head h1 { margin: 0; font-size: 18px; }
+  .section-sub { font-size: 12px; color: var(--ink2); }
+  .filter-bar {
+    padding: 10px 14px; border-radius: 10px;
+    background: rgba(255,255,255,0.035); border: 1px solid var(--border);
+    font-size: 12px; color: var(--ink2); display: flex; justify-content: space-between;
+  }
+  .result-meta { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--ink2); }
+
+  /* 漫画搜索：真实双列横卡 */
+  .comic-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .comic-card {
+    display: flex; gap: 14px; padding: 12px; border-radius: 12px; position: relative; overflow: hidden;
+    background: var(--card); border: 1px solid var(--border);
+    transition: transform 340ms cubic-bezier(0.05, 0.7, 0.1, 1), opacity 340ms ease, border-color 340ms ease;
+  }
+  .comic-cover {
+    width: 92px; height: 128px; border-radius: 8px; flex-shrink: 0;
+    background: linear-gradient(145deg, rgba(139,123,255,0.30), rgba(56,189,248,0.16));
+  }
+  .comic-card:nth-child(2n) .comic-cover { background: linear-gradient(145deg, rgba(244,114,182,0.28), rgba(139,123,255,0.16)); }
+  .comic-card:nth-child(3n) .comic-cover { background: linear-gradient(145deg, rgba(52,211,153,0.25), rgba(59,130,246,0.15)); }
+  .comic-info { flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+  .comic-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .comic-author { font-size: 12px; color: var(--ink2); margin-top: 4px; }
+  .comic-source { position: absolute; right: 12px; top: 12px; font-size: 11px; color: var(--ink3); }
+
+  /* 画廊搜索：真实 4 列错落瀑布流 */
+  .gallery-masonry { display: flex; gap: 14px; align-items: flex-start; }
+  .masonry-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+  .gallery-card {
+    border-radius: 12px; overflow: hidden; position: relative;
+    background: var(--card); border: 1px solid var(--border);
+    transition: transform 280ms cubic-bezier(0.05, 0.7, 0.1, 1), opacity 280ms ease, border-color 280ms ease, box-shadow 280ms ease;
+  }
+  .gallery-thumb {
+    width: 100%; height: 185px;
+    background: linear-gradient(150deg, rgba(139,123,255,0.34), rgba(236,72,153,0.18));
+  }
+  .gallery-card.h-sm .gallery-thumb { height: 138px; background: linear-gradient(150deg, rgba(52,211,153,0.28), rgba(59,130,246,0.16)); }
+  .gallery-card.h-md .gallery-thumb { height: 185px; background: linear-gradient(150deg, rgba(139,123,255,0.32), rgba(236,72,153,0.18)); }
+  .gallery-card.h-lg .gallery-thumb { height: 242px; background: linear-gradient(150deg, rgba(56,189,248,0.30), rgba(139,123,255,0.18)); }
+  .gallery-card.h-xl .gallery-thumb { height: 210px; background: linear-gradient(150deg, rgba(251,146,60,0.28), rgba(244,114,182,0.18)); }
+  .gallery-foot { padding: 9px 11px; font-size: 12px; color: var(--ink2); display: flex; justify-content: space-between; }
+
+  /* 骨架屏 & 宠物实时擦除显影 / 光流多米诺点亮态 */
+  .result-card.skeleton .comic-cover,
+  .result-card.skeleton .comic-title,
+  .result-card.skeleton .comic-author,
+  .result-card.skeleton .gallery-thumb,
+  .result-card.skeleton .gallery-foot {
+    color: transparent !important;
+    background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.11) 50%, rgba(255,255,255,0.04) 75%) !important;
+    background-size: 200% 100%;
+    animation: skelShimmer 1.2s infinite linear;
+    border-radius: 6px;
+  }
+  @keyframes skelShimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+  /* 未描绘前：保留线稿结构感 */
+  .result-card.blueprint {
+    border-color: rgba(148, 127, 214, 0.24);
+    transform: translateY(6px) scale(0.99);
+  }
+  .result-card.blueprint > :not(.card-veil) { opacity: 0.28; transition: opacity 200ms ease; }
+  .result-card.skimming {
+    border-color: rgba(148, 127, 214, 0.56);
+    transform: translateY(0) scale(1);
+    box-shadow: 0 0 0 1px rgba(148, 127, 214, 0.22), 0 8px 22px rgba(0, 0, 0, 0.22);
+  }
+  /* 随着宠物横扫进度的实时擦除蒙版 */
+  .card-veil {
+    position: absolute; inset: 0; pointer-events: none; z-index: 4;
+    background: linear-gradient(90deg, rgba(148,127,214,0.24) 0%, rgba(24,26,33,0.78) 12%, rgba(24,26,33,0.84) 100%);
+    transform-origin: right center;
+    opacity: 0;
+  }
+  .result-card.blueprint .card-veil,
+  .result-card.skimming .card-veil { opacity: 1; }
+  .result-card.skimming > :not(.card-veil) { opacity: 1; transition: none; }
+
+  .result-card.awakening {
+    opacity: 1; transform: translateY(0) scale(1);
+    border-color: rgba(148, 127, 214, 0.50);
+  }
+  .result-card.awakening > :not(.card-veil) { opacity: 1; transition: opacity 240ms ease; }
+  @keyframes cardAwaken { from { background-position: 130% 0; opacity: 1; } to { background-position: -30% 0; opacity: 0; } }
+  .result-card.awakening::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 5;
+    background: linear-gradient(120deg, transparent 20%, rgba(148, 127, 214, 0.22) 48%, rgba(255, 255, 255, 0.14) 52%, transparent 80%);
+    background-size: 220% 100%;
+    animation: cardAwaken 560ms cubic-bezier(0.05, 0.7, 0.1, 1) forwards;
+  }
+
+  /* 像素伙伴顶层透明覆盖层 */
+  #buddyCanvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 25; pointer-events: none; }
+  .pet-hitbox { position: absolute; z-index: 28; width: 52px; height: 52px; cursor: grab; }
+  .pet-hitbox.dragging { cursor: grabbing; }
+  .buddy-bubble {
+    position: absolute; z-index: 27; pointer-events: none;
+    background: rgba(26, 29, 38, 0.95); border: 1px solid var(--hairline);
+    color: var(--text); font-size: 12px; padding: 5px 10px; border-radius: 9px;
+    white-space: nowrap; opacity: 0; transform: translateY(4px);
+    transition: opacity .16s ease, transform .16s ease;
+  }
+  .buddy-bubble.show { opacity: 1; transform: translateY(0); }
+  .status-pill {
+    position: absolute; right: 16px; bottom: 12px; z-index: 22;
+    font-size: 11px; color: var(--ink2);
+    background: rgba(24,26,33,0.9); border: 1px solid var(--border);
+    padding: 4px 10px; border-radius: 999px;
+  }
+</style>
+</head>
+<body>
+
+<div class="demo-bar">
+  <div class="demo-group">
+    <button class="pill-btn active" id="tabComic">漫画搜索页</button>
+    <button class="pill-btn" id="tabGallery">画廊搜索页</button>
+    <button class="pill-btn" id="btnToggleSidebar">收起侧栏</button>
+  </div>
+  <div class="demo-group">
+    <button class="pill-btn" id="btnC1">1 只</button>
+    <button class="pill-btn active" id="btnC2">2 只</button>
+    <button class="pill-btn" id="btnC3">3 只</button>
+    <button class="pill-btn active" id="btnSpeedSlow">模拟慢网 1.6s</button>
+    <button class="pill-btn" id="btnSpeedFast">模拟快网 0.4s</button>
+    <button class="pill-btn" id="btnFeed">撒小鱼干</button>
+    <button class="pill-btn" id="btnPoop">拉一坨💩</button>
+  </div>
+</div>
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div>
+      <div class="nav-item"><span class="nav-dot"></span>首页</div>
+      <div class="nav-item active" id="navComic"><span class="nav-dot"></span>漫画搜索</div>
+      <div class="nav-item" id="navGallery"><span class="nav-dot"></span>画廊</div>
+      <div class="nav-item"><span class="nav-dot"></span>收藏</div>
+      <div class="nav-item"><span class="nav-dot"></span>追更中心</div>
+      <div class="nav-item"><span class="nav-dot"></span>下载与本地</div>
+    </div>
+    <div class="nav-item"><span class="nav-dot"></span>设置 · 像素伙伴</div>
+  </aside>
+
+  <section class="content-host" id="contentHost">
+    <div class="win-topbar">
+      <span id="winTitle">漫画搜索</span>
+      <div class="win-actions"><span>反馈</span><span>—</span><span>□</span><span>✕</span></div>
+    </div>
+
+    <div class="page-scroll" id="pageScroll">
+      <div class="search-toolbar">
+        <div class="seg-box" id="segBox">
+          <div class="seg-item active">搜索</div>
+          <div class="seg-item">探索</div>
+        </div>
+        <div class="search-slot">
+          <div class="search-wrap" id="searchWrap">
+            <span class="search-icon">🔍</span>
+            <input class="search-input" id="searchInput" type="text" placeholder="搜索漫画名、作者或标签… 回车检索" />
+            <button class="search-clear" id="searchClear">✕</button>
+            <div class="history-pop" id="historyPop">
+              <div class="history-head"><span>最近搜索</span><span style="color:var(--accent)">点击快速填充</span></div>
+              <div class="history-chips">
+                <span class="chip">东方</span><span class="chip">touhou</span><span class="chip">LUOLI</span><span class="chip">星夜</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="source-pill" id="sourcePill"><span class="source-badge">拷</span><span>拷贝漫画 ▾</span></div>
+      </div>
+
+      <div class="section-head">
+        <h1 id="pageTitle">漫画搜索</h1>
+        <span class="section-sub" id="pageSub">拷贝漫画 · 30 本 · 1 项筛选</span>
+      </div>
+      <div class="filter-bar"><span>筛选条件</span><span>▾</span></div>
+      <div class="result-meta"><span id="resultCount">结果 30 · 来源 拷贝漫画</span><span>双列</span></div>
+
+      <!-- 漫画搜索双列横卡（10张：前排宠物踩点 + 下方光流接力） -->
+      <div class="comic-grid" id="comicGrid">
+        <div class="comic-card result-card"><div class="comic-cover"></div><div class="comic-info"><div><div class="comic-title">东方星夜漫游记</div><div class="comic-author">作者：仁人</div></div></div><span class="comic-source">拷贝漫画</span></div>
+        <div class="comic-card result-card"><div class="comic-cover"></div><div class="comic-info"><div><div class="comic-title">东方 × Fate</div><div class="comic-author">作者：东Y-28a</div></div></div><span class="comic-source">拷贝漫画</span></div>
+        <div class="comic-card result-card"><div class="comic-cover"></div><div class="comic-info"><div><div class="comic-title">东方温泉物语</div><div class="comic-author">作者：サークルぬるま屋</div></div></div><span class="comic-source">拷贝漫画</span></div>
+        <div class="comic-card result-card"><div class="comic-cover"></div><div class="comic-info"><div><div class="comic-title">东方紫香花</div><div class="comic-author">作者：东方同人</div></div></div><span class="comic-source">拷贝漫画</span></div>
+        <div class="comic-card result-card"><div class="comic-cover"></div><div class="comic-info"><div><div class="comic-title">东方大逃杀</div><div class="comic-author">作者：流圭</div></div></div><span class="comic-source">拷贝漫画</span></div>
+        <div class="comic-card result-card"><div class="comic-cover"></div><div class="comic-info"><div><div class="comic-title">东方醉蝶华</div><div class="comic-author">作者：水炊き</div></div></div><span class="comic-source">拷贝漫画</span></div>
+        <div class="comic-card result-card"><div class="comic-cover"></div><div class="comic-info"><div><div class="comic-title">东方铃奈庵</div><div class="comic-author">作者：春河もえ</div></div></div><span class="comic-source">拷贝漫画</span></div>
+        <div class="comic-card result-card"><div class="comic-cover"></div><div class="comic-info"><div><div class="comic-title">东方茨歌仙</div><div class="comic-author">作者：あずまあや</div></div></div><span class="comic-source">拷贝漫画</span></div>
+        <div class="comic-card result-card"><div class="comic-cover"></div><div class="comic-info"><div><div class="comic-title">东方三月精</div><div class="comic-author">作者：比良坂真琴</div></div></div><span class="comic-source">拷贝漫画</span></div>
+        <div class="comic-card result-card"><div class="comic-cover"></div><div class="comic-info"><div><div class="comic-title">东方儚月抄</div><div class="comic-author">作者：秋★枝</div></div></div><span class="comic-source">拷贝漫画</span></div>
+      </div>
+
+      <!-- 画廊搜索：真实 4 列错落瀑布流（12张） -->
+      <div class="gallery-masonry" id="galleryGrid" style="display:none">
+        <div class="masonry-col">
+          <div class="gallery-card result-card h-md"><div class="gallery-thumb"></div><div class="gallery-foot"><span>Pixiv · 星夜</span><span>♥ 12.4k</span></div></div>
+          <div class="gallery-card result-card h-lg"><div class="gallery-thumb"></div><div class="gallery-foot"><span>Pixiv · 霓虹夜雨</span><span>♥ 9.8k</span></div></div>
+          <div class="gallery-card result-card h-sm"><div class="gallery-thumb"></div><div class="gallery-foot"><span>Danbooru · neko</span><span>♥ 4.1k</span></div></div>
+        </div>
+        <div class="masonry-col">
+          <div class="gallery-card result-card h-lg"><div class="gallery-thumb"></div><div class="gallery-foot"><span>Pixiv · 雨后</span><span>♥ 8.9k</span></div></div>
+          <div class="gallery-card result-card h-sm"><div class="gallery-thumb"></div><div class="gallery-foot"><span>Pixiv · 午后茶会</span><span>♥ 6.3k</span></div></div>
+          <div class="gallery-card result-card h-xl"><div class="gallery-thumb"></div><div class="gallery-foot"><span>Danbooru · lilac</span><span>♥ 11.2k</span></div></div>
+        </div>
+        <div class="masonry-col">
+          <div class="gallery-card result-card h-sm"><div class="gallery-thumb"></div><div class="gallery-foot"><span>Danbooru · cat</span><span>♥ 5.2k</span></div></div>
+          <div class="gallery-card result-card h-xl"><div class="gallery-thumb"></div><div class="gallery-foot"><span>Pixiv · 天台风铃</span><span>♥ 15.6k</span></div></div>
+          <div class="gallery-card result-card h-md"><div class="gallery-thumb"></div><div class="gallery-foot"><span>Pixiv · 星尘</span><span>♥ 7.4k</span></div></div>
+        </div>
+        <div class="masonry-col">
+          <div class="gallery-card result-card h-xl"><div class="gallery-thumb"></div><div class="gallery-foot"><span>Pixiv · 蓝紫</span><span>♥ 19.1k</span></div></div>
+          <div class="gallery-card result-card h-md"><div class="gallery-thumb"></div><div class="gallery-foot"><span>Danbooru · aurora</span><span>♥ 10.3k</span></div></div>
+          <div class="gallery-card result-card h-lg"><div class="gallery-thumb"></div><div class="gallery-foot"><span>Pixiv · 碎梦境</span><span>♥ 13.8k</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <canvas id="buddyCanvas"></canvas>
+    <div class="pet-hitbox" id="hit0"></div>
+    <div class="pet-hitbox" id="hit1"></div>
+    <div class="pet-hitbox" id="hit2"></div>
+    <div class="buddy-bubble" id="buddyBubble"></div>
+    <div class="status-pill" id="statusPill">就绪：点击搜索框体验完整交互</div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const PX = 3, HALF_H = 15, TOP_Y = 44;
+  const PAL = {
+    cat:    { '#':'#947fd6', s:'#735eb5', o:'#141413', r:'#ef6b73', a:'#93c5fd', y:'#e8b64a', w:'#f8fafc', b:'#8b5e3c' },
+    orange: { '#':'#d97757', s:'#bf684c', o:'#141413', r:'#ef6b73', a:'#93c5fd', y:'#e8b64a', w:'#f8fafc', b:'#8b5e3c' },
+    blue:   { '#':'#6b9fd4', s:'#5280b3', o:'#141413', r:'#ef6b73', a:'#bae6fd', y:'#e8b64a', w:'#f8fafc', b:'#8b5e3c' }
+  };
+  const SP = {
+    cat: {
+      idle:  ['.#..........#...','.##........##...','.############...','.############...','.###o####o###..#','.###o####o###..#','.############s##','.#############..','..#.#....#.#....','..#.#....#.#....'],
+      blink: ['.#..........#...','.##........##...','.############...','.############...','.############..#','.###s####s###..#','.############s##','.#############..','..#.#....#.#....','..#.#....#.#....'],
+      walk1: ['.#..........#...','.##........##...','.############...','.############...','.###o####o###..#','.###o####o###..#','.############s##','.#############..','.#...#..#...#...','.#......#.......'],
+      walk2: ['.#..........#...','.##........##...','.############...','.############...','.###o####o###...','.###o####o###..#','.############s##','.#############..','...#.#....#.#...','.....#......#...'],
+      happy: ['.#..........#...','.##........##...','.############..#','.###s####s###..#','.##s#s##s#s##s##','.#############..','..###########...','..#.#....#.#....','................','................'],
+      sleep: ['................','................','................','.#..........#...','.##........##...','.############...','.###s####s###..#','.############s##','..##########....','................']
+    },
+    orange: {
+      idle:  ['................','..############..','..############..','..###o####o###..','..###o####o###..','..############..','################','################','...#.#....#.#...','...#.#....#.#...'],
+      blink: ['................','..############..','..############..','..############..','..###s####s###..','..############..','################','################','...#.#....#.#...','...#.#....#.#...'],
+      walk1: ['................','..############..','..############..','..###o####o###..','..###o####o###..','..############..','################','################','..#..#...#..#...','..#......#......'],
+      walk2: ['................','..############..','..############..','..###o####o###..','..###o####o###..','..############..','################','################','....#.#....#.#..','......#......#..'],
+      happy: ['..############..','..###s####s###..','..##s#s##s#s##..','################','################','...#.#....#.#...','................','................','................','................'],
+      sleep: ['................','................','................','..############..','..###s####s###..','################','..############..','................','................','................']
+    },
+    blue: {
+      idle:  ['...##....##.....','...##....##.....','..############..','..############..','..###o####o###..','..###o####o###..','..############..','..############..','...#.#....#.#...','...#.#....#.#...'],
+      blink: ['...##....##.....','...##....##.....','..############..','..############..','..############..','..###s####s###..','..############..','..############..','...#.#....#.#...','...#.#....#.#...'],
+      walk1: ['...##....##.....','...##....##.....','..############..','..############..','..###o####o###..','..###o####o###..','..############..','..############..','..#..#...#..#...','..#......#......'],
+      walk2: ['...##....##.....','...##....##.....','..############..','..############..','..###o####o###..','..###o####o###..','..############..','..############..','....#.#....#.#..','......#......#..'],
+      happy: ['...##....##.....','..############..','..###s####s###..','..##s#s##s#s##..','..############..','...#.#....#.#...','................','................','................','................'],
+      sleep: ['................','................','...##....##.....','..############..','..###s####s###..','..############..','...##########...','................','................','................']
+    }
+  };
+  const ICONS = { heart:['r.r','rrr','.r.'], fish:['.aaa.','aawoa','.aaa.'], star:['.y.','yyy','.y.'], poop:['..b..','.bbb.','bbbbb'] };
+  const FONT = {
+    A:['.#.','#.#','###','#.#','#.#'], B:['##.','#.#','##.','#.#','##.'], C:['.##','#..','#..','#..','.##'],
+    D:['##.','#.#','#.#','#.#','##.'], E:['###','#..','##.','#..','###'], F:['###','#..','##.','#..','#..'],
+    G:['.##','#..','#.#','#.#','.##'], H:['#.#','#.#','###','#.#','#.#'], I:['###','.#.','.#.','.#.','###'],
+    L:['#..','#..','#..','#..','###'], O:['.#.','#.#','#.#','#.#','.#.'], T:['###','.#.','.#.','.#.','.#.'],
+    U:['#.#','#.#','#.#','#.#','###']
+  };
+
+  const host = document.getElementById('contentHost');
+  const sidebar = document.getElementById('sidebar');
+  const canvas = document.getElementById('buddyCanvas');
+  const ctx = canvas.getContext('2d');
+  const searchWrap = document.getElementById('searchWrap');
+  const searchInput = document.getElementById('searchInput');
+  const searchClear = document.getElementById('searchClear');
+  const historyPop = document.getElementById('historyPop');
+  const bubble = document.getElementById('buddyBubble');
+  const statusPill = document.getElementById('statusPill');
+
+  const pageScroll = document.getElementById('pageScroll');
+  let pageMode = 'comic'; // comic | gallery
+  let activeCount = 2;
+  let loadDelayMs = 1600;
+  let searchFocused = false;
+  let searching = false;
+  let paintGen = 0;
+  let paintActive = false;
+  let lastScrollTop = 0;
+  let tick = 0;
+  let food = null;
+  const poops = [];
+  const sparks = [];
+  const brushTrails = []; // 宠物描绘页面时拖出的极细微光画笔轨迹 [{ x, y, color, life }]
+  const lightBeams = [];  // 列多米诺光流 [{ colCx, y, targetY, color, queue, active }]
+  let bubbleTimer = null;
+
+  // 为所有结果卡片注入实时擦除蒙版层
+  document.querySelectorAll('.result-card').forEach(el => {
+    const veil = document.createElement('div');
+    veil.className = 'card-veil';
+    el.appendChild(veil);
+  });
+
+  const pets = [
+    { id:0, skin:'cat', wall:'side', mode:'walk', x:0, y:210, dir:1, vx:0, vy:0, timer:30, hop:0, icon:null, iconT:0, cardIdx:-1, hb:document.getElementById('hit0') },
+    { id:1, skin:'orange', wall:'top', mode:'walk', x:260, y:TOP_Y, dir:-1, vx:0, vy:0, timer:30, hop:0, icon:null, iconT:0, cardIdx:-1, hb:document.getElementById('hit1') },
+    { id:2, skin:'blue', wall:'side', mode:'walk', x:0, y:340, dir:-1, vx:0, vy:0, timer:30, hop:0, icon:null, iconT:0, cardIdx:-1, hb:document.getElementById('hit2') }
+  ];
+
+  function activePets() { return pets.slice(0, activeCount); }
+  function setStatus(s) { statusPill.textContent = s; }
+  function showBubble(p, t, ms = 2000) {
+    bubble.textContent = t;
+    bubble.style.left = Math.min(host.clientWidth - 180, Math.max(16, p.x + 24)) + 'px';
+    bubble.style.top = Math.max(10, p.y - 34) + 'px';
+    bubble.classList.add('show');
+    clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(() => bubble.classList.remove('show'), ms);
+  }
+
+  function resize() {
+    const r = host.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(r.width * dpr);
+    canvas.height = Math.floor(r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+  new ResizeObserver(resize).observe(host);
+  resize();
+
+  function getSearchRect() {
+    const hr = host.getBoundingClientRect();
+    const r = searchWrap.getBoundingClientRect();
+    return { left: r.left - hr.left, right: r.right - hr.left, top: r.top - hr.top, bottom: r.bottom - hr.top };
+  }
+  function cardRect(el) {
+    const hr = host.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    return { left: r.left - hr.left, right: r.right - hr.left, top: r.top - hr.top, bottom: r.bottom - hr.top, cx: (r.left + r.right) / 2 - hr.left };
+  }
+  function getVisibleCards() {
+    const sel = pageMode === 'comic' ? '#comicGrid .result-card' : '#galleryGrid .result-card';
+    return Array.from(document.querySelectorAll(sel)).map((el, idx) => {
+      const r = cardRect(el);
+      return { el, idx, veil: el.querySelector('.card-veil'), ...r };
+    });
+  }
+
+  function jumpTo(p, tx, ty, wall, cardIdx = -1) {
+    p.js = { x: p.x, y: p.y }; p.je = { x: tx, y: ty }; p.jt = 0;
+    p.jWall = wall; p.jCard = cardIdx; p.dir = tx >= p.x ? 1 : -1; p.mode = 'jump';
+  }
+
+  function emitSparks(x, y, color, count = 4) {
+    for (let i = 0; i < count; i++) {
+      sparks.push({ x, y, vx: (Math.random() - 0.5) * 2.6, vy: -Math.random() * 2.2 - 0.4, color, life: 16 });
+    }
+  }
+
+  function wakeCard(c, color) {
+    if (!c || c._awakened) return;
+    c._awakened = true;
+    c.el.classList.remove('blueprint', 'skimming');
+    c.el.classList.add('awakening');
+    if (c.veil) {
+      c.veil.style.transition = 'transform 340ms cubic-bezier(0.05, 0.7, 0.1, 1), opacity 340ms ease';
+      c.veil.style.transform = 'scaleX(0)';
+      c.veil.style.opacity = '0';
+    }
+    if (color) emitSparks(c.cx, c.top + 8, color, 3);
+  }
+
+  // 构建列分组，挑选前排高价值台阶作为种子卡片，其余卡片交由列多米诺光流点亮
+  let currentPaintCtx = null;
+
+  function pickNextSeed(p, pIdx, totalPets, pCtx) {
+    const candidates = pCtx.seeds.filter(s => !s.claimed);
+    if (candidates.length === 0) return null;
+    const prefX = ((pIdx + 0.5) / totalPets) * host.clientWidth;
+    let best = null, bestScore = Infinity;
+    for (const s of candidates) {
+      const r = cardRect(s.el);
+      let score = r.top * 1.15 + Math.abs(r.cx - prefX) * 0.65 + Math.hypot(r.cx - p.x, r.top - p.y) * 0.22;
+      if (p.lastCol === s.colIdx) score -= 45; // 同列连踩更顺滑
+      if (score < bestScore) { bestScore = score; best = s; }
+    }
+    if (best) best.claimed = true;
+    return best;
+  }
+
+  function startSeedLeap(p, seed, pCtx) {
+    const r = cardRect(seed.el);
+    p.paintTarget = seed;
+    p.lastCol = seed.colIdx;
+    p.js = { x: p.x, y: p.y };
+    p.je = { x: r.left + 16, y: r.top - HALF_H };
+    const dist = Math.hypot(p.je.x - p.js.x, p.je.y - p.js.y);
+    p.durMs = Math.min(440, Math.max(270, 230 + dist * 0.42));
+    p.elapsed = 0;
+    p.dir = p.je.x >= p.x ? 1 : -1;
+    p.mode = 'leap';
+  }
+
+  function maybeLaunchColumnBeam(colIdx, color, pCtx) {
+    const col = pCtx.columns[colIdx];
+    if (!col || col.beamLaunched) return;
+    // 等该列所有种子卡都被擦亮后，立刻向下射出同列多米诺光流
+    const hasPendingSeed = col.seeds.some(s => !s.done);
+    if (hasPendingSeed) return;
+    col.beamLaunched = true;
+    if (col.tail.length === 0) return;
+    const lastSeed = col.seeds[col.seeds.length - 1];
+    const startRect = cardRect(lastSeed.el);
+    const endRect = cardRect(col.tail[col.tail.length - 1].el);
+    lightBeams.push({
+      colCx: startRect.cx,
+      y: startRect.bottom - 10,
+      targetY: endRect.top + 16,
+      color,
+      queue: col.tail.slice(),
+      gen: pCtx.gen
+    });
+  }
+
+  function finishPetPaint(p, pIdx, pCtx) {
+    p.paintTarget = null;
+    p.icon = 'star'; p.iconT = 14;
+    const othersBusy = activePets().some(op => op !== p && (op.mode === 'leap' || op.mode === 'skim'));
+    if (!othersBusy) {
+      paintActive = false;
+      setStatus('描绘完成：首屏踩台阶 + 全列光流已点亮全部 ' + pCtx.totalCards + ' 张卡片');
+      setTimeout(() => {
+        if (paintGen !== pCtx.gen) return;
+        pCtx.allCards.forEach(c => c.el.classList.remove('blueprint', 'skimming', 'awakening'));
+      }, 900);
+    }
+    jumpTo(p, HALF_H, Math.min(host.clientHeight - 70, 140 + pIdx * 58), 'side');
+  }
+
+  function abortPaintOnScroll() {
+    if (!paintActive) return;
+    paintActive = false;
+    const g = ++paintGen;
+    activePets().forEach((p, i) => {
+      if (p.mode === 'leap' || p.mode === 'skim') {
+        p.paintTarget = null;
+        jumpTo(p, HALF_H, Math.min(host.clientHeight - 70, 150 + i * 54), 'side');
+      }
+    });
+    if (currentPaintCtx) {
+      currentPaintCtx.allCards.forEach((c, idx) => {
+        if (!c._awakened) {
+          setTimeout(() => {
+            if (paintGen === g) wakeCard(c, null);
+          }, (idx % 6) * 35);
+        }
+      });
+    }
+    setStatus('检测到滚动：宠物收笔闪避，剩余卡片即时顺滑展开');
+  }
+
+  function drawMat(rows, pal, cx, cy, rotDeg, flipX) {
+    const w = rows[0].length * PX, h = rows.length * PX;
+    ctx.save();
+    ctx.translate(Math.round(cx), Math.round(cy));
+    if (rotDeg) ctx.rotate(rotDeg * Math.PI / 180);
+    if (flipX) ctx.scale(-1, 1);
+    const ox = -w / 2, oy = -h / 2;
+    for (let ry = 0; ry < rows.length; ry++) {
+      const line = rows[ry]; let rx = 0;
+      while (rx < line.length) {
+        const ch = line[rx]; let run = 1;
+        while (rx + run < line.length && line[rx + run] === ch) run++;
+        if (ch !== '.' && pal[ch]) {
+          ctx.fillStyle = pal[ch];
+          ctx.fillRect(Math.round(ox + rx * PX), Math.round(oy + ry * PX), run * PX, PX);
+        }
+        rx += run;
+      }
+    }
+    ctx.restore();
+  }
+
+  function poseOf(p) {
+    const hopOff = p.mode === 'hop' ? Math.sin(p.hop * Math.PI) * 9 : 0;
+    if (p.mode === 'drag' || p.mode === 'fall' || p.mode === 'jump' || p.mode === 'runback' || p.mode === 'leap' || p.mode === 'skim') return { cx:p.x, cy:p.y - hopOff, rot:0, flip:p.dir < 0 };
+    if (p.wall === 'side') return { cx: HALF_H + hopOff, cy: p.y, rot: 90, flip: p.dir < 0 };
+    if (p.wall === 'top')  return { cx: p.x, cy: TOP_Y + HALF_H + hopOff, rot: 180, flip: p.dir > 0 };
+    return { cx: p.x, cy: p.y - hopOff, rot: 0, flip: p.dir < 0 };
+  }
+
+  setInterval(() => { tick++; activePets().forEach(p => { if (p.iconT > 0) p.iconT--; }); }, 100);
+
+  let lastFrameNow = performance.now();
+  function frame(now = performance.now()) {
+    const dtMs = Math.min(48, Math.max(1, now - lastFrameNow));
+    lastFrameNow = now;
+    const dt = dtMs / 16.667;
+    const W = host.clientWidth, H = host.clientHeight, floorY = H - HALF_H - 6;
+    if (food) { food.vy += 0.45 * dt; food.y += food.vy * dt; if (food.y >= floorY) { food.y = floorY; food.vy = 0; } }
+    for (const pp of poops) { if (!pp.landed) { pp.vy += 0.4 * dt; pp.y += pp.vy * dt; if (pp.y >= floorY + 4) { pp.y = floorY + 4; pp.landed = true; } } }
+    for (let i = sparks.length - 1; i >= 0; i--) { const s = sparks[i]; s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; if (s.life <= 0) sparks.splice(i, 1); }
+    for (let i = brushTrails.length - 1; i >= 0; i--) { brushTrails[i].life -= dt; if (brushTrails[i].life <= 0) brushTrails.splice(i, 1); }
+
+    // 推进各列的像素多米诺光流（恒定每秒 360px，不受屏幕刷新率影响）
+    for (let i = lightBeams.length - 1; i >= 0; i--) {
+      const bm = lightBeams[i];
+      bm.y += (360 * dtMs) / 1000;
+      brushTrails.push({ x: bm.colCx, y: bm.y, color: bm.color, life: 18, vertical: true });
+      while (bm.queue.length > 0) {
+        const nextC = bm.queue[0];
+        const r = cardRect(nextC.el);
+        if (bm.y >= r.top + 12) {
+          bm.queue.shift();
+          nextC.cx = r.cx; nextC.top = r.top;
+          wakeCard(nextC, bm.color);
+        } else {
+          break;
+        }
+      }
+      if (bm.queue.length === 0 && bm.y >= bm.targetY) {
+        lightBeams.splice(i, 1);
+      }
+    }
+
+    const list = activePets();
+    const paceMult = list.length === 1 ? 1.12 : 1.0;
+    for (let pIdx = 0; pIdx < list.length; pIdx++) {
+      const p = list[pIdx];
+      if (p.mode === 'hop') { p.hop += 0.08 * dt; if (p.hop >= 1) { p.hop = 0; p.mode = 'idle'; } }
+      if (p.mode === 'leap' && p.paintTarget) {
+        // 抛物线轻盈跃上目标卡片左上角（按真实毫秒数推进）
+        const r = cardRect(p.paintTarget.el);
+        p.je = { x: r.left + 16, y: r.top - HALF_H };
+        p.elapsed += dtMs * paceMult;
+        const t = Math.min(1, p.elapsed / p.durMs);
+        p.x = p.js.x + (p.je.x - p.js.x) * t;
+        p.y = p.js.y + (p.je.y - p.js.y) * t - Math.sin(t * Math.PI) * 38;
+        p.dir = p.je.x >= p.js.x ? 1 : -1;
+        if (Math.random() < 0.45 * dt) brushTrails.push({ x: p.x, y: p.y + 8, color: PAL[p.skin]['#'], life: 18 });
+        if (t >= 1) {
+          const width = Math.max(100, r.right - r.left);
+          p.mode = 'skim';
+          p.elapsed = 0;
+          p.durMs = Math.min(440, Math.max(290, 220 + width * 0.42));
+          p.dir = 1;
+          p.paintTarget.el.classList.remove('blueprint');
+          p.paintTarget.el.classList.add('skimming');
+        }
+      } else if (p.mode === 'skim' && p.paintTarget) {
+        // 贴着卡片顶边小跑滑行，同步向右擦除暗幕揭开卡片
+        const s = p.paintTarget;
+        const r = cardRect(s.el);
+        const startX = r.left + 16, endX = r.right - 16;
+        p.elapsed += dtMs * paceMult;
+        const t = Math.min(1, p.elapsed / p.durMs);
+        const e = 1 - Math.pow(1 - t, 2);
+        p.x = startX + (endX - startX) * e;
+        p.y = r.top - HALF_H;
+        p.dir = 1;
+        if (s.veil) {
+          s.veil.style.transition = 'none';
+          s.veil.style.transform = 'scaleX(' + Math.max(0, 1 - e).toFixed(3) + ')';
+        }
+        brushTrails.push({ x: p.x, y: p.y + 10, color: PAL[p.skin]['#'], life: 18 });
+        if (Math.random() < 0.28 * dt) emitSparks(p.x, p.y + 10, PAL[p.skin]['#'], 1);
+        if (t >= 1) {
+          s.done = true;
+          s.cx = r.cx; s.top = r.top;
+          wakeCard(s, PAL[p.skin]['#']);
+          if (currentPaintCtx) {
+            maybeLaunchColumnBeam(s.colIdx, PAL[p.skin]['#'], currentPaintCtx);
+            const nextSeed = pickNextSeed(p, pIdx, list.length, currentPaintCtx);
+            if (nextSeed) startSeedLeap(p, nextSeed, currentPaintCtx);
+            else finishPetPaint(p, pIdx, currentPaintCtx);
+          } else {
+            finishPetPaint(p, pIdx, { totalCards: 0, allCards: [], gen: paintGen });
+          }
+        }
+      } else if (p.mode === 'jump') {
+        p.jt += 0.038 * dt;
+        const t = Math.min(1, p.jt);
+        p.x = p.js.x + (p.je.x - p.js.x) * t;
+        p.y = p.js.y + (p.je.y - p.js.y) * t - Math.sin(t * Math.PI) * 44;
+        if (t >= 1) { p.wall = p.jWall; p.cardIdx = p.jCard; p.mode = p.wall === 'search' ? 'idle' : 'walk'; }
+      } else if (p.mode === 'fall') {
+        p.vy += 0.55 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+        if (p.y >= floorY) { p.y = floorY; p.vy = 0; p.vx = 0; p.mode = 'runback'; }
+      } else if (p.mode === 'runback') {
+        const tx = food ? food.x : HALF_H;
+        const dx = tx - p.x; p.y = floorY;
+        if (Math.abs(dx) > 6) { p.x += Math.sign(dx) * 2.8 * dt; p.dir = Math.sign(dx); }
+        else if (food) { food = null; p.icon = 'heart'; p.iconT = 14; p.mode = 'hop'; p.hop = 0; }
+        else { p.wall = 'side'; p.x = 0; p.y = floorY - 12; p.dir = -1; p.mode = 'walk'; }
+      } else if (p.wall === 'search') {
+        const sr = getSearchRect();
+        p.y = sr.top - HALF_H;
+        if (searching) {
+          p.mode = 'walk';
+          p.x += p.dir * 1.15 * dt;
+          if (p.x <= sr.left + 26) { p.x = sr.left + 26; p.dir = 1; }
+          if (p.x >= sr.right - 26) { p.x = sr.right - 26; p.dir = -1; }
+        } else {
+          const dx = (sr.right - 26 - pIdx * 56) - p.x;
+          p.x += dx * Math.min(1, 0.22 * dt);
+        }
+      } else if (p.wall === 'side') {
+        p.x = 0;
+        if (p.mode === 'walk') {
+          p.y += p.dir * 1.1 * dt;
+          if (p.y <= TOP_Y + HALF_H + 6 && p.dir < 0) { p.wall = 'top'; p.x = HALF_H + 14; p.y = TOP_Y; p.dir = 1; }
+          else if (p.y >= H - 56 && p.dir > 0) p.dir = -1;
+        }
+      } else if (p.wall === 'top') {
+        p.y = TOP_Y;
+        if (p.mode === 'walk') {
+          p.x += p.dir * 1.2 * dt;
+          if (p.x <= HALF_H + 8 && p.dir < 0) { p.wall = 'side'; p.x = 0; p.y = TOP_Y + HALF_H + 14; p.dir = 1; }
+          else if (p.x >= W - 48 && p.dir > 0) p.dir = -1;
+        }
+      } else if (p.wall === 'card') {
+        const cards = getVisibleCards();
+        const c = cards[p.cardIdx];
+        if (!c) { p.wall = 'side'; p.x = 0; }
+        else {
+          p.y = c.top - HALF_H;
+          if (p.mode === 'walk') {
+            p.x += p.dir * 1.0 * dt;
+            if (p.x <= c.left + 20) p.dir = 1;
+            else if (p.x >= c.right - 20) p.dir = -1;
+          }
+        }
+      }
+      const pos = poseOf(p);
+      p.hb.style.left = (pos.cx - 26) + 'px'; p.hb.style.top = (pos.cy - 26) + 'px';
+      p.hb.style.display = 'block';
+    }
+    pets.slice(activeCount).forEach(p => p.hb.style.display = 'none');
+
+    // 绘制
+    ctx.clearRect(0, 0, W, H);
+    // 绘制画笔轨迹与列多米诺光流
+    for (const tr of brushTrails) {
+      const a = (tr.life / 18) * 0.62;
+      ctx.fillStyle = tr.color;
+      ctx.globalAlpha = a;
+      if (tr.vertical) ctx.fillRect(Math.round(tr.x - 1), Math.round(tr.y - 6), 3, 12);
+      else ctx.fillRect(Math.round(tr.x - 4), Math.round(tr.y), 8, 3);
+      ctx.globalAlpha = 1;
+    }
+    for (const bm of lightBeams) {
+      ctx.fillStyle = bm.color;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(Math.round(bm.colCx - 2), Math.round(bm.y - 16), 4, 18);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(Math.round(bm.colCx - 1), Math.round(bm.y - 4), 2, 6);
+      ctx.globalAlpha = 1;
+    }
+    for (const s of sparks) { ctx.globalAlpha = s.life / 16; ctx.fillStyle = s.color; ctx.fillRect(s.x, s.y, 3, 3); ctx.globalAlpha = 1; }
+    for (const pp of poops) drawMat(ICONS.poop, PAL.cat, pp.x, pp.y, 0, false);
+    if (food) drawMat(ICONS.fish, PAL.cat, food.x, food.y, 0, false);
+
+    // 搜索框实时像素拼字
+    if ((searchFocused || searching) && searchInput.value.trim()) {
+      const sr = getSearchRect();
+      let cx = sr.left + 8, by = sr.top - 20;
+      searchInput.value.trim().slice(-8).toUpperCase().split('').forEach((ch, idx) => {
+        const g = FONT[ch];
+        const col = idx % 2 === 0 ? '#947fd6' : '#d97757';
+        if (g) {
+          ctx.fillStyle = col;
+          for (let gy = 0; gy < g.length; gy++) for (let gx = 0; gx < g[gy].length; gx++) if (g[gy][gx] === '#') ctx.fillRect(cx + gx * 3, by + gy * 3, 3, 3);
+          cx += 15;
+        } else {
+          ctx.fillStyle = col; ctx.font = 'bold 12px "Microsoft YaHei"'; ctx.fillText(ch, cx, by + 13); cx += 15;
+        }
+      });
+    }
+
+    for (const p of list) {
+      const pos = poseOf(p);
+      const sp = SP[p.skin];
+      const f = p.mode === 'sleep' ? sp.sleep
+        : (p.mode === 'hop' || p.mode === 'leap') ? sp.happy
+        : (p.mode === 'walk' || p.mode === 'runback' || p.mode === 'skim') ? (tick % 4 < 2 ? sp.walk1 : sp.walk2)
+        : (tick % 30 < 2 ? sp.blink : sp.idle);
+      drawMat(f, PAL[p.skin], pos.cx, pos.cy, pos.rot, pos.flip);
+      if (p.iconT > 0 && p.icon) drawMat(ICONS[p.icon], PAL[p.skin], pos.cx + 18, pos.cy - 18, 0, false);
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  pageScroll.addEventListener('scroll', () => {
+    const st = pageScroll.scrollTop;
+    if (paintActive && Math.abs(st - lastScrollTop) > 18) abortPaintOnScroll();
+    lastScrollTop = st;
+  });
+
+  // 搜索框交互
+  function runSearch(q) {
+    if (searching) return;
+    searching = true;
+    paintActive = false;
+    paintGen++;
+    lightBeams.length = 0;
+    pageScroll.scrollTo({ top: 0, behavior: 'smooth' });
+    lastScrollTop = 0;
+    historyPop.classList.remove('open');
+    searchWrap.classList.add('expanded');
+    searchWrap.classList.remove('sweeping'); void searchWrap.offsetWidth; searchWrap.classList.add('sweeping');
+    const cards = getVisibleCards();
+    cards.forEach(c => {
+      c._awakened = false;
+      c.el.classList.remove('awakening', 'blueprint', 'skimming');
+      c.el.classList.add('skeleton');
+      if (c.veil) { c.veil.style.transition = 'none'; c.veil.style.transform = 'scaleX(1)'; c.veil.style.opacity = ''; }
+    });
+    activePets().forEach((p, i) => { p.paintTarget = null; p.wall = 'search'; p.mode = 'walk'; p.dir = i % 2 === 0 ? -1 : 1; p.icon = 'star'; p.iconT = 14; });
+    document.getElementById('resultCount').textContent = '正在搜索…';
+    setStatus('搜索中（' + (loadDelayMs / 1000) + 's）：搜索框保持全宽，宠物在框顶巡逻陪等');
+
+    setTimeout(() => {
+      searching = false;
+      searchInput.blur();
+      searchWrap.classList.remove('expanded', 'sweeping');
+      document.getElementById('resultCount').textContent = pageMode === 'comic' ? '结果 10 · 来源 拷贝漫画' : '结果 12 · Pixiv / Danbooru';
+
+      const freshCards = getVisibleCards();
+      freshCards.forEach(c => {
+        c._awakened = false;
+        c.claimed = false;
+        c.done = false;
+        c.el.classList.remove('skeleton', 'awakening', 'skimming');
+        c.el.classList.add('blueprint');
+        if (c.veil) { c.veil.style.transition = 'none'; c.veil.style.transform = 'scaleX(1)'; c.veil.style.opacity = ''; }
+      });
+
+      // 按横向中心坐标分列（自动适配 2 列漫画与 4 列错落瀑布流）
+      const columns = [];
+      freshCards.forEach(c => {
+        let col = columns.find(g => Math.abs(g.cx - c.cx) < 42);
+        if (!col) { col = { cx: c.cx, cards: [], seeds: [], tail: [], beamLaunched: false }; columns.push(col); }
+        col.cards.push(c);
+      });
+      columns.sort((a, b) => a.cx - b.cx);
+
+      const seeds = [];
+      const viewportLimit = host.clientHeight * 0.78;
+      columns.forEach((col, colIdx) => {
+        col.cards.sort((a, b) => a.top - b.top);
+        // 每列前 1~2 张高点卡片作为“台阶种子”由宠物亲手踩踏，其余全部归入该列的多米诺光流队列
+        col.cards.forEach((c, idxInCol) => {
+          c.colIdx = colIdx;
+          if (idxInCol === 0 || (idxInCol === 1 && c.top < viewportLimit)) {
+            col.seeds.push(c);
+            seeds.push(c);
+          } else {
+            col.tail.push(c);
+          }
+        });
+      });
+
+      const gen = ++paintGen;
+      const pCtx = { gen, columns, seeds, allCards: freshCards, totalCards: freshCards.length };
+      currentPaintCtx = pCtx;
+      paintActive = true;
+
+      const list = activePets();
+      list.forEach((p, pIdx) => {
+        p.wall = 'card';
+        p.lastCol = -1;
+        const first = pickNextSeed(p, pIdx, list.length, pCtx);
+        if (first) startSeedLeap(p, first, pCtx);
+        else finishPetPaint(p, pIdx, pCtx);
+      });
+
+      const modeLabel = list.length === 1 ? '单宠 Z 字踩台阶' : (list.length === 2 ? '双宠左右分列踩台阶' : '三宠梯队接力踩台阶');
+      setStatus(modeLabel + '（首屏 ' + seeds.length + ' 张亲手擦亮 + 全列光流唤醒剩余 ' + (freshCards.length - seeds.length) + ' 张）');
+    }, loadDelayMs);
+  }
+
+  searchInput.addEventListener('focus', () => {
+    searchFocused = true;
+    searchWrap.classList.add('expanded');
+    historyPop.classList.add('open');
+    setTimeout(() => {
+      const sr = getSearchRect();
+      activePets().forEach((p, i) => jumpTo(p, sr.right - 26 - i * 56, sr.top - HALF_H, 'search'));
+    }, 60);
+    setStatus('聚焦搜索框：展开全宽 + 宠物跳上右上角');
+  });
+  searchInput.addEventListener('input', () => {
+    searchClear.classList.toggle('show', searchInput.value.length > 0);
+    const list = activePets();
+    const p = list[searchInput.value.length % list.length];
+    if (p && p.wall === 'search') { p.mode = 'hop'; p.hop = 0; }
+  });
+  searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') runSearch(searchInput.value); });
+  searchInput.addEventListener('blur', () => {
+    searchFocused = false;
+    setTimeout(() => historyPop.classList.remove('open'), 150);
+    if (searching) return;
+    searchWrap.classList.remove('expanded');
+    setTimeout(() => {
+      if (!searchFocused && !searching) {
+        activePets().forEach((p, i) => { if (p.wall === 'search') jumpTo(p, HALF_H, 160 + i * 54, 'side'); });
+      }
+    }, 220);
+  });
+  searchClear.onclick = () => { searchInput.value = ''; searchClear.classList.remove('show'); searchInput.focus(); };
+  document.querySelectorAll('.history-chips .chip').forEach(ch => {
+    ch.addEventListener('mousedown', (e) => { e.preventDefault(); searchInput.value = ch.textContent; searchClear.classList.add('show'); runSearch(ch.textContent); });
+  });
+
+  // 拖拽拎起 & 点击铲屎
+  pets.forEach(p => {
+    p.hb.addEventListener('mousedown', (e) => {
+      let moved = false, lx = e.clientX, ly = e.clientY, vx = 0, vy = 0;
+      const onMove = (ev) => {
+        if (Math.hypot(ev.clientX - lx, ev.clientY - ly) > 4) { moved = true; p.mode = 'drag'; p.paintTarget = null; }
+        if (moved) {
+          const hr = host.getBoundingClientRect();
+          vx = (ev.clientX - lx) * 0.6; vy = (ev.clientY - ly) * 0.6; lx = ev.clientX; ly = ev.clientY;
+          p.x = Math.max(0, Math.min(hr.width - 20, ev.clientX - hr.left));
+          p.y = Math.max(TOP_Y, Math.min(hr.height - 20, ev.clientY - hr.top));
+        }
+      };
+      const onUp = () => {
+        window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp);
+        if (!moved) { p.mode = 'hop'; p.hop = 0; p.icon = 'heart'; p.iconT = 12; showBubble(p, '戳我干嘛喵~'); }
+        else if (p.x < 34) { p.wall = 'side'; p.x = 0; p.mode = 'walk'; }
+        else if (p.y < TOP_Y + 34) { p.wall = 'top'; p.y = TOP_Y; p.mode = 'walk'; }
+        else { p.mode = 'fall'; p.vx = vx; p.vy = vy; }
+      };
+      window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+    });
+  });
+  host.addEventListener('click', (e) => {
+    const hr = host.getBoundingClientRect();
+    const mx = e.clientX - hr.left, my = e.clientY - hr.top;
+    const idx = poops.findIndex(pp => Math.hypot(pp.x - mx, pp.y - my) < 22);
+    if (idx >= 0) { poops.splice(idx, 1); showBubble(pets[0], '谢谢铲屎官喵 ♥'); }
+  });
+
+  // 页面与控制台切换
+  function switchPage(m) {
+    pageMode = m;
+    paintActive = false;
+    paintGen++;
+    lightBeams.length = 0;
+    document.getElementById('tabComic').classList.toggle('active', m === 'comic');
+    document.getElementById('tabGallery').classList.toggle('active', m === 'gallery');
+    document.getElementById('navComic').classList.toggle('active', m === 'comic');
+    document.getElementById('navGallery').classList.toggle('active', m === 'gallery');
+    document.getElementById('comicGrid').style.display = m === 'comic' ? 'grid' : 'none';
+    document.getElementById('galleryGrid').style.display = m === 'gallery' ? 'flex' : 'none';
+    document.getElementById('winTitle').textContent = m === 'comic' ? '漫画搜索' : '画廊搜索';
+    document.getElementById('pageTitle').textContent = m === 'comic' ? '漫画搜索' : '画廊搜索';
+    document.getElementById('pageSub').textContent = m === 'comic' ? '拷贝漫画 · 10 本 · 1 项筛选' : 'Pixiv / Danbooru · 4 列错落瀑布流';
+    document.getElementById('resultCount').textContent = m === 'comic' ? '结果 10 · 来源 拷贝漫画' : '结果 12 · Pixiv / Danbooru';
+    document.getElementById('sourcePill').innerHTML = m === 'comic' ? '<span class="source-badge">拷</span><span>拷贝漫画 ▾</span>' : '<span class="source-badge" style="background:#0096fa">P</span><span>Pixiv ▾</span>';
+    searchInput.placeholder = m === 'comic' ? '搜索漫画名、作者或标签… 回车检索' : '搜索画廊标签、画师名… 回车检索';
+    activePets().forEach((p, i) => {
+      p.paintTarget = null;
+      if (p.wall === 'card') jumpTo(p, HALF_H, 160 + i * 54, 'side');
+    });
+    document.querySelectorAll('.result-card').forEach(el => {
+      el.classList.remove('skeleton', 'blueprint', 'skimming', 'awakening');
+      const v = el.querySelector('.card-veil');
+      if (v) { v.style.transition = 'none'; v.style.opacity = '0'; v.style.transform = 'scaleX(1)'; }
+    });
+  }
+  document.getElementById('tabComic').onclick = () => switchPage('comic');
+  document.getElementById('tabGallery').onclick = () => switchPage('gallery');
+  document.getElementById('navComic').onclick = () => switchPage('comic');
+  document.getElementById('navGallery').onclick = () => switchPage('gallery');
+  document.getElementById('btnToggleSidebar').onclick = (e) => {
+    sidebar.classList.toggle('collapsed');
+    e.target.textContent = sidebar.classList.contains('collapsed') ? '展开侧栏' : '收起侧栏';
+  };
+  [1, 2, 3].forEach(n => {
+    document.getElementById('btnC' + n).onclick = () => {
+      activeCount = n;
+      [1, 2, 3].forEach(k => document.getElementById('btnC' + k).classList.toggle('active', k === n));
+    };
+  });
+  document.getElementById('btnSpeedSlow').onclick = () => { loadDelayMs = 1600; document.getElementById('btnSpeedSlow').classList.add('active'); document.getElementById('btnSpeedFast').classList.remove('active'); };
+  document.getElementById('btnSpeedFast').onclick = () => { loadDelayMs = 400; document.getElementById('btnSpeedFast').classList.add('active'); document.getElementById('btnSpeedSlow').classList.remove('active'); };
+  document.getElementById('btnFeed').onclick = () => { food = { x: 240, y: 80, vy: 0 }; activePets().forEach(p => p.mode = 'runback'); };
+  document.getElementById('btnPoop').onclick = () => { const p = activePets()[0]; poops.push({ x: poseOf(p).cx, y: poseOf(p).cy + 6, vy: -1.5, landed: false }); showBubble(p, '噗~ 点便便铲屎'); };
+})();
+</script>
+</body>
+</html>

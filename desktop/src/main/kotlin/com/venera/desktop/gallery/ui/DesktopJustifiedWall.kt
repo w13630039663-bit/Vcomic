@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 import com.venera.desktop.ui.components.DesktopContextMenuArea
 import com.venera.desktop.ui.components.DesktopMenuEntry
+import com.venera.desktop.ui.components.registerPixelBuddyCard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -222,6 +223,7 @@ internal fun DesktopJustifiedWall(
                         val span = if (desktopGridCardIsWide(card)) 2 else 1
                         Box(Modifier.weight(span.toFloat())) {
                             val cUid = card.uid.ifBlank { card.sourcePost?.uid.orEmpty() }
+                            val buddyKey = "wall-${cUid.ifBlank { card.url }}"
                             // Grid 档退役私有 GridCard，转交唯一卡规格 —— 浮动 / 右键 /
                             // 选中 / 胶囊坞 / 信息栏与瀑布流、各子页同一份，不再各画一遍。
                             DesktopGalleryCard(
@@ -235,6 +237,7 @@ internal fun DesktopJustifiedWall(
                                 avatarUrl = card.sourcePost?.let { avatars[it.uid] },
                                 selected = cUid.isNotBlank() && cUid in selectedUids,
                                 onToggleSelect = { onToggleSelect(card) },
+                                modifier = Modifier.registerPixelBuddyCard(buddyKey),
                             )
                         }
                     }

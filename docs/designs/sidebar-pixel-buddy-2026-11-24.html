@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Venera Desktop · 双宠贴壁像素伙伴方案稿 v2</title>
+<style>
+  :root {
+    --bg: #111318;
+    --sidebar: rgba(24, 27, 35, 0.90);
+    --surface: #181b23;
+    --card: #1f232e;
+    --border: rgba(255, 255, 255, 0.08);
+    --divider: rgba(255, 255, 255, 0.13);
+    --text: #eef1f7;
+    --muted: #8b93a7;
+    --accent: #8b7bff;
+    --accent-soft: rgba(139, 123, 255, 0.16);
+    --bubble-bg: rgba(28, 32, 43, 0.95);
+    --bubble-border: rgba(255, 255, 255, 0.14);
+    --shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+  }
+  body.light {
+    --bg: #f3f5f9;
+    --sidebar: rgba(247, 248, 252, 0.94);
+    --surface: #ffffff;
+    --card: #f6f7fb;
+    --border: rgba(15, 23, 42, 0.08);
+    --divider: rgba(15, 23, 42, 0.14);
+    --text: #181c26;
+    --muted: #667085;
+    --accent: #6c5ce7;
+    --accent-soft: rgba(108, 92, 231, 0.12);
+    --bubble-bg: rgba(255, 255, 255, 0.96);
+    --bubble-border: rgba(15, 23, 42, 0.12);
+    --shadow: 0 18px 48px rgba(15, 23, 42, 0.12);
+  }
+  * { box-sizing: border-box; user-select: none; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    overflow: hidden;
+  }
+
+  .demo-bar {
+    height: 44px; padding: 0 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--surface); border-bottom: 1px solid var(--divider);
+    font-size: 12px; position: relative; z-index: 30;
+  }
+  .demo-title { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .demo-badge {
+    font-size: 11px; padding: 2px 7px; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent); font-weight: 600;
+  }
+  .demo-controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .btn {
+    border: 1px solid var(--border); background: var(--card); color: var(--text);
+    padding: 4px 10px; border-radius: 7px; font-size: 12px; cursor: pointer;
+    transition: transform .12s ease, border-color .15s ease;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn:active { transform: scale(0.96); }
+  .btn.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+  .app-shell {
+    position: relative; display: flex;
+    width: 100%; height: calc(100vh - 44px); overflow: hidden;
+  }
+
+  .sidebar {
+    width: 216px; flex-shrink: 0;
+    background: var(--sidebar); border-right: 1px solid var(--divider);
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 14px 10px;
+    transition: width 220ms cubic-bezier(0.2, 0, 0, 1);
+    position: relative; z-index: 2;
+  }
+  .sidebar.collapsed { width: 68px; }
+  .nav-group { display: flex; flex-direction: column; gap: 4px; }
+  .nav-label { font-size: 11px; color: var(--muted); padding: 8px 10px 4px; white-space: nowrap; overflow: hidden; }
+  .sidebar.collapsed .nav-label,
+  .sidebar.collapsed .nav-text,
+  .sidebar.collapsed .account-meta { display: none; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 9px; font-size: 13px; color: var(--muted);
+    cursor: pointer;
+  }
+  .nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .nav-dot { width: 16px; height: 16px; border-radius: 5px; background: currentColor; opacity: 0.25; flex-shrink: 0; }
+  .sidebar-footer { border-top: 1px solid var(--border); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .account-card {
+    display: flex; align-items: center; gap: 10px; padding: 8px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(135deg, #5d5fef, #c084fc); }
+  .account-name { font-size: 12px; font-weight: 600; }
+  .account-sub { font-size: 11px; color: var(--muted); }
+
+  .main-stage {
+    flex: 1; padding: 34px 28px 24px 36px; overflow: hidden; position: relative;
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  .stage-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .stage-header h2 { margin: 0; font-size: 18px; }
+  .search-wrap {
+    position: relative; width: 220px; flex-shrink: 0;
+    transition: width 280ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  .search-wrap.expanded { width: 420px; }
+  .search-wrap.sweeping::after {
+    content: ""; position: absolute; inset: 0; border-radius: 10px; pointer-events: none;
+    background: linear-gradient(110deg, transparent 20%, rgba(139,123,255,0.28) 48%, rgba(255,255,255,0.22) 52%, transparent 80%);
+    background-size: 220% 100%;
+    animation: searchSweep 460ms cubic-bezier(0.05, 0.7, 0.1, 1) forwards;
+  }
+  @keyframes searchSweep {
+    from { background-position: 130% 0; opacity: 1; }
+    to   { background-position: -30% 0; opacity: 0; }
+  }
+  .comic-card.skeleton .comic-cover,
+  .comic-card.skeleton .comic-title,
+  .comic-card.skeleton .comic-sub {
+    color: transparent !important;
+    background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 75%) !important;
+    background-size: 200% 100%;
+    animation: skelShimmer 1.2s infinite linear;
+    border-radius: 6px;
+  }
+  @keyframes skelShimmer {
+    from { background-position: 200% 0; }
+    to   { background-position: -200% 0; }
+  }
+  .search-input {
+    width: 100%; height: 38px; padding: 0 14px;
+    border-radius: 10px; border: 1px solid var(--divider);
+    background: var(--card); color: var(--text); font-size: 13px;
+    outline: none; transition: border-color .16s ease, box-shadow .16s ease;
+    user-select: text;
+  }
+  .search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .stage-tip { font-size: 12px; color: var(--muted); margin-top: -8px; }
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .comic-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; display: flex; flex-direction: column; position: relative;
+    transition: transform 340ms cubic-bezier(0.05, 0.7, 0.1, 1), opacity 340ms ease, border-color 360ms ease;
+  }
+  .comic-card.blueprint {
+    opacity: 0.22; transform: translateY(10px) scale(0.985);
+    border-color: var(--border);
+  }
+  .comic-card.awakening {
+    opacity: 1; transform: translateY(0) scale(1);
+    border-color: rgba(139, 123, 255, 0.45);
+  }
+  .comic-card.awakening::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(120deg, transparent 25%, rgba(148, 127, 214, 0.16) 50%, transparent 75%);
+    background-size: 220% 100%;
+    animation: cardAwakenSweep 480ms cubic-bezier(0.05, 0.7, 0.1, 1) forwards;
+  }
+  @keyframes cardAwakenSweep {
+    from { background-position: 130% 0; opacity: 1; }
+    to   { background-position: -30% 0; opacity: 0; }
+  }
+  .comic-cover {
+    aspect-ratio: 3 / 4;
+    background: linear-gradient(145deg, rgba(139,123,255,0.22), rgba(56,189,248,0.12));
+  }
+  .comic-card:nth-child(2n) .comic-cover { background: linear-gradient(145deg, rgba(244,114,182,0.22), rgba(139,123,255,0.12)); }
+  .comic-card:nth-child(3n) .comic-cover { background: linear-gradient(145deg, rgba(52,211,153,0.20), rgba(59,130,246,0.12)); }
+  .comic-meta { padding: 10px 12px; }
+  .comic-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .comic-sub { font-size: 11px; color: var(--muted); }
+
+  .reader-overlay {
+    position: absolute; inset: 0; background: rgba(10, 11, 15, 0.92);
+    display: none; align-items: center; justify-content: center; flex-direction: column; gap: 12px;
+    z-index: 4; color: #e2e8f0;
+  }
+  .reader-overlay.open { display: flex; }
+  .reader-page {
+    width: 340px; height: 460px; border-radius: 8px;
+    background: linear-gradient(180deg, #252936, #1a1d27);
+    border: 1px solid rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    color: #94a3b8; font-size: 13px;
+  }
+
+  #buddyCanvas {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    z-index: 10; pointer-events: none;
+  }
+  .pet-hitbox {
+    position: absolute; z-index: 12; cursor: grab;
+    width: 52px; height: 52px;
+  }
+  .pet-hitbox.dragging { cursor: grabbing; }
+
+  .buddy-bubble {
+    position: absolute; z-index: 11; pointer-events: none;
+    background: var(--bubble-bg); border: 1px solid var(--bubble-border);
+    color: var(--text); font-size: 12px; padding: 6px 10px; border-radius: 10px;
+    box-shadow: var(--shadow); white-space: nowrap;
+    opacity: 0; transform: translateY(4px) scale(0.96);
+    transition: opacity .16s ease, transform .16s ease;
+  }
+  .buddy-bubble.show { opacity: 1; transform: translateY(0) scale(1); }
+
+  .status-pill {
+    position: absolute; right: 18px; bottom: 14px; z-index: 5;
+    font-size: 11px; color: var(--muted);
+    background: var(--bubble-bg); border: 1px solid var(--border);
+    padding: 5px 10px; border-radius: 999px;
+  }
+</style>
+</head>
+<body>
+
+<div class="demo-bar">
+  <div class="demo-title">
+    <span>Venera Desktop · 双宠贴壁像素伙伴 v2</span>
+    <span class="demo-badge">侧栏竖爬 · 顶栏倒挂 · 双宠互动</span>
+  </div>
+  <div class="demo-controls">
+    <button class="btn" id="btnCount1">单只</button>
+    <button class="btn active" id="btnCount2">双宠</button>
+    <button class="btn" id="btnCount3">三宠</button>
+    <button class="btn" id="btnJumpCard">跳上卡片</button>
+    <button class="btn" id="btnGreet">贴贴</button>
+    <button class="btn" id="btnStack">叠罗汉</button>
+    <button class="btn" id="btnFeed">撒小鱼干</button>
+    <button class="btn" id="btnPoop">拉一坨💩</button>
+    <button class="btn" id="btnSidebar">折叠侧栏</button>
+    <button class="btn" id="btnTheme">浅色</button>
+    <button class="btn" id="btnReader">阅读器</button>
+  </div>
+</div>
+
+<div class="app-shell" id="appShell">
+  <aside class="sidebar" id="sidebar">
+    <div>
+      <div class="nav-group">
+        <div class="nav-item active"><span class="nav-dot"></span><span class="nav-text">首页</span></div>
+        <div class="nav-item"><span class="nav-dot"></span><span class="nav-text">漫画搜索</span></div>
+        <div class="nav-item"><span class="nav-dot"></span><span class="nav-text">画廊</span></div>
+        <div class="nav-item"><span class="nav-dot"></span><span class="nav-text">收藏</span></div>
+      </div>
+      <div class="nav-label">工具</div>
+      <div class="nav-group">
+        <div class="nav-item"><span class="nav-dot"></span><span class="nav-text">追更中心</span></div>
+        <div class="nav-item"><span class="nav-dot"></span><span class="nav-text">下载与本地</span></div>
+        <div class="nav-item"><span class="nav-dot"></span><span class="nav-text">阅读统计</span></div>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="nav-item"><span class="nav-dot"></span><span class="nav-text">设置</span></div>
+      <div class="account-card">
+        <div class="avatar"></div>
+        <div class="account-meta">
+          <div class="account-name">Pixiv 已连接</div>
+          <div class="account-sub">双宠像素模式</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-stage">
+    <div class="stage-header">
+      <h2>点右侧搜索框打字试试！小家伙会跳上框角帮你拼字</h2>
+      <div class="search-wrap">
+        <input class="search-input" id="searchInput" type="text" placeholder="试试输入 ABC / 123 / 漫画名..." />
+      </div>
+    </div>
+    <div class="stage-tip">支持切换 1~3 只宠物 · 聚焦搜索框自动跳上右上角并实时像素拼字 · 侧栏/顶栏/漫画卡片自由爬跳 · 拎起来甩飞</div>
+    <div class="grid">
+      <div class="comic-card"><div class="comic-cover"></div><div class="comic-meta"><div class="comic-title">星夜漫游手记</div><div class="comic-sub">已读至第 14 话</div></div></div>
+      <div class="comic-card"><div class="comic-cover"></div><div class="comic-meta"><div class="comic-title">雨后书店奇谭</div><div class="comic-sub">更新 2 话</div></div></div>
+      <div class="comic-card"><div class="comic-cover"></div><div class="comic-meta"><div class="comic-title">像素都市图鉴</div><div class="comic-sub">画廊 · 128 张</div></div></div>
+      <div class="comic-card"><div class="comic-cover"></div><div class="comic-meta"><div class="comic-title">深蓝猫尾物语</div><div class="comic-sub">本地库 · CBZ</div></div></div>
+    </div>
+
+    <div class="reader-overlay" id="readerOverlay">
+      <div class="reader-page">阅读器沉浸模式（双宠已自动藏身）</div>
+      <button class="btn" id="btnExitReader">退出阅读器</button>
+    </div>
+
+    <div class="status-pill" id="statusPill">双宠巡逻中：侧栏 + 顶栏联动</div>
+  </main>
+
+  <canvas id="buddyCanvas"></canvas>
+  <div class="pet-hitbox" id="hit0" title="紫猫：点我蹦跶 / 拎我出去扔"></div>
+  <div class="pet-hitbox" id="hit1" title="暖橘：点我蹦跶 / 拎我出去扔"></div>
+  <div class="pet-hitbox" id="hit2" title="雾蓝兔：点我蹦跶 / 拎我出去扔"></div>
+  <div class="buddy-bubble" id="buddyBubble"></div>
+</div>
+
+<script>
+(() => {
+  const PX = 3;
+  const TICK_MS = 100;
+
+  const PALETTES = {
+    cat:    { '#': '#947fd6', s: '#735eb5', o: '#141413', r: '#ef6b73', a: '#93c5fd', y: '#e8b64a', w: '#f8fafc' },
+    orange: { '#': '#d97757', s: '#bf684c', o: '#141413', r: '#ef6b73', a: '#93c5fd', y: '#e8b64a', w: '#f8fafc' },
+    blue:   { '#': '#6b9fd4', s: '#5280b3', o: '#141413', r: '#ef6b73', a: '#bae6fd', y: '#e8b64a', w: '#f8fafc' }
+  };
+
+  // 极简方块像素帧（16x10，脚在底部第 8~9 行，旋转后脚正好贴紧墙面！）
+  const SPRITES = {
+    cat: {
+      idle: [
+        '.#..........#...',
+        '.##........##...',
+        '.############...',
+        '.############...',
+        '.###o####o###..#',
+        '.###o####o###..#',
+        '.############s##',
+        '.#############..',
+        '..#.#....#.#....',
+        '..#.#....#.#....',
+      ],
+      blink: [
+        '.#..........#...',
+        '.##........##...',
+        '.############...',
+        '.############...',
+        '.############..#',
+        '.###s####s###..#',
+        '.############s##',
+        '.#############..',
+        '..#.#....#.#....',
+        '..#.#....#.#....',
+      ],
+      walk1: [
+        '.#..........#...',
+        '.##........##...',
+        '.############...',
+        '.############...',
+        '.###o####o###..#',
+        '.###o####o###..#',
+        '.############s##',
+        '.#############..',
+        '.#...#..#...#...',
+        '.#......#.......',
+      ],
+      walk2: [
+        '.#..........#...',
+        '.##........##...',
+        '.############...',
+        '.############...',
+        '.###o####o###...',
+        '.###o####o###..#',
+        '.############s##',
+        '.#############..',
+        '...#.#....#.#...',
+        '.....#......#...',
+      ],
+      happy: [
+        '.#..........#...',
+        '.##........##...',
+        '.############..#',
+        '.###s####s###..#',
+        '.##s#s##s#s##s##',
+        '.#############..',
+        '..###########...',
+        '..#.#....#.#....',
+        '................',
+        '................',
+      ],
+      sleep: [
+        '................',
+        '................',
+        '................',
+        '.#..........#...',
+        '.##........##...',
+        '.############...',
+        '.###s####s###..#',
+        '.############s##',
+        '..##########....',
+        '................',
+      ],
+      dangle: [
+        '.#..........#...',
+        '.##........##...',
+        '.############...',
+        '.###o####o###..#',
+        '.###o####o###..#',
+        '.############s##',
+        '..#.#....#.#....',
+        '.#..#....#..#...',
+        '.#..........#...',
+        '................',
+      ],
+      dizzy: [
+        '.#....yy....#...',
+        '.##........##...',
+        '.############...',
+        '.###o####o###..#',
+        '.############s##',
+        '.#############..',
+        '..#.#....#.#....',
+        '................',
+        '................',
+        '................',
+      ]
+    },
+    orange: {
+      idle: [
+        '................',
+        '..############..',
+        '..############..',
+        '..###o####o###..',
+        '..###o####o###..',
+        '..############..',
+        '################',
+        '################',
+        '...#.#....#.#...',
+        '...#.#....#.#...',
+      ],
+      blink: [
+        '................',
+        '..############..',
+        '..############..',
+        '..############..',
+        '..###s####s###..',
+        '..############..',
+        '################',
+        '################',
+        '...#.#....#.#...',
+        '...#.#....#.#...',
+      ],
+      walk1: [
+        '................',
+        '..############..',
+        '..############..',
+        '..###o####o###..',
+        '..###o####o###..',
+        '..############..',
+        '################',
+        '################',
+        '..#..#...#..#...',
+        '..#......#......',
+      ],
+      walk2: [
+        '................',
+        '..############..',
+        '..############..',
+        '..###o####o###..',
+        '..###o####o###..',
+        '..############..',
+        '################',
+        '################',
+        '....#.#....#.#..',
+        '......#......#..',
+      ],
+      happy: [
+        '..############..',
+        '..###s####s###..',
+        '..##s#s##s#s##..',
+        '################',
+        '################',
+        '...#.#....#.#...',
+        '................',
+        '................',
+        '................',
+        '................',
+      ],
+      sleep: [
+        '................',
+        '................',
+        '................',
+        '..############..',
+        '..###s####s###..',
+        '################',
+        '..############..',
+        '................',
+        '................',
+        '................',
+      ],
+      dangle: [
+        '................',
+        '..############..',
+        '..###o####o###..',
+        '..###o####o###..',
+        '################',
+        '..############..',
+        '..#..#....#..#..',
+        '..#..#....#..#..',
+        '................',
+        '................',
+      ],
+      dizzy: [
+        '......yy........',
+        '..############..',
+        '..###o####o###..',
+        '################',
+        '..############..',
+        '...#.#....#.#...',
+        '................',
+        '................',
+        '................',
+        '................',
+      ]
+    },
+    blue: {
+      idle: [
+        '...##....##.....',
+        '...##....##.....',
+        '..############..',
+        '..############..',
+        '..###o####o###..',
+        '..###o####o###..',
+        '..############..',
+        '..############..',
+        '...#.#....#.#...',
+        '...#.#....#.#...',
+      ],
+      blink: [
+        '...##....##.....',
+        '...##....##.....',
+        '..############..',
+        '..############..',
+        '..############..',
+        '..###s####s###..',
+        '..############..',
+        '..############..',
+        '...#.#....#.#...',
+        '...#.#....#.#...',
+      ],
+      walk1: [
+        '...##....##.....',
+        '...##....##.....',
+        '..############..',
+        '..############..',
+        '..###o####o###..',
+        '..###o####o###..',
+        '..############..',
+        '..############..',
+        '..#..#...#..#...',
+        '..#......#......',
+      ],
+      walk2: [
+        '...##....##.....',
+        '...##....##.....',
+        '..############..',
+        '..############..',
+        '..###o####o###..',
+        '..###o####o###..',
+        '..############..',
+        '..############..',
+        '....#.#....#.#..',
+        '......#......#..',
+      ],
+      happy: [
+        '...##....##.....',
+        '..############..',
+        '..###s####s###..',
+        '..##s#s##s#s##..',
+        '..############..',
+        '...#.#....#.#...',
+        '................',
+        '................',
+        '................',
+        '................',
+      ],
+      sleep: [
+        '................',
+        '................',
+        '...##....##.....',
+        '..############..',
+        '..###s####s###..',
+        '..############..',
+        '...##########...',
+        '................',
+        '................',
+        '................',
+      ],
+      dangle: [
+        '...##....##.....',
+        '...##....##.....',
+        '..############..',
+        '..###o####o###..',
+        '..###o####o###..',
+        '..############..',
+        '..#..#....#..#..',
+        '..#..#....#..#..',
+        '................',
+        '................',
+      ],
+      dizzy: [
+        '...##.yy.##.....',
+        '..############..',
+        '..###o####o###..',
+        '..############..',
+        '...#.#....#.#...',
+        '................',
+        '................',
+        '................',
+        '................',
+        '................',
+      ]
+    }
+  };
+
+  /* 内置 3x5 极简像素字模 */
+  const PIXEL_FONT = {
+    A:['.#.','#.#','###','#.#','#.#'], B:['##.','#.#','##.','#.#','##.'], C:['.##','#..','#..','#..','.##'],
+    D:['##.','#.#','#.#','#.#','##.'], E:['###','#..','##.','#..','###'], F:['###','#..','##.','#..','#..'],
+    G:['.##','#..','#.#','#.#','.##'], H:['#.#','#.#','###','#.#','#.#'], I:['###','.#.','.#.','.#.','###'],
+    J:['..#','..#','..#','#.#','.#.'], K:['#.#','#.#','##.','#.#','#.#'], L:['#..','#..','#..','#..','###'],
+    M:['#.#','###','###','#.#','#.#'], N:['###','#.#','#.#','#.#','#.#'], O:['.#.','#.#','#.#','#.#','.#.'],
+    P:['##.','#.#','##.','#..','#..'], Q:['.#.','#.#','#.#','.##','..#'], R:['##.','#.#','##.','#.#','#.#'],
+    S:['.##','#..','.#.','..#','##.'], T:['###','.#.','.#.','.#.','.#.'], U:['#.#','#.#','#.#','#.#','###'],
+    V:['#.#','#.#','#.#','#.#','.#.'], W:['#.#','#.#','###','###','#.#'], X:['#.#','#.#','.#.','#.#','#.#'],
+    Y:['#.#','#.#','.#.','.#.','.#.'], Z:['###','..#','.#.','#..','###'],
+    '0':['###','#.#','#.#','#.#','###'], '1':['.#.','##.','.#.','.#.','###'], '2':['##.','..#','.#.','#..','###'],
+    '3':['##.','..#','.##','..#','##.'], '4':['#.#','#.#','###','..#','..#'], '5':['###','#..','##.','..#','##.'],
+    '6':['.##','#..','###','#.#','###'], '7':['###','..#','.#.','.#.','.#.'], '8':['###','#.#','###','#.#','###'],
+    '9':['###','#.#','###','..#','##.']
+  };
+
+  const ICONS = {
+    heart: ['r.r', 'rrr', '.r.'],
+    fish:  ['.aaa.', 'aawoa', '.aaa.'],
+    zzz:   ['aaa', '..a', '.a.', 'aaa'],
+    star:  ['.y.', 'yyy', '.y.'],
+    poop:  ['..b..', '.bbb.', 'bbbbb'],
+    hammer:['yyyy.', 'yyyy.', '..s..', '..s..', '..s..']
+  };
+
+  const shell = document.getElementById('appShell');
+  const sidebar = document.getElementById('sidebar');
+  const canvas = document.getElementById('buddyCanvas');
+  const ctx = canvas.getContext('2d');
+  const bubble = document.getElementById('buddyBubble');
+  const statusPill = document.getElementById('statusPill');
+  const readerOverlay = document.getElementById('readerOverlay');
+
+  let tick = 0;
+  let readerOpen = false;
+  let bubbleTimer = null;
+  let food = null; // { x, y, vy }
+  const poops = []; // [{ x, y, vy, landed }]
+  const POOP_PAL = { b: '#8b5e3c', s: '#c4b5a5' };
+  const sparks = []; // 拼装粒子 / 彩带
+  const buildTiles = []; // 飞入拼合的卡片像素砖块 [{ sx, sy, tx, ty, w, h, t, delay, color }]
+  const trails = []; // 宠物跳跃空中残影
+
+  function spawnCardAssemblyTiles(c, originX, originY, accentColor) {
+    const cols = 4, rows = 5;
+    const tw = (c.right - c.left) / cols;
+    const th = (c.bottom - c.top) / rows;
+    for (let r = 0; r < rows; r++) {
+      for (let col = 0; col < cols; col++) {
+        const tx = c.left + col * tw;
+        const ty = c.top + r * th;
+        const isCover = r < 4;
+        const color = isCover
+          ? ((r + col) % 2 === 0 ? accentColor : 'rgba(139,123,255,0.65)')
+          : 'rgba(203,213,225,0.45)';
+        buildTiles.push({
+          sx: originX + (Math.random() - 0.5) * 36,
+          sy: originY + (Math.random() - 0.5) * 24,
+          tx, ty, w: tw - 2, h: th - 2,
+          t: 0,
+          delay: (r * cols + col) * 0.65,
+          color
+        });
+      }
+    }
+  }
+
+  function burstBuildSparks(cx, cy, color, count = 14) {
+    const palette = [color, '#fde047', '#f472b6', '#38bdf8'];
+    for (let i = 0; i < count; i++) {
+      const a = (Math.PI * 2 * i) / count + Math.random() * 0.35;
+      const spd = 2.4 + Math.random() * 3.8;
+      sparks.push({ x: cx, y: cy, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd - 2.0, color: palette[i % palette.length], life: 24 });
+    }
+  }
+
+  function getEdgeX() { return sidebar.getBoundingClientRect().width; }
+
+  // 实时采集可见漫画卡片的包围盒（对应 Compose 的 onGloballyPositioned 表面注册表）
+  function getCardRects() {
+    const sr = shell.getBoundingClientRect();
+    return Array.from(document.querySelectorAll('.comic-card')).map((el, idx) => {
+      const r = el.getBoundingClientRect();
+      return {
+        idx,
+        left: r.left - sr.left,
+        right: r.right - sr.left,
+        top: r.top - sr.top,
+        bottom: r.bottom - sr.top
+      };
+    });
+  }
+
+  // 创建两只独立状态机的小家伙
+  function createPet(id, skin, wall, pos) {
+    return {
+      id, skin,
+      wall,         // 'side' | 'top' | 'card' | 'floor'
+      cardIdx: -1,  // 当 wall === 'card' 时，站在第几张卡片顶边
+      mode: 'walk', // 'idle' | 'walk' | 'hop' | 'sleep' | 'greet' | 'stackBase' | 'stackTop' | 'drag' | 'fall' | 'dizzy' | 'runback' | 'jumpTo'
+      x: pos.x, y: pos.y,
+      vx: 0, vy: 0,
+      jumpStart: null, jumpEnd: null, jumpT: 0, jumpTargetWall: 'card', jumpTargetCard: 0,
+      dir: 1,
+      timer: 25 + Math.floor(Math.random() * 25),
+      hopPhase: 0,
+      bounceCount: 0,
+      icon: null, iconTimer: 0,
+      hitbox: document.getElementById('hit' + id)
+    };
+  }
+
+  function launchJumpToCard(p, cardIdx) {
+    const cards = getCardRects();
+    if (!cards.length) return;
+    const c = cards[cardIdx % cards.length];
+    const targetX = c.left + 26 + Math.random() * Math.max(20, (c.right - c.left) - 52);
+    const targetY = c.top - HALF_H;
+    const pose = getPetPose(p);
+    p.jumpStart = { x: pose.cx, y: pose.cy };
+    p.jumpEnd = { x: targetX, y: targetY };
+    p.jumpT = 0;
+    p.jumpTargetWall = 'card';
+    p.jumpTargetCard = c.idx;
+    p.dir = targetX >= pose.cx ? 1 : -1;
+    p.mode = 'jumpTo';
+    popIcon(p, 'star', 8);
+  }
+
+  const pets = [
+    createPet(0, 'cat', 'side', { x: 216, y: 210 }),
+    createPet(1, 'orange', 'top', { x: 380, y: 0 }),
+    createPet(2, 'blue', 'side', { x: 216, y: 340 })
+  ];
+  pets[1].dir = -1;
+  let activeCount = 2;
+  let searchFocused = false;
+  let typedText = '';
+  let typingBounceTimer = 0;
+
+  function activePets() { return pets.slice(0, activeCount); }
+
+  function setActiveCount(n) {
+    activeCount = n;
+    document.getElementById('btnCount1').classList.toggle('active', n === 1);
+    document.getElementById('btnCount2').classList.toggle('active', n === 2);
+    document.getElementById('btnCount3').classList.toggle('active', n === 3);
+    pets.forEach((p, idx) => {
+      if (idx >= n) p.hitbox.style.display = 'none';
+    });
+    setStatus('当前在场宠物：' + n + ' 只');
+  }
+
+  function getSearchRect() {
+    const sr = shell.getBoundingClientRect();
+    const r = document.getElementById('searchInput').getBoundingClientRect();
+    return { left: r.left - sr.left, right: r.right - sr.left, top: r.top - sr.top, bottom: r.bottom - sr.top };
+  }
+
+  function jumpPetsToSearch() {
+    const r = getSearchRect();
+    activePets().forEach((p, i) => {
+      const pose = getPetPose(p);
+      p.jumpStart = { x: pose.cx, y: pose.cy };
+      p.jumpEnd = { x: r.right - 26 - i * 56, y: r.top - HALF_H };
+      p.jumpT = 0;
+      p.jumpTargetWall = 'search';
+      p.jumpTargetCard = -1;
+      p.dir = p.jumpEnd.x >= pose.cx ? 1 : -1;
+      p.mode = 'jumpTo';
+    });
+    setStatus('聚焦搜索框：小家伙排排站好（间距 56px 不重叠）');
+  }
+
+  function resize() {
+    const r = shell.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(r.width * dpr);
+    canvas.height = Math.floor(r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function setStatus(t) { statusPill.textContent = t; }
+  function showBubble(pet, text, ms = 2400) {
+    if (readerOpen) return;
+    bubble.textContent = text;
+    bubble.style.left = Math.min(shell.clientWidth - 180, Math.max(20, pet.x + 24)) + 'px';
+    bubble.style.top = Math.max(12, pet.y - 36) + 'px';
+    bubble.classList.add('show');
+    clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(() => bubble.classList.remove('show'), ms);
+  }
+  function popIcon(pet, icon, ticks = 12) { pet.icon = icon; pet.iconTimer = ticks; }
+
+  // 水平 RLE 渲染，支持绕中心旋转与水平翻转
+  function drawSpriteTransformed(rows, pal, cx, cy, angleRad, flipX) {
+    const w = rows[0].length * PX;
+    const h = rows.length * PX;
+    ctx.save();
+    ctx.translate(Math.round(cx), Math.round(cy));
+    ctx.rotate(angleRad);
+    if (flipX) ctx.scale(-1, 1);
+    const ox = -w / 2;
+    const oy = -h / 2;
+    for (let ry = 0; ry < rows.length; ry++) {
+      const line = rows[ry];
+      let rx = 0;
+      while (rx < line.length) {
+        const ch = line[rx];
+        let run = 1;
+        while (rx + run < line.length && line[rx + run] === ch) run++;
+        if (ch !== '.' && pal[ch]) {
+          ctx.fillStyle = pal[ch];
+          ctx.fillRect(Math.round(ox + rx * PX), Math.round(oy + ry * PX), run * PX, PX);
+        }
+        rx += run;
+      }
+    }
+    ctx.restore();
+  }
+
+  // 计算精灵绘制中心点与旋转角（让脚严格踩在对应墙面上）
+  const HALF_H = 10 * PX / 2; // 15px
+
+  function getPetPose(p) {
+    let cx = p.x, cy = p.y, rot = 0, flip = false;
+    const hopOff = p.mode === 'hop' ? Math.sin(p.hopPhase * Math.PI) * 10 : 0;
+
+    if (p.mode === 'drag' || p.mode === 'fall' || p.mode === 'dizzy' || p.mode === 'runback' || p.mode === 'stackBase' || p.mode === 'stackTop' || p.mode === 'jumpTo') {
+      rot = 0;
+      flip = p.dir < 0;
+      cy -= hopOff;
+    } else if (p.wall === 'card' || p.wall === 'search') {
+      rot = 0;
+      flip = p.dir < 0;
+      cy = p.y - hopOff;
+    } else if (p.wall === 'side') {
+      // 脚踩在侧栏右边界（x = edgeX），身体朝向右侧主内容区，所以顺时针转 90°（脚朝左）
+      rot = Math.PI / 2;
+      cx = getEdgeX() + HALF_H + hopOff;
+      flip = p.dir < 0; // 往下爬正常，往上爬翻转朝向
+    } else if (p.wall === 'top') {
+      // 脚踩在顶栏底边（y = 0），倒挂朝下，旋转 180°
+      rot = Math.PI;
+      cy = HALF_H + hopOff;
+      flip = p.dir > 0;
+    } else {
+      rot = 0;
+      flip = p.dir < 0;
+      cy = shell.clientHeight - HALF_H - 4 - hopOff;
+    }
+    return { cx, cy, rot, flip };
+  }
+
+  // 物理步进（60fps）
+  function stepPhysics() {
+    const W = shell.clientWidth;
+    const H = shell.clientHeight;
+    const edgeX = getEdgeX();
+    const floorY = H - HALF_H - 4;
+
+    // 掉落的小鱼干
+    if (food) {
+      food.vy += 0.45;
+      food.y += food.vy;
+      if (food.y >= H - 14) { food.y = H - 14; food.vy = 0; }
+    }
+
+    // 拼装像素砖块舒缓飞入归位（带柔和淡出，不闪眼）
+    for (let i = buildTiles.length - 1; i >= 0; i--) {
+      const b = buildTiles[i];
+      if (b.delay > 0) { b.delay -= 1; continue; }
+      b.t += 0.034;
+      if (b.t >= 1.25) buildTiles.splice(i, 1);
+    }
+
+    // 跳跃残影衰减
+    for (let i = trails.length - 1; i >= 0; i--) {
+      trails[i].life--;
+      if (trails[i].life <= 0) trails.splice(i, 1);
+    }
+
+    // 拼装像素粒子
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const s = sparks[i];
+      s.x += s.vx; s.y += s.vy; s.vy += 0.22; s.life--;
+      if (s.life <= 0) sparks.splice(i, 1);
+    }
+
+    // 像素便便重力落地（也能落在漫画卡片顶边上！）
+    const cardsNow = getCardRects();
+    for (const pp of poops) {
+      if (pp.landed) continue;
+      const py = pp.y;
+      pp.vy += 0.4;
+      pp.y += pp.vy;
+      for (const c of cardsNow) {
+        if (pp.x >= c.left + 8 && pp.x <= c.right - 8 && py <= c.top && pp.y >= c.top - 5) {
+          pp.y = c.top - 5; pp.vy = 0; pp.landed = true; break;
+        }
+      }
+      if (!pp.landed && pp.y >= H - 10) {
+        pp.y = H - 10; pp.vy = 0; pp.landed = true;
+      }
+    }
+
+    for (const p of activePets()) {
+      if (readerOpen) {
+        p.hitbox.style.display = 'none';
+        continue;
+      }
+      p.hitbox.style.display = 'block';
+
+      if (p.wall === 'search' && p.mode !== 'jumpTo' && p.mode !== 'drag') {
+        const sr = getSearchRect();
+        const idx = activePets().indexOf(p);
+        if (searchSubmitting) {
+          // 搜索中（等待网络骨架屏阶段）：留在搜索框上，在框顶小范围左右巡逻陪等！
+          p.y = sr.top - HALF_H;
+          p.x += p.dir * 1.1;
+          const minX = sr.left + 26;
+          const maxX = sr.right - 26;
+          if (p.x <= minX) { p.x = minX; p.dir = 1; }
+          if (p.x >= maxX) { p.x = maxX; p.dir = -1; }
+        } else {
+          const desiredX = sr.right - 26 - idx * 56;
+          const desiredY = sr.top - HALF_H;
+          const dx = desiredX - p.x;
+          if (Math.abs(dx) > 1.5) {
+            p.x += dx * 0.22;
+            p.dir = dx >= 0 ? 1 : -1;
+            if (Math.abs(dx) > 18 && p.mode !== 'hop') { p.mode = 'hop'; p.hopPhase = 0; }
+          } else {
+            p.x = desiredX;
+          }
+          p.y = desiredY;
+          if (p.x < sr.left + 16) {
+            p.wall = 'side'; p.x = edgeX; p.y = 140 + idx * 48; p.mode = 'walk';
+            setStatus('搜索框缩回，小家伙轻跳回侧栏啦');
+          }
+        }
+      }
+
+      if (p.mode === 'hop') {
+        p.hopPhase += 0.1;
+        if (p.hopPhase >= 1) { p.hopPhase = 0; p.mode = 'idle'; p.timer = 15; }
+      }
+
+      if (p.mode === 'jumpTo') {
+        p.jumpT += 0.038;
+        const t = Math.min(1, p.jumpT);
+        const arc = Math.sin(t * Math.PI) * 58;
+        p.x = p.jumpStart.x + (p.jumpEnd.x - p.jumpStart.x) * t;
+        p.y = p.jumpStart.y + (p.jumpEnd.y - p.jumpStart.y) * t - arc;
+        if (Math.floor(t * 20) % 2 === 0) {
+          trails.push({ x: p.x, y: p.y, color: PALETTES[p.skin]['#'], life: 8 });
+        }
+        if (t >= 1) {
+          p.wall = p.jumpTargetWall;
+          p.cardIdx = p.jumpTargetCard;
+          p.mode = p.wall === 'search' ? 'idle' : 'walk';
+          p.timer = 45;
+          if (p.wall === 'card') setStatus('跳上第 ' + (p.cardIdx + 1) + ' 张漫画卡片顶边散步啦！');
+        }
+      } else if (p.mode === 'fall') {
+        const prevY = p.y;
+        p.vy += 0.55;
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < edgeX + 20) { p.x = edgeX + 20; p.vx = Math.abs(p.vx) * 0.5; }
+        if (p.x > W - 24) { p.x = W - 24; p.vx = -Math.abs(p.vx) * 0.5; }
+
+        // 检测是否落到任意漫画卡片顶边！
+        let landedOnCard = false;
+        if (p.vy > 0) {
+          const cards = getCardRects();
+          for (const c of cards) {
+            const standY = c.top - HALF_H;
+            if (p.x >= c.left + 10 && p.x <= c.right - 10 && prevY <= standY + 8 && p.y >= standY) {
+              p.y = standY;
+              p.vx *= 0.65;
+              if (Math.abs(p.vy) > 3.5 && p.bounceCount < 1) {
+                p.vy = -p.vy * 0.42;
+                p.bounceCount++;
+              } else {
+                p.vy = 0; p.vx = 0;
+                p.wall = 'card'; p.cardIdx = c.idx;
+                p.mode = 'walk'; p.timer = 45;
+                popIcon(p, 'star', 10);
+                showBubble(p, '啪嗒！稳稳落在漫画卡片上啦');
+                setStatus('稳稳落在第 ' + (c.idx + 1) + ' 张漫画卡片顶边！');
+              }
+              landedOnCard = true;
+              break;
+            }
+          }
+        }
+
+        if (!landedOnCard && p.y >= floorY) {
+          p.y = floorY; p.vx *= 0.7;
+          if (Math.abs(p.vy) > 3.2 && p.bounceCount < 2) {
+            p.vy = -p.vy * 0.48; p.bounceCount++;
+          } else {
+            p.vy = 0; p.vx = 0; p.mode = 'dizzy'; p.timer = 14;
+            showBubble(p, '唔哇！摔晕了喵…');
+          }
+        }
+      } else if (p.mode === 'runback') {
+        // 如果地上有小鱼干，先冲去吃！
+        const tx = food ? food.x : edgeX + HALF_H;
+        const dx = tx - p.x;
+        p.y = floorY;
+        if (Math.abs(dx) > 6) {
+          p.x += Math.sign(dx) * 2.8;
+          p.dir = Math.sign(dx);
+        } else if (food) {
+          food = null;
+          popIcon(p, 'heart', 14);
+          p.mode = 'hop'; p.hopPhase = 0;
+          showBubble(p, '嚼嚼嚼！小鱼干归我啦！');
+          setStatus('抢到小鱼干开心蹦跶中');
+          setTimeout(() => { if (p.mode !== 'drag') p.mode = 'runback'; }, 900);
+        } else {
+          // 回到侧栏边沿，无缝切回侧栏竖爬！
+          p.wall = 'side';
+          p.x = edgeX;
+          p.y = floorY - 12;
+          p.dir = -1;
+          p.mode = 'walk';
+          p.timer = 45;
+          setStatus('自己爬回侧栏边沿啦');
+        }
+      } else if (p.mode === 'walk') {
+        if (p.wall === 'side') {
+          p.x = edgeX;
+          p.y += p.dir * 1.15;
+          // 爬到侧栏顶端 -> 丝滑转弯上顶栏！
+          if (p.y <= HALF_H + 6 && p.dir < 0) {
+            p.wall = 'top';
+            p.x = edgeX + HALF_H + 14;
+            p.y = 0;
+            p.dir = 1;
+            setStatus('顺着拐角爬上顶栏倒挂散步');
+          } else if (p.y >= H - 56 && p.dir > 0) {
+            p.dir = -1;
+          }
+        } else if (p.wall === 'top') {
+          p.y = 0;
+          p.x += p.dir * 1.25;
+          // 爬到顶栏左端 -> 丝滑转弯回侧栏！
+          if (p.x <= edgeX + HALF_H + 8 && p.dir < 0) {
+            p.wall = 'side';
+            p.x = edgeX;
+            p.y = HALF_H + 14;
+            p.dir = 1;
+            setStatus('顺着拐角爬回侧栏边沿');
+          } else if (p.x >= W - 48 && p.dir > 0) {
+            p.dir = -1;
+          }
+        } else if (p.wall === 'card') {
+          const cards = getCardRects();
+          const c = cards[p.cardIdx];
+          if (!c) { p.wall = 'side'; p.mode = 'walk'; }
+          else {
+            p.y = c.top - HALF_H;
+            p.x += p.dir * 1.15;
+            if (p.x <= c.left + 20) {
+              // 走到卡片左边缘：有概率跳到左邻卡片，否则折返
+              if (p.cardIdx > 0 && Math.random() < 0.45) launchJumpToCard(p, p.cardIdx - 1);
+              else p.dir = 1;
+            } else if (p.x >= c.right - 20) {
+              if (p.cardIdx < cards.length - 1 && Math.random() < 0.45) launchJumpToCard(p, p.cardIdx + 1);
+              else p.dir = -1;
+            }
+          }
+        }
+      } else if (p.mode === 'idle' || p.mode === 'sleep' || p.mode === 'greet') {
+        if (p.wall === 'side') p.x = edgeX;
+        if (p.wall === 'top') p.y = 0;
+        if (p.wall === 'card') {
+          const c = getCardRects()[p.cardIdx];
+          if (c) p.y = c.top - HALF_H;
+        }
+      } else if (p.mode === 'stackTop') {
+        const base = pets[0];
+        p.x = base.x;
+        p.y = base.y - 28;
+        p.dir = base.dir;
+      }
+
+      const pose = getPetPose(p);
+      p.hitbox.style.left = (pose.cx - 26) + 'px';
+      p.hitbox.style.top = (pose.cy - 26) + 'px';
+    }
+  }
+
+  // 100ms 离散节拍 + 双宠自主互动
+  setInterval(() => {
+    tick++;
+    if (readerOpen) return;
+
+    for (const p of activePets()) {
+      if (p.iconTimer > 0) p.iconTimer--;
+      if (p.wall === 'search') continue; // 蹲在搜索框上时不乱跑
+      if (p.mode === 'dizzy') {
+        p.timer--;
+        if (p.timer <= 0) { p.mode = 'runback'; setStatus('缓过来了，跑回侧栏'); }
+      } else if (['walk', 'idle', 'sleep', 'greet', 'stackBase'].includes(p.mode)) {
+        p.timer--;
+        if (p.timer <= 0) {
+          if (p.mode === 'stackBase') {
+            pets[0].mode = 'runback'; pets[1].mode = 'runback';
+            setStatus('叠罗汉解散，各自爬回边沿');
+            continue;
+          }
+          const r = Math.random();
+          if (r < 0.55) {
+            p.mode = 'walk'; p.dir = Math.random() < 0.5 ? 1 : -1;
+            p.timer = 30 + Math.floor(Math.random() * 35);
+          } else if (r < 0.78) {
+            p.mode = 'idle'; p.timer = 20 + Math.floor(Math.random() * 20);
+          } else if (r < 0.90) {
+            p.mode = 'hop'; p.hopPhase = 0; popIcon(p, 'star', 8);
+          } else {
+            p.mode = 'sleep'; p.timer = 45; popIcon(p, 'zzz', 10);
+          }
+        }
+        if (p.mode === 'sleep' && tick % 14 === 0) popIcon(p, 'zzz', 8);
+      }
+    }
+
+    // 双宠同一墙面相遇自动互动：贴贴或跳背
+    if (activeCount >= 2) {
+      const a = pets[0], b = pets[1];
+      if (a.wall === b.wall && a.wall !== 'search' && ['walk', 'idle'].includes(a.mode) && ['walk', 'idle'].includes(b.mode)) {
+      const dist = a.wall === 'side' ? Math.abs(a.y - b.y) : Math.abs(a.x - b.x);
+      if (dist < 42) {
+        if (Math.random() < 0.5) {
+          a.mode = 'greet'; b.mode = 'greet';
+          a.timer = 18; b.timer = 18;
+          popIcon(a, 'heart', 12); popIcon(b, 'heart', 12);
+          setStatus('两只相遇贴贴中 ♥');
+        } else {
+          // 跳背越过对方
+          a.mode = 'hop'; a.hopPhase = 0;
+          b.dir = -a.dir;
+          setStatus('一只从另一只背上跳过去了！');
+        }
+      }
+    }
+    }
+  }, TICK_MS);
+
+  // 在搜索框上方用像素块实时“拼出”正在输入的字符！
+  function drawTypedPixelBanner() {
+    if (!searchFocused || !typedText) return;
+    const r = getSearchRect();
+    const chars = typedText.slice(-8).toUpperCase().split('');
+    const cell = 3;
+    const startX = r.left + 8;
+    const baseY = r.top - 22;
+    let cursorX = startX;
+    chars.forEach((ch, idx) => {
+      const glyph = PIXEL_FONT[ch];
+      const bob = (idx === chars.length - 1 && typingBounceTimer > 0) ? -4 : 0;
+      const color = idx % 2 === 0 ? '#947fd6' : '#d97757';
+      if (glyph) {
+        ctx.fillStyle = color;
+        for (let gy = 0; gy < glyph.length; gy++) {
+          for (let gx = 0; gx < glyph[gy].length; gx++) {
+            if (glyph[gy][gx] === '#') {
+              ctx.fillRect(Math.round(cursorX + gx * cell), Math.round(baseY + gy * cell + bob), cell, cell);
+            }
+          }
+        }
+        cursorX += 4 * cell + 3;
+      } else {
+        // 中文或符号：用像素风格迷你字块举出来
+        ctx.fillStyle = color;
+        ctx.font = 'bold 12px "Microsoft YaHei", monospace';
+        ctx.fillText(ch, Math.round(cursorX), Math.round(baseY + 13 + bob));
+        cursorX += 15;
+      }
+    });
+    if (typingBounceTimer > 0) typingBounceTimer--;
+  }
+
+  function render() {
+    stepPhysics();
+    ctx.clearRect(0, 0, shell.clientWidth, shell.clientHeight);
+    if (readerOpen) { requestAnimationFrame(render); return; }
+
+    drawTypedPixelBanner();
+
+    // 画飞入拼合的卡片像素砖块（舒缓归位 + 落位后柔和淡出）
+    for (const b of buildTiles) {
+      if (b.delay > 0) continue;
+      const p0 = Math.min(1, b.t);
+      const e = 1 - Math.pow(1 - p0, 3);
+      const fade = b.t > 1 ? Math.max(0, 1 - (b.t - 1) * 4) : Math.min(1, p0 * 2.5);
+      const cx = b.sx + (b.tx - b.sx) * e;
+      const cy = b.sy + (b.ty - b.sy) * e - Math.sin(e * Math.PI) * 14;
+      const s = 0.65 + 0.35 * e;
+      ctx.globalAlpha = fade * 0.88;
+      ctx.fillStyle = b.color;
+      ctx.fillRect(Math.round(cx), Math.round(cy), Math.round(b.w * s), Math.round(b.h * s));
+      ctx.globalAlpha = 1;
+    }
+
+    // 画跳跃残影
+    for (const tr of trails) {
+      ctx.globalAlpha = tr.life / 16;
+      ctx.fillStyle = tr.color;
+      ctx.fillRect(Math.round(tr.x - 10), Math.round(tr.y - 8), 20, 14);
+      ctx.globalAlpha = 1;
+    }
+
+    // 画拼装像素粒子
+    for (const s of sparks) {
+      ctx.fillStyle = s.color;
+      ctx.fillRect(Math.round(s.x), Math.round(s.y), 4, 4);
+    }
+
+    // 画像素便便（带冒热气动画，点击可铲屎！）
+    for (const pp of poops) {
+      drawSpriteTransformed(ICONS.poop, POOP_PAL, pp.x, pp.y, 0, false);
+      const steamOff = (tick % 6 < 3) ? 0 : -2;
+      ctx.fillStyle = 'rgba(196, 181, 165, 0.7)';
+      ctx.fillRect(Math.round(pp.x - 4), Math.round(pp.y - 11 + steamOff), 2, 4);
+      ctx.fillRect(Math.round(pp.x + 2), Math.round(pp.y - 13 - steamOff), 2, 4);
+    }
+
+    // 画小鱼干
+    if (food) {
+      drawSpriteTransformed(ICONS.fish, PALETTES.cat, food.x, food.y, 0, false);
+    }
+
+    for (const p of activePets()) {
+      const pal = PALETTES[p.skin];
+      const sp = SPRITES[p.skin];
+      let frame = sp.idle;
+      if (p.mode === 'sleep') frame = sp.sleep;
+      else if (p.mode === 'drag' || p.mode === 'fall') frame = sp.dangle;
+      else if (p.mode === 'dizzy') frame = sp.dizzy;
+      else if (p.mode === 'greet' || p.mode === 'hop' || p.mode === 'stackTop') frame = sp.happy;
+      else if (p.mode === 'walk' || p.mode === 'runback') frame = (tick % 4 < 2) ? sp.walk1 : sp.walk2;
+      else frame = (tick % 30 < 2) ? sp.blink : sp.idle;
+
+      const pose = getPetPose(p);
+      drawSpriteTransformed(frame, pal, pose.cx, pose.cy, pose.rot, pose.flip);
+
+      if (p.iconTimer > 0 && p.icon) {
+        const rise = (12 - p.iconTimer) * 1.2;
+        drawSpriteTransformed(ICONS[p.icon], pal, pose.cx + 18, pose.cy - 20 - rise, 0, false);
+      }
+    }
+    requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
+
+  // ── 绑定双宠各自的点击 / 拎起甩飞 ──
+  pets.forEach((p) => {
+    p.hitbox.addEventListener('mousedown', (e) => {
+      if (e.button === 2) return;
+      const startX = e.clientX, startY = e.clientY;
+      let lastX = e.clientX, lastY = e.clientY, vx = 0, vy = 0, moved = false;
+
+      const onMove = (ev) => {
+        if (Math.hypot(ev.clientX - startX, ev.clientY - startY) > 6) {
+          moved = true;
+          if (p.mode !== 'drag') {
+            p.mode = 'drag';
+            p.hitbox.classList.add('dragging');
+            showBubble(p, '呀！被拎起来了喵！', 1400);
+          }
+        }
+        if (moved) {
+          const r = shell.getBoundingClientRect();
+          vx = (ev.clientX - lastX) * 0.65;
+          vy = (ev.clientY - lastY) * 0.65;
+          lastX = ev.clientX; lastY = ev.clientY;
+          p.x = Math.max(getEdgeX(), Math.min(r.width - 20, ev.clientX - r.left));
+          p.y = Math.max(16, Math.min(r.height - 20, ev.clientY - r.top));
+        }
+      };
+
+      const onUp = () => {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        p.hitbox.classList.remove('dragging');
+        if (!moved) {
+          p.mode = 'hop'; p.hopPhase = 0;
+          popIcon(p, 'heart', 12);
+          showBubble(p, p.skin === 'cat' ? '喵呜~再戳一下嘛' : '哒哒！我也在边上陪你');
+        } else {
+          // 靠近侧栏或顶栏直接吸附贴壁，否则甩飞自由落体
+          const edgeX = getEdgeX();
+          if (p.y < 36 && p.x > edgeX + 20) {
+            p.wall = 'top'; p.y = 0; p.mode = 'walk'; p.timer = 40;
+            setStatus('贴到顶栏倒挂散步啦');
+          } else if (p.x < edgeX + 32) {
+            p.wall = 'side'; p.x = edgeX; p.mode = 'walk'; p.timer = 40;
+            setStatus('贴回侧栏竖爬啦');
+          } else {
+            p.mode = 'fall';
+            p.vx = Math.max(-12, Math.min(12, vx));
+            p.vy = Math.max(-10, Math.min(10, vy));
+            p.bounceCount = 0;
+            setStatus('甩出去了！自由落体中…');
+          }
+        }
+      };
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    });
+  });
+
+  // ── 顶部演示控制按钮 ──
+  document.getElementById('btnCount1').onclick = () => setActiveCount(1);
+  document.getElementById('btnCount2').onclick = () => setActiveCount(2);
+  document.getElementById('btnCount3').onclick = () => setActiveCount(3);
+  setActiveCount(2);
+
+  // ── 搜索框聚焦、伸缩跟随与搜索结果演出动画 ──
+  const searchWrap = document.querySelector('.search-wrap');
+  const searchInput = document.getElementById('searchInput');
+  let searchSubmitting = false;
+
+  searchInput.addEventListener('focus', () => {
+    searchFocused = true;
+    searchWrap.classList.add('expanded');
+    setTimeout(() => { if (searchFocused) jumpPetsToSearch(); }, 80);
+  });
+  searchInput.addEventListener('input', (e) => {
+    typedText = e.target.value;
+    typingBounceTimer = 8;
+    const list = activePets();
+    const p = list[typedText.length % list.length];
+    if (p && p.wall === 'search') {
+      p.mode = 'hop'; p.hopPhase = 0;
+    }
+    setStatus('正在帮你像素拼字：' + (typedText.slice(-8) || '…'));
+  });
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !searchSubmitting) {
+      searchSubmitting = true;
+      const q = (typedText || '').trim();
+      const cardEls = Array.from(document.querySelectorAll('.comic-card'));
+      // 1. 按 Enter 后：保留在搜索栏全宽 + 扫过确认流光 + 卡片进入骨架屏 + 宠物留在搜索框上巡逻陪等！
+      searchWrap.classList.add('expanded');
+      searchWrap.classList.remove('sweeping');
+      void searchWrap.offsetWidth;
+      searchWrap.classList.add('sweeping');
+      cardEls.forEach(el => { el.classList.remove('built', 'impact', 'blueprint'); el.classList.add('skeleton'); });
+      activePets().forEach((p, idx) => {
+        p.wall = 'search'; p.mode = 'walk'; p.dir = idx % 2 === 0 ? -1 : 1;
+        popIcon(p, 'star', 14);
+      });
+      setStatus('搜索中（骨架屏加载中）… 宠物留在搜索框上巡逻陪等');
+      showBubble(pets[0], '正在努力翻找「' + (q || '全部') + '」…', 1500);
+
+      // 模拟真实网络加载耗时（1.5s），加载完成后才收窄搜索框并启动施工拼装！
+      setTimeout(() => {
+        searchSubmitting = false;
+        searchInput.blur();
+        searchWrap.classList.remove('expanded', 'sweeping');
+        cardEls.forEach(el => el.classList.remove('skeleton'));
+
+        if (q === '空' || q === '0') {
+          activePets().forEach((p, idx) => {
+            p.wall = 'side'; p.x = getEdgeX(); p.y = 180 + idx * 52; p.mode = 'sleep'; p.timer = 35;
+          });
+          showBubble(pets[0], '没找到这本喵…我先回侧栏蹲着');
+          setStatus('搜索无结果：搜索框收窄，小家伙滑回侧栏');
+        } else {
+          // Venera 克制风格：卡片以轻柔半透明微缩态待命，宠物轻跃落脚 -> 极细微光扫过点亮卡片并顺滑上浮归位
+          cardEls.forEach(el => { el.classList.remove('awakening'); el.classList.add('blueprint'); });
+          const list = activePets();
+          showBubble(pets[0], '找到啦，帮你把卡片点亮喵~', 1600);
+          setStatus('搜索完成：宠物轻触点亮搜索结果卡片');
+
+          cardEls.forEach((el, idx) => {
+            setTimeout(() => {
+              const builder = list[idx % list.length];
+              launchJumpToCard(builder, idx);
+              setTimeout(() => {
+                el.classList.remove('blueprint');
+                el.classList.add('awakening');
+                const c = getCardRects()[idx];
+                if (c) burstBuildSparks((c.left + c.right) / 2, c.top + 4, PALETTES[builder.skin]['#'], 5);
+                if (idx === cardEls.length - 1) {
+                  setTimeout(() => {
+                    cardEls.forEach(x => x.classList.remove('awakening'));
+                    setStatus('搜索结果已就位');
+                  }, 480);
+                }
+              }, 300);
+            }, idx * 220);
+          });
+        }
+      }, 1500);
+    }
+  });
+  searchInput.addEventListener('blur', () => {
+    searchFocused = false;
+    searchWrap.classList.remove('expanded');
+    if (searchSubmitting) return;
+    setTimeout(() => {
+      if (!searchFocused && !searchSubmitting) {
+        activePets().forEach((p, idx) => {
+          if (p.wall === 'search') {
+            // 失焦缩回时，优雅跳回侧栏边沿
+            const pose = getPetPose(p);
+            p.jumpStart = { x: pose.cx, y: pose.cy };
+            p.jumpEnd = { x: getEdgeX() + HALF_H, y: 170 + idx * 52 };
+            p.jumpT = 0; p.jumpTargetWall = 'side'; p.jumpTargetCard = -1;
+            p.dir = -1; p.mode = 'jumpTo';
+          }
+        });
+        setStatus('搜索框缩回，小家伙优雅跳回侧栏边沿');
+      }
+    }, 260);
+  });
+
+  document.getElementById('btnJumpCard').onclick = () => {
+    const cards = getCardRects();
+    if (!cards.length) return;
+    activePets().forEach((p, idx) => launchJumpToCard(p, idx % cards.length));
+    showBubble(pets[0], '起跳！去占领漫画卡片！');
+  };
+  document.getElementById('btnGreet').onclick = () => {
+    const edgeX = getEdgeX();
+    pets[0].wall = 'side'; pets[0].x = edgeX; pets[0].y = 200; pets[0].mode = 'greet'; pets[0].timer = 26;
+    pets[1].wall = 'side'; pets[1].x = edgeX; pets[1].y = 244; pets[1].mode = 'greet'; pets[1].timer = 26;
+    popIcon(pets[0], 'heart', 14); popIcon(pets[1], 'heart', 14);
+    showBubble(pets[0], '贴贴喵 ♥');
+    setStatus('双宠在侧栏边沿贴贴中 ♥');
+  };
+
+  document.getElementById('btnStack').onclick = () => {
+    const cx = getEdgeX() + 180;
+    const fy = shell.clientHeight - HALF_H - 4;
+    pets[0].wall = 'floor'; pets[0].x = cx; pets[0].y = fy; pets[0].mode = 'stackBase'; pets[0].timer = 45;
+    pets[1].wall = 'floor'; pets[1].x = cx; pets[1].y = fy - 28; pets[1].mode = 'stackTop'; pets[1].timer = 45;
+    popIcon(pets[1], 'star', 14);
+    showBubble(pets[1], '叠罗汉成功！');
+    setStatus('双宠叠罗汉展示中！');
+  };
+
+  function triggerPoop(p) {
+    const pose = getPetPose(p);
+    p.mode = 'hop'; p.hopPhase = 0;
+    poops.push({ x: pose.cx - p.dir * 10, y: pose.cy + 6, vy: -1.5, landed: false });
+    if (poops.length > 12) poops.shift();
+    showBubble(p, '噗~ 舒服了喵！(点便便可以铲屎)');
+    setStatus('场上现有 ' + poops.length + ' 坨像素便便，点击可清理');
+  }
+
+  // 点击主界面任意位置的像素便便即可“铲屎”
+  shell.addEventListener('click', (e) => {
+    const r = shell.getBoundingClientRect();
+    const mx = e.clientX - r.left, my = e.clientY - r.top;
+    const idx = poops.findIndex(pp => Math.hypot(pp.x - mx, pp.y - my) < 22);
+    if (idx >= 0) {
+      poops.splice(idx, 1);
+      popIcon(pets[0], 'heart', 12);
+      showBubble(pets[0], '谢谢铲屎官喵 ♥');
+      setStatus(poops.length ? ('还剩 ' + poops.length + ' 坨便便待清理') : '清理干净啦！');
+    }
+  });
+
+  document.getElementById('btnPoop').onclick = () => {
+    const list = activePets();
+    triggerPoop(list[Math.floor(Math.random() * list.length)]);
+  };
+
+  document.getElementById('btnFeed').onclick = () => {
+    food = { x: getEdgeX() + 160 + Math.random() * 220, y: 40, vy: 0 };
+    activePets().forEach(p => { p.mode = 'runback'; p.wall = 'floor'; });
+    setStatus('撒了小鱼干，小家伙冲下去抢食啦！');
+  };
+
+  document.getElementById('btnSidebar').onclick = (e) => {
+    sidebar.classList.toggle('collapsed');
+    e.target.textContent = sidebar.classList.contains('collapsed') ? '展开侧栏' : '折叠侧栏';
+  };
+  document.getElementById('btnTheme').onclick = (e) => {
+    document.body.classList.toggle('light');
+    e.target.textContent = document.body.classList.contains('light') ? '深色模式' : '浅色模式';
+  };
+  function setReader(open) {
+    readerOpen = open;
+    readerOverlay.classList.toggle('open', open);
+    setStatus(open ? '阅读器模式：双宠已自动藏身' : '双宠巡逻中：侧栏 + 顶栏联动');
+  }
+  document.getElementById('btnReader').onclick = () => setReader(true);
+  document.getElementById('btnExitReader').onclick = () => setReader(false);
+})();
+</script>
+</body>
+</html>

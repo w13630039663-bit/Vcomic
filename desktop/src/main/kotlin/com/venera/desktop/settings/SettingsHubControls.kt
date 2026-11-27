@@ -27,6 +27,7 @@ import androidx.compose.material.icons.outlined.Laptop
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Pets
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Storage
@@ -201,6 +202,7 @@ internal fun SettingsDropdown(
 /** 左导航每一分区的图标（材料图标，配文字标签，非纯图标——ui-ux-pro-max：图标按钮须有文字）。 */
 internal fun settingsSectionIcon(section: DesktopSettingsSection): ImageVector = when (section) {
     DesktopSettingsSection.APPEARANCE -> Icons.Outlined.Palette
+    DesktopSettingsSection.PIXEL_BUDDY -> Icons.Outlined.Pets
     DesktopSettingsSection.GALLERY -> Icons.Outlined.GridView
     DesktopSettingsSection.EXPLORE -> Icons.Outlined.PhotoLibrary
     DesktopSettingsSection.READER -> Icons.Outlined.MenuBook

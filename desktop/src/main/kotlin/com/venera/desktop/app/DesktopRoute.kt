@@ -411,6 +411,9 @@ internal sealed interface DesktopRoute {
         val supportsWebLogin: Boolean = false,
     ) : DesktopRoute
 
+    /** 站点延迟检测独立页：统一承载全站延迟表、状态筛选与主动重测，支持按来路返回。 */
+    data class SourceLatency(val backToSourceManage: Boolean = false) : DesktopRoute
+
     /** 漫画详情。`sourceKey` 要带着：`EngineSession.details()` 前必须先 `load(sourceKey)`。 */
     data class Detail(
         val comicId: String,
@@ -517,6 +520,9 @@ internal sealed interface DesktopRoute {
  */
 internal const val DESKTOP_EXPLORE_SOURCE: String = "copy_manga"
 
+/** 首页「推荐漫画 · 正常」默认源：固定取安全直连站 `goda` 的热门更新区块。 */
+internal const val DESKTOP_HOME_RECOMMEND_SOURCE: String = "goda"
+
 /**
  * 路由层级，导航动画的方向判据（唯一出处，消费点是壳里那颗路由 `AnimatedContent`）：
  * `Tab` = 0，二级 = 1，三级及以上 = 2+。
@@ -538,6 +544,7 @@ internal fun desktopRouteLevel(route: DesktopRoute): Int = when (route) {
     is DesktopRoute.PixivCollectionDetail ->
         1 + desktopRouteLevel(route.from ?: DesktopRoute.PixivCollections)
     is DesktopRoute.SourceEdit, is DesktopRoute.SourceLogin -> 1
+    is DesktopRoute.SourceLatency -> if (route.backToSourceManage) 2 else 1
     is DesktopRoute.ComicComments,
     is DesktopRoute.Reader,
     is DesktopRoute.LocalComicReader,

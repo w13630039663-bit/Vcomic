@@ -50,6 +50,7 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 /** 探索、分类面板与首页推荐漫画的状态分组。 */
 internal class DesktopExploreSlice(
@@ -399,32 +400,76 @@ internal fun rememberDesktopSourceAndFilesSlice(
     scope: CoroutineScope,
     engine: EngineSession?,
     overrideDir: File?,
+    paths: com.venera.compose.data.platform.PathProvider? = null,
+    assetDir: File? = null,
 ): DesktopSourceAndFilesSlice {
-    val sourceUi = remember { SourceManageUiState() }
-    val sourceTickState = remember { mutableIntStateOf(0) }
-    var sourceTick by sourceTickState
-    val installSourceText: suspend (fileKey: String, text: String) -> String? = { fileKey, text ->
-        val dir = overrideDir
-        if (dir == null) {
-            "改写层目录建不出来，装不进去。"
-        } else if (!DesktopSourceOverrides.isSafeKey(fileKey)) {
-            "key 不合法（只许字母数字与 _ -）：$fileKey"
-        } else {
-            desktopEngineCall(engine) { engine?.checkLoadable(fileKey, text) }.fold(
-                onSuccess = {
-                    DesktopSourceOverrides.writeText(dir, fileKey, text)
-                    sourceTick++
-                    null
-                },
-                onFailure = { "验装载没过：${it.message?.take(140)}" },
-            )
+    val sourceUi = remember {
+        SourceManageUiState().apply {
+            selectedSourceRepo = com.venera.desktop.gallery.data.DesktopSourceRepoPreferences.readSelectedRepo(paths)
         }
     }
+    val sourceTickState = remember { mutableIntStateOf(0) }
+    var sourceTick by sourceTickState
+    val validateScript: suspend (fileKey: String, text: String) -> Result<String?> = { fileKey, text ->
+        desktopEngineCall(engine) { engine?.checkLoadable(fileKey, text) }
+    }
+    val installSourceText: suspend (fileKey: String, text: String, version: String, repoId: String) -> String? =
+        { fileKey, text, version, repoId ->
+            val dir = overrideDir
+            if (dir == null) {
+                "改写层目录建不出来，装不进去。"
+            } else if (!DesktopSourceOverrides.isSafeKey(fileKey)) {
+                "key 不合法（只许字母数字与 _ -）：$fileKey"
+            } else {
+                validateScript(fileKey, text).fold(
+                    onSuccess = {
+                        DesktopSourceOverrides.writeText(dir, fileKey, text)
+                        com.venera.desktop.gallery.data.DesktopSourceUpdater.markInstalled(dir, fileKey, version, repoId)
+                        if (assetDir != null && paths != null) {
+                            runCatching {
+                                com.venera.desktop.data.writeDesktopSourceEnabled(
+                                    assetDir = assetDir,
+                                    sourceState = com.venera.desktop.gallery.data.DesktopSourceState(paths),
+                                    key = fileKey,
+                                    overrideDir = dir,
+                                    enabled = true,
+                                )
+                            }
+                        }
+                        sourceTick++
+                        null
+                    },
+                    onFailure = { "验装载没过：${it.message?.take(140)}" },
+                )
+            }
+        }
     val runSourceImport: () -> Unit = {
         runSourceImportHelper(installSourceText, sourceUi, scope) { sourceTick++ }
     }
     val performSourceUpdateCheck: suspend (announce: Boolean) -> Unit = { announce ->
-        performSourceUpdateCheckHelper(announce, sourceUi, overrideDir, engine) { sourceTick++ }
+        performSourceUpdateCheckHelper(announce, sourceUi, overrideDir, engine, paths) { sourceTick++ }
+    }
+    sourceUi.onSelectRepo = { repo ->
+        sourceUi.selectedSourceRepo = repo
+        com.venera.desktop.gallery.data.DesktopSourceRepoPreferences.saveSelectedRepo(paths, repo)
+        sourceUi.sourceUpdateNote = null
+    }
+    sourceUi.onCheckSync = {
+        scope.launch { performSourceUpdateCheck(false) }
+    }
+    sourceUi.onInstallStoreEntry = { entry ->
+        installRepoSourceEntry(
+            entry = entry,
+            proxy = com.venera.desktop.gallery.data.DesktopSourceRepoPreferences.resolveProxy(paths),
+            overrideDir = overrideDir,
+            assetDir = assetDir,
+            paths = paths,
+            validateScript = validateScript,
+            onSuccess = { sourceTick++ },
+        )
+    }
+    sourceUi.proxyProvider = {
+        com.venera.desktop.gallery.data.DesktopSourceRepoPreferences.resolveProxy(paths)
     }
 
     val filesUi = remember { FilesAuxUiState() }

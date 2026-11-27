@@ -4,6 +4,8 @@ import com.venera.desktop.ui.DesktopDwmBackdrop
 import com.venera.desktop.ui.DesktopFlyOverlay
 import com.venera.desktop.ui.DesktopFlyState
 import com.venera.desktop.ui.VeneraLightRailSkin
+import com.venera.desktop.ui.components.pixelBuddyWandHostCursor
+import com.venera.desktop.ui.components.pixelBuddyWandPointerObserver
 import com.venera.desktop.ui.desktopShellTitle
 import com.venera.desktop.ui.desktopSideBarGroups
 import androidx.compose.foundation.background
@@ -189,9 +191,12 @@ internal fun DesktopLargeScreenChromeScaffold(
         }
     }
 
+    com.venera.desktop.ui.DesktopThemeRevealHost(modifier = modifier.fillMaxSize()) {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
+            .pixelBuddyWandHostCursor()
+            .pixelBuddyWandPointerObserver()
             .focusRequester(backFocus)
             .focusable()
             .onKeyEvent { e ->
@@ -349,13 +354,13 @@ internal fun DesktopLargeScreenChromeScaffold(
                             )
                     },
                     onAccountCardClick = { onRouteChange(DesktopRoute.PixivAccount) },
-                    railExpandedWidth = if (homeSkinLight) 260.dp else 264.dp,
+                    railExpandedWidth = if (homeSkinLight) 240.dp else 264.dp,
                     railCollapsedWidth = if (homeSkinLight) 64.dp else 76.dp,
                     hiddenTabs = setOf(VeneraNavTab.EXPLORE),
                     tabTitleOverride = mapOf(VeneraNavTab.SEARCH to "漫画搜索"),
                     contentSurface = if (homeSkinLight && shellBackdropUrl == null) {
                         if (DesktopBackdropMode.isTransparentActive() && !immersiveRoute) {
-                            DesktopGlass.surface(chromePalette)
+                            DesktopGlass.currentSurface(chromePalette)
                         } else {
                             chromePalette.page
                         }
@@ -364,7 +369,7 @@ internal fun DesktopLargeScreenChromeScaffold(
                     },
                     railSurface = if (homeSkinLight && shellBackdropUrl == null) {
                         if (DesktopDwmBackdrop.active && railBlurState) {
-                            DesktopGlass.surface(chromePalette)
+                            DesktopGlass.currentSurface(chromePalette)
                         } else {
                             chromePalette.page
                         }
@@ -450,6 +455,7 @@ internal fun DesktopLargeScreenChromeScaffold(
             }
         }
     }
+    }
 }
 
 /**
@@ -523,6 +529,11 @@ internal fun DesktopLargeScreenOverlays(
             },
         )
     }
+    com.venera.desktop.ui.components.PixelBuddyOverlay(
+        sidebarWidth = 0.dp,
+        topBarHeight = 44.dp,
+        hidden = settingsOpen || route is DesktopRoute.Reader || route.javaClass.simpleName.contains("Viewer"),
+    )
 }
 
 internal fun petImage(card: com.venera.desktop.gallery.ui.DesktopWallCardModel) {

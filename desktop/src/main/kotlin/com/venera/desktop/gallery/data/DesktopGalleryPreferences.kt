@@ -230,6 +230,19 @@ class DesktopGalleryPreferences(paths: PathProvider) : GalleryPreferences {
         store.put(KEY_WALL_LAYOUT, layout.name)
         wallLayoutState.value = layout
     }
+
+    // ── 画廊搜索翻页方式（无限滚动 / 分页切换），桌面自持落盘 + 推流 ──
+    private val searchPaginationModeState = readEnum(
+        KEY_SEARCH_PAGINATION_MODE,
+        com.venera.desktop.gallery.ui.DesktopSearchPaginationMode.INFINITE,
+    )
+    val searchPaginationMode: StateFlow<com.venera.desktop.gallery.ui.DesktopSearchPaginationMode> =
+        searchPaginationModeState.asStateFlow()
+
+    fun setSearchPaginationMode(mode: com.venera.desktop.gallery.ui.DesktopSearchPaginationMode) {
+        store.put(KEY_SEARCH_PAGINATION_MODE, mode.name)
+        searchPaginationModeState.value = mode
+    }
     val pixivListQuality: StateFlow<PixivImageQuality> = pixivPreviewQualityState.asStateFlow()
     val pixivIllustQuality: StateFlow<PixivImageQuality> = pixivIllustQualityState.asStateFlow()
     val pixivMangaQuality: StateFlow<PixivImageQuality> = pixivMangaQualityState.asStateFlow()
@@ -401,6 +414,7 @@ class DesktopGalleryPreferences(paths: PathProvider) : GalleryPreferences {
         const val KEY_COMIC_DOWNLOAD_DIR = "pref_comic_download_dir"
         const val KEY_EXTRA_IMAGE_DIRS = "pref_extra_image_dirs"
         const val KEY_WALL_LAYOUT = "pref_wall_layout"
+        const val KEY_SEARCH_PAGINATION_MODE = "pref_gallery_search_pagination_mode"
         const val KEY_PIXIV_PREVIEW_QUALITY = "pref_pixiv_preview_quality"
         const val KEY_PIXIV_ILLUST_QUALITY = "pref_pixiv_illust_quality"
         const val KEY_PIXIV_MANGA_QUALITY = "pref_pixiv_manga_quality"

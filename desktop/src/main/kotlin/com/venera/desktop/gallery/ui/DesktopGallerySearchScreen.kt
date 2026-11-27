@@ -1,5 +1,6 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.ui.components.registerPixelBuddyStatusAnchor
 import com.venera.desktop.ui.vShadow
 import com.venera.desktop.ui.theme.VeneraType
 import androidx.compose.animation.AnimatedContent
@@ -46,6 +47,7 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,6 +60,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -189,6 +194,14 @@ internal fun DesktopGallerySearchScreen(
     titles: Map<String, String>,
     searchR18: Boolean,
     onPickSearchR18: (Boolean) -> Unit,
+    paginationMode: DesktopSearchPaginationMode,
+    onPickPaginationMode: (DesktopSearchPaginationMode) -> Unit,
+    currentPage: Int,
+    canNextPage: Boolean,
+    pageLoading: Boolean,
+    onPrevPage: () -> Unit,
+    onNextPage: () -> Unit,
+    onJumpPage: (Int) -> Unit,
     initialDropdownOpen: Boolean = false,
 ) {
     val tokens = VeneraTokens
@@ -209,6 +222,17 @@ internal fun DesktopGallerySearchScreen(
 
     // ⭐️ 真正悬浮式状态：平时绝不弹出、不占空间，点击搜索框才弹出
     var searchDropdownOpen by remember { mutableStateOf(initialDropdownOpen) }
+    var searchInputFocused by remember { mutableStateOf(false) }
+    var pagerInputEditing by remember { mutableStateOf(false) }
+
+    val pagedActive = paginationMode == DesktopSearchPaginationMode.PAGED &&
+        (searchMode != 1 || pixivKind == DESKTOP_PIXIV_SEARCH_WORKS)
+
+    androidx.compose.runtime.LaunchedEffect(currentPage, pagedActive) {
+        if (pagedActive) {
+            runCatching { resultGridState.scrollToItem(0) }
+        }
+    }
 
     val currentTerm = if (searchMode == 1) pixivTerm else query
     val activeHistory = remember(history, searchMode) {
@@ -254,12 +278,14 @@ internal fun DesktopGallerySearchScreen(
                         } else {
                             "标签，空格分隔；减号开头是排除"
                         },
+                        searching = searching,
                         onValueChange = { text ->
                             searchDropdownOpen = true
                             if (searchMode == 1) onPixivTermChange(text) else onQueryChange(text)
                         },
                         onClick = { searchDropdownOpen = true },
                         onFocusChanged = { focused ->
+                            searchInputFocused = focused
                             if (focused) searchDropdownOpen = true
                         },
                         onSearch = {
@@ -283,6 +309,7 @@ internal fun DesktopGallerySearchScreen(
                                 history = activeHistory,
                                 historyNote = historyNote,
                                 onPickHistory = { entry ->
+                                    com.venera.desktop.settings.DesktopPixelBuddyBus.reportSearchConfirm(entry.query)
                                     if (searchMode == 1) onPixivTermChange(entry.query) else onQueryChange(entry.query)
                                     onPickHistory(entry)
                                 },
@@ -291,6 +318,7 @@ internal fun DesktopGallerySearchScreen(
                                 suggestLine = suggestLine,
                                 onPickSuggestion = { tag ->
                                     // ⭐️ 解决 Pixiv 点击联想词后输入框不显示的问题：立即填入对应模式的状态并触发
+                                    com.venera.desktop.settings.DesktopPixelBuddyBus.reportSearchConfirm(tag)
                                     if (searchMode == 1) onPixivTermChange(tag) else onQueryChange(tag)
                                     onPickSuggestion(tag)
                                 },
@@ -341,6 +369,8 @@ internal fun DesktopGallerySearchScreen(
                 onPixivFilter = onPixivFilter,
                 pixivKind = pixivKind,
                 onPickPixivKind = onPickPixivKind,
+                paginationMode = paginationMode,
+                onPickPaginationMode = onPickPaginationMode,
             )
         }
 
@@ -411,8 +441,8 @@ internal fun DesktopGallerySearchScreen(
             com.venera.desktop.ui.DesktopStaggeredAutoLoadEffect(
                 state = resultGridState,
                 columns = columns,
-                // 珍藏册维度不吃图墙也不吃这条续页扳机（它有自己的「更多」把手）。
-                enabled = footer.moreLabel != null &&
+                // 分页模式与珍藏册维度不走触底自动续页。
+                enabled = !pagedActive && footer.moreLabel != null &&
                     (searchMode != 1 || pixivKind == DESKTOP_PIXIV_SEARCH_WORKS),
                 onLoadMore = onLoadMore,
             )
@@ -421,11 +451,46 @@ internal fun DesktopGallerySearchScreen(
                 enabled = footer.moreLabel != null && searchMode == 1 && pixivKind == DESKTOP_PIXIV_SEARCH_ARTIST,
                 onLoadMore = onLoadMore,
             )
+            com.venera.desktop.ui.components.PixelBuddyScrollInterruptEffect(
+                resultGridState.isScrollInProgress || artistListState.isScrollInProgress,
+            )
 
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
+                    .onPreviewKeyEvent { event ->
+                        if (
+                            pagedActive &&
+                            !searchInputFocused &&
+                            !pagerInputEditing &&
+                            !searching &&
+                            !pageLoading &&
+                            event.type == androidx.compose.ui.input.key.KeyEventType.KeyDown
+                        ) {
+                            when (event.key) {
+                                androidx.compose.ui.input.key.Key.DirectionLeft -> {
+                                    if (currentPage > 1) {
+                                        onPrevPage()
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                }
+                                androidx.compose.ui.input.key.Key.DirectionRight -> {
+                                    if (canNextPage) {
+                                        onNextPage()
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                }
+                                else -> false
+                            }
+                        } else {
+                            false
+                        }
+                    }
                     .padding(
                         start = 20.dp,
                         end = 20.dp,
@@ -453,6 +518,7 @@ internal fun DesktopGallerySearchScreen(
                     }
                     AnimatedContent(
                         targetState = streamKind,
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
                         transitionSpec = {
                             fadeIn(animationSpec = tween(220)) togetherWith fadeOut(animationSpec = tween(160))
                         },
@@ -500,47 +566,70 @@ internal fun DesktopGallerySearchScreen(
                                 onOpenCollection = onOpenCollection,
                             )
                         } else {
-                            GridPageTemplate(
-                                items = cards,
-                                columns = columns,
-                                itemKey = { card -> card.uid.ifBlank { card.url } },
-                                state = resultGridState,
-                                modifier = Modifier.fillMaxSize(),
-                                spacing = wallSpec.wallGap,
-                                contentPadding = PaddingValues(bottom = tokens.spacing.space6),
-                                emptyContent = {
-                                    VeneraEmptyView(
-                                        title = when {
-                                            failed -> "加载失败"
-                                            searching -> null
-                                            else -> "无结果"
-                                        },
-                                        message = when {
-                                            failed -> "请稍后重试"
-                                            searching -> "搜索中…"
-                                            else -> "换个关键词再试"
-                                        },
-                                        tone = if (failed) {
-                                            com.venera.compose.components.VeneraEmptyTone.Failed
-                                        } else {
-                                            com.venera.compose.components.VeneraEmptyTone.Nothing
-                                        },
-                                        actionText = if (failed) "重试" else null,
-                                        onAction = if (failed) onRetry else null,
-                                        modifier = Modifier.fillMaxSize(),
+                            val effectiveWallSpec = if (pagedActive) {
+                                wallSpec.copy(layout = com.venera.compose.gallery.domain.GalleryWallLayout.Grid)
+                            } else {
+                                wallSpec
+                            }
+                            CompositionLocalProvider(LocalDesktopWallSpec provides effectiveWallSpec) {
+                                GridPageTemplate(
+                                    items = cards,
+                                    columns = columns,
+                                    itemKey = { card -> card.uid.ifBlank { card.url } },
+                                    state = resultGridState,
+                                    modifier = Modifier.fillMaxSize(),
+                                    spacing = wallSpec.wallGap,
+                                    contentPadding = PaddingValues(bottom = tokens.spacing.space6),
+                                    emptyContent = {
+                                        VeneraEmptyView(
+                                            title = when {
+                                                failed -> "加载失败"
+                                                searching -> null
+                                                else -> "无结果"
+                                            },
+                                            message = when {
+                                                failed -> "请稍后重试"
+                                                searching -> "搜索中…"
+                                                else -> "换个关键词再试"
+                                            },
+                                            tone = if (failed) {
+                                                com.venera.compose.components.VeneraEmptyTone.Failed
+                                            } else {
+                                                com.venera.compose.components.VeneraEmptyTone.Nothing
+                                            },
+                                            actionText = if (failed) "重试" else null,
+                                            onAction = if (failed) onRetry else null,
+                                            modifier = if (searching) {
+                                                Modifier.fillMaxSize()
+                                            } else {
+                                                Modifier.fillMaxSize().registerPixelBuddyStatusAnchor(isRetry = failed)
+                                            },
+                                        )
+                                    },
+                                ) { card ->
+                                    DesktopWallCard(
+                                        card = card,
+                                        onOpenPost = onOpenPost,
+                                        titleOverride = titles[card.uid],
+                                        avatarUrl = avatars[card.uid],
+                                        onToggleSelect = null,
+                                        onOpenArtist = onOpenCardArtist,
                                     )
-                                },
-                            ) { card ->
-                                DesktopWallCard(
-                                    card = card,
-                                    onOpenPost = onOpenPost,
-                                    titleOverride = titles[card.uid],
-                                    avatarUrl = avatars[card.uid],
-                                    onToggleSelect = null,
-                                    onOpenArtist = onOpenCardArtist,
-                                )
+                                }
                             }
                         }
+                    }
+
+                    if (pagedActive && (cards.isNotEmpty() || currentPage > 1 || pageLoading)) {
+                        DesktopGallerySearchPagerBar(
+                            currentPage = currentPage,
+                            canNextPage = canNextPage,
+                            loading = pageLoading || searching,
+                            onPrevPage = onPrevPage,
+                            onNextPage = onNextPage,
+                            onJumpPage = onJumpPage,
+                            onEditingPageChange = { pagerInputEditing = it },
+                        )
                     }
                 }
 

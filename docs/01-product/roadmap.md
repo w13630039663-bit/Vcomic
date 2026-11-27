@@ -19,9 +19,9 @@
 | 状态 | 能力 | 依据 |
 |---|---|---|
 | [x] | 探索：分类面板、排行榜真接引擎 | `explore/DesktopExploreScreen.kt:61-74` |
-| [x] | 详情：章节表、简介、标签、推荐、已读进度 | `detail/DesktopComicDetailScreen.kt:250-300` |
+| [x] | 详情：章节表、简介、标签、推荐、已读进度、通用 `.torrent` 种子弹窗（EH 适配） | `detail/DesktopComicDetailScreen.kt`、`detail/DesktopComicTorrentDialog.kt` |
 | [x] | 继续阅读胶囊（页码 + 进度线） | 同上 `:157-195` |
-| [x] | 搜索：单源、多源聚合、来源选择、页尾四态、视图切换 | `search/DesktopSearchScreen.kt:104-199` |
+| [x] | 搜索：单源、多源聚合、来源选择、页尾四态、视图切换、快速搜索书签栏 | `search/DesktopSearchScreen.kt`、`search/DesktopSearchBookmarks.kt` |
 | [x] | 搜索历史落盘 | `search/DesktopComicSearchHistory.kt` |
 | [x] | 阅读器四档模式：条漫连续 / 对开双页 / 日漫 / 美漫 | `gallery/ui/DesktopReaderPaging.kt:35-40` |
 | [x] | 缩放三档 + 滚轮 0.5–4 倍 + 双击往返 + 拖拽平移 | `reader/DesktopReaderScreen.kt:140-141` |
@@ -56,7 +56,7 @@
 | [x] | 收藏夹：新建、删除、切换、按夹筛选、计数与排序 | `gallery/data/DesktopFavoriteFolders.kt` |
 | [x] | 详情页选夹（单选语义，点夹即落笔） | `detail/DesktopComicDetailScreen.kt:274-280` |
 | [x] | 收藏 hub：本地 / 画廊 / 网络三路并列 | `favorites/DesktopFavoritesHubScreen.kt:53-140` |
-| [x] | 网络收藏：按登录态分组、文件夹平铺、续页 | `favorites/DesktopNetworkFavoritesScreen.kt:57-90` |
+| [x] | 网络收藏：按登录态分组、文件夹平铺、续页、备注/夹内搜/批量移动与取消 | `favorites/DesktopNetworkFavoritesScreen.kt`、`favorites/DesktopNetworkFavoritesActions.kt` |
 | [x] | 画廊收藏墙：多选、批量取消、两步清空 | `gallery/ui/DesktopGalleryFavoritesWall.kt:32-50,235-265` |
 | [x] | 追更：独立账本、详情一键追更、串行巡检、追更中心、网站收藏导入 | `follow/DesktopFollowUpdateChecker.kt`、`follow/DesktopFollowUpdatesScreen.kt`、`data/db/ComicFollowDao.kt` |
 | [x] | 收藏更新检测（改由追更账本承担，不回写收藏表角标） | `follow/FollowUpdateDiff.kt` |
@@ -70,7 +70,7 @@
 | [x] | 翻页、续页、页尾四态、滚动锚点保留 | `DesktopGalleryWallFooter.kt`、`DesktopWallReadings.kt` |
 | [x] | 来源筛选：评分四档、排序三档、子源胶囊 | `DesktopGalleryFilterRow.kt:43-105` |
 | [x] | 顶栏搜索（booru 与 pixiv 双腿）、多选批量动作 | `VeneraDesktopLargeScreen.kt:6798-6814,9187-9250` |
-| [x] | 标签搜索：浮层历史与联想、高级筛选、来源轴、分页 | `gallery/ui/DesktopGallerySearchScreen.kt:103-218` |
+| [x] | 标签搜索：浮层历史与联想、高级筛选、来源轴、无限流与分页切换跳转 | `gallery/ui/DesktopGallerySearchScreen.kt`、`DesktopGallerySearchPagination.kt` |
 | [x] | 以图搜图：SauceNAO + ascii2d 同屏、四通道输入 | `gallery/ui/DesktopReverseSearchPane.kt:132-138` |
 | [x] | 收藏与历史一页两视图、回原卡 | `gallery/ui/DesktopGallerySavedScreen.kt:68-120` |
 | [x] | 全屏看图：画质三档、缩放、翻页、收藏、下载、信息抽屉 | `gallery/ui/DesktopGalleryPostViewer.kt:89-210` |
@@ -80,7 +80,7 @@
 | [x] | 关注画师收件箱：双源分轴、新作水位 | `gallery/ui/DesktopArtistInboxScreen.kt:91-113` |
 | [x] | 站点墙：启停、搜索、过滤、拖拽重排、导入脚本 | `sourcemanage/DesktopSourceManageScreen.kt:86-145` |
 | [x] | 源账号登录、cookie 登录、脚本编辑、撤销改写 | 同上 `:135-145` |
-| [x] | 源自动更新、线路测速 | `DesktopSourceUpdater.kt`、`DesktopSourceLatencyProbe.kt` |
+| [x] | 源自动更新、源仓库切源、线路测速监控独立页 | `DesktopSourceUpdater.kt`、`DesktopSourceLatencyScreen.kt`、`DesktopSourceRepoSections.kt` |
 | [x] | pixivision 文章页、珍藏册发现与详情 | `DesktopGalleryPixivisionArticleScreen.kt:47-58` |
 | [ ] | 珍藏册 rail「查看全部」无落点，故不摆 | `DesktopPixivCollectionsScreen.kt:366-368` |
 
@@ -104,9 +104,9 @@
 |---|---|---|
 | [x] | 主题深/浅/跟随系统 | `settings/DesktopThemeMode.kt:8-45` |
 | [x] | 中英双语切换（设置中枢与导航骨架支持即改即生效与冷启动回填） | `settings/DesktopLanguage.kt:8-37` |
-| [x] | 底板 Mica / Acrylic / 实底，侧栏与顶栏模糊独立开关 | `DesktopBackdropMode.kt`、`DesktopRailBlur.kt` |
+| [x] | 底板 Mica / Acrylic / 实底，侧栏悬浮坞 / Bento 天气卡、圆形扩散主题切换，侧栏与顶栏模糊独立开关 | `DesktopBackdropMode.kt`、`DesktopRailBentoSections.kt`、`DesktopThemeRevealHost.kt` |
 | [x] | 界面缩放 80–150，封面画幅四档，网格密度六档 | `DesktopUiScale.kt`、`DesktopCoverAspect.kt`、`DesktopGridDensity.kt` |
-| [x] | 吉祥物六参、桌宠显隐、精简特效总开关 | `DesktopMascot.kt`、`DesktopEffects.kt` |
+| [x] | 顶层像素互动伙伴（1~3 宠踩卡/光流/逗猫棒大指针/全业务联动/失焦休眠），老侧栏桌宠默认关闭 | `PixelBuddyOverlay.kt`、`DesktopPixelBuddyPrefs.kt`、`DesktopPetVisibility.kt` |
 | [x] | 阅读器设置全域（模式、底纹、滤镜、动画、预加载等） | `DesktopSettingsHub.kt:959-1290` |
 | [x] | 网络设置：代理三档、图床反代、缓存上限、下载并发、命名模板 | 同上 `:1564-1700` |
 | [x] | 数据与备份：整包归档、缓存清理、WebDAV 同步 | 同上 `:1443-1780` |
@@ -123,10 +123,9 @@
 | [x] | 单实例、协议回传（`pixiv://`、`venera://`） | `DesktopSingleInstance.kt`、`DesktopProtocolRegistrar.kt` |
 | [x] | 系统托盘、崩溃处理、错误日志面板、运行日志 | `DesktopSystemTray.kt`、`DesktopCrashReading.kt`、`DesktopErrorReport.kt` |
 | [x] | 窗口记忆、全局快捷键 | `VeneraDesktop.kt:891+`、`ui/DesktopGlobalShortcuts.kt:99-155` |
-| [x] | 更新检查（仅设置页手动，有新版本开下载页） | `platform/DesktopUpdateCheck.kt:12-24` |
+| [x] | 自动检查更新（启动 24 小时节流检查 + 设置页内直接下载校验与一键拉起安装） | `platform/DesktopUpdateCheck.kt`、`settings/DesktopAboutUpdateSection.kt` |
 | [x] | 安装向导独立窗口：四态串联、目录面板随窗延展、`installer` 运行任务 | `installer/InstallerWindow.kt` |
 | [ ] | 画廊 HTTP 层无交互式过盾、无每主机熔断与全局限流 | `DesktopHttpEngine.kt:22-27` |
-| [ ] | 无启动自动检查更新，无应用内自动更新 | `DesktopSettingsHub.kt:1867`、`DesktopUpdateCheck.kt:22-24` |
 
 ## 2. 已知缺口清单
 
@@ -165,7 +164,7 @@
 | [x] | 收藏更新检测 | core v4 追更账本 + 串行巡检已落地（计划 2026-11-22 六阶段） |
 | [ ] | 裸目录本子点开阅读 | 本地库能识别却不能读，落差最明显 |
 | [ ] | 阅读器会话外持久化 | 背景色与适配档每次重启复位 |
-| [ ] | 启动自动检查更新 | 更新检查只在设置页有调用点 |
+| [x] | 启动自动检查更新 | `DesktopAboutUpdateSection.kt` 与启动 24h 节流检查已接通，支持下载校验与拉起安装 |
 
 ### P2 能力扩展
 
@@ -183,10 +182,10 @@
 | 状态 | 事项 | 理由 |
 |---|---|---|
 | [ ] | 接入 ktlint 与 detekt（存量冻结、增量拦截） | `docs/CODE_REVIEW.md` 自陈 L1 缺失 |
-| [ ] | 补 CI | 仓内无 workflow，全部校验靠本地 |
-| [x] | 修正 README | 2026-11-21 完成：中英两版与代码对齐，截图压缩至 2.8MB |
-| [ ] | 拆分超大文件 | 根屏单文件 9558 行 |
-| [ ] | 清理历史残留 | Android 相关 gradle 配置、指向 `app/src/main` 的脚本、永不 apply 的插件别名 |
+| [x] | 补 CI | `.github/workflows/ci.yml` 与 `release.yml` 已接入 Windows / Linux 构建与单测 |
+| [x] | 修正 README | 2026-11-27 更新中英文 README 与官网展示 Acrylic 透明、Mica 云母与最新桌面特性 |
+| [x] | 拆分超大文件 | TOP 10 巨型文件完成拆分归位，`DesktopFileSizeAndLayerGuardTest` 守卫新增 <= 40 KB |
+| [x] | 清理历史残留 | 已彻底撤除 `:app` 与 Android 源码映射，完成 `app/`、`data/`、`ui/` 三层归位与探针隔离 |
 | [ ] | 统一收藏账本 | 两套收藏表并存，行为差异易出错 |
 | [x] | 解耦 README 尺与具体措辞 | 2026-11-21 五条已改钉关键事实短语（回原卡/缺页/对开双页等），措辞可换、事实必须在 |
 

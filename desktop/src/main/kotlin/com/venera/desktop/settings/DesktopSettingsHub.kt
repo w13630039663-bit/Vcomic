@@ -160,10 +160,14 @@ internal fun DesktopSettingsHub(
         scope = scope,
     )
     val desktopCapabilityExtra = buildDesktopCapabilityCards(paths, scope) { ux.toast(it) }
+    val pixelBuddyConfig by DesktopPixelBuddyPrefs.config.collectAsState()
+    val pixelBuddyWandMode by DesktopPixelBuddyBus.wandMode.collectAsState()
+    val pixelBuddyCards = buildPixelBuddySettingsCards(pixelBuddyConfig, pixelBuddyWandMode, updateStore)
 
     val rawCardsOf: (DesktopSettingsSection) -> List<DesktopSettingsCard> = { s ->
         when (s) {
             DesktopSettingsSection.APPEARANCE -> appearanceCards
+            DesktopSettingsSection.PIXEL_BUDDY -> pixelBuddyCards
             DesktopSettingsSection.GALLERY -> galleryCards
             DesktopSettingsSection.EXPLORE -> exploreCards
             DesktopSettingsSection.READER -> readerCards

@@ -92,6 +92,7 @@ object DesktopCloudflareCenter {
         "e-hentai.org",
         "exhentai.org",
         "gelbooru.com",
+        "gold-usergeneratedcontent.net",
         "h-comic.com",
         "hitomi.la",
         "jcomic.net",

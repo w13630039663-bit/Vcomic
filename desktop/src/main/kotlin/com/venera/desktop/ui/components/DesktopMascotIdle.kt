@@ -13,7 +13,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -331,16 +330,18 @@ internal fun DesktopMascotIdle(
     // 输入框键入、发车等活动经键值变化重置打盹计时。
     LaunchedEffect(awakeKey) { state.markActivity(state.lastActivityMs) }
 
-    // 静止档：测试台架提供 true 时跳过帧循环 —— 每帧一跳的组合永不静止，
-    // waitForIdle 会等满整段超时；静态断言不需要动画跑着。
+    // 静止档或窗口失焦时跳过动画循环，聚焦时按低频定拍更新以降低 CPU/GPU 唤醒。
+    val windowFocused = androidx.compose.ui.platform.LocalWindowInfo.current.isWindowFocused
     if (!LocalMascotStill.current) {
-        LaunchedEffect(Unit) {
-            var lastNanos = withFrameNanos { it }
+        LaunchedEffect(windowFocused) {
+            if (!windowFocused) return@LaunchedEffect
+            var lastMs = System.currentTimeMillis()
             while (true) {
-                val now = withFrameNanos { it }
-                val dt = ((now - lastNanos) / 1_000_000_000f).coerceIn(0f, 0.05f)
-                lastNanos = now
-                state.tick(now / 1_000_000L, dt)
+                kotlinx.coroutines.delay(66L)
+                val nowMs = System.currentTimeMillis()
+                val dt = ((nowMs - lastMs) / 1000f).coerceIn(0.001f, 0.2f)
+                lastMs = nowMs
+                state.tick(nowMs, dt)
                 frame++
             }
         }

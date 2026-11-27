@@ -500,6 +500,7 @@ internal fun DesktopDownloadsPipelineScreen(
         onBack = onBack,
         modifier = modifier,
         width = DesktopPageWidth.Browse,
+        titleCard = false,
     ) {
         Column(
             modifier = Modifier
@@ -989,14 +990,10 @@ private fun PulseDashboard(
     totalBytesLabel: String,
 ) {
     val tokens = VeneraTokens
+    val dividerColor = tokens.color.outlineVariant.copy(alpha = 0.28f)
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(GalleryTokens.Shape.Large)
-            .background(tokens.color.surfaceVariant.copy(alpha = 0.25f))
-            .border(1.dp, tokens.color.outlineVariant.copy(alpha = 0.35f), GalleryTokens.Shape.Large)
-            .padding(1.dp),
-        horizontalArrangement = Arrangement.spacedBy(1.dp),
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         PulseCell(
             label = "下载任务",
@@ -1004,12 +1001,14 @@ private fun PulseDashboard(
             kicker = if (runningCount + pendingCount > 0) "$runningCount 下载中 · $pendingCount 等待中" else "暂无排队任务",
             modifier = Modifier.weight(1f),
         )
+        Box(Modifier.width(0.5.dp).height(44.dp).background(dividerColor))
         PulseCell(
             label = "传输速度",
             value = if (runningCount > 0) speedLabel else "0 KB/s",
             kicker = if (runningCount > 0) "实时网络下行速率" else "当前无网络传输",
             modifier = Modifier.weight(1f),
         )
+        Box(Modifier.width(0.5.dp).height(44.dp).background(dividerColor))
         PulseCell(
             label = "任务状态",
             value = if (failedCount > 0) "$failedCount 项失败" else if (pausedCount > 0) "$pausedCount 项暂停" else "运行正常",
@@ -1021,6 +1020,7 @@ private fun PulseDashboard(
             },
             modifier = Modifier.weight(1f),
         )
+        Box(Modifier.width(0.5.dp).height(44.dp).background(dividerColor))
         PulseCell(
             label = "本地存储",
             value = "$totalComicCount 本漫画 · $totalImageCount 张图片",
@@ -1039,11 +1039,7 @@ private fun PulseCell(
     valueColor: Color = MaterialTheme.colorScheme.onSurface,
 ) {
     val tokens = VeneraTokens
-    Column(
-        modifier = modifier
-            .background(tokens.color.surface)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    ) {
+    Column(modifier = modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
         Text(
             text = label,
             fontSize = VeneraType.micro.size, lineHeight = VeneraType.micro.lineHeight,

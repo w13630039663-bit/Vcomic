@@ -65,8 +65,8 @@ internal fun desktopPickFile(
 private val picking = AtomicBoolean(false)
 
 /** 打开框：挑一个已存在的文件。 */
-internal fun desktopPickOpenFile(owner: Frame?, title: String): String? =
-    desktopPickFile(owner, FileDialog.LOAD, title)
+internal fun desktopPickOpenFile(owner: Frame?, title: String, filterPattern: String? = null): String? =
+    desktopPickFile(owner, FileDialog.LOAD, title, filterPattern = filterPattern)
 
 /** 保存框：给默认名，交回用户确认后的落盘路径。 */
 internal fun desktopPickSaveFile(owner: Frame?, title: String, defaultName: String?): String? =

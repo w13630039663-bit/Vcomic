@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -289,23 +290,22 @@ private fun habitDowLabel(topDow: Int?): String {
 
 @Composable
 private fun KpiRow(stats: DesktopReadingStats, mode: WideScreenLayoutMode) {
+    val rowMod = Modifier.fillMaxWidth().height(IntrinsicSize.Max)
     if (mode == WideScreenLayoutMode.Compact) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                TotalTimeKpi(stats, Modifier.weight(1f))
-                PagesKpi(stats, Modifier.weight(1f))
+            Row(modifier = rowMod, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                TotalTimeKpi(stats, Modifier.weight(1f).fillMaxHeight()); PagesKpi(stats, Modifier.weight(1f).fillMaxHeight())
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                ActiveDaysKpi(stats, Modifier.weight(1f))
-                ComicsKpi(stats, Modifier.weight(1f))
+            Row(modifier = rowMod, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                ActiveDaysKpi(stats, Modifier.weight(1f).fillMaxHeight()); ComicsKpi(stats, Modifier.weight(1f).fillMaxHeight())
             }
         }
     } else {
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            TotalTimeKpi(stats, Modifier.weight(1.2f))
-            PagesKpi(stats, Modifier.weight(1f))
-            ActiveDaysKpi(stats, Modifier.weight(1f))
-            ComicsKpi(stats, Modifier.weight(1f))
+        Row(modifier = rowMod, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            TotalTimeKpi(stats, Modifier.weight(1.2f).fillMaxHeight())
+            PagesKpi(stats, Modifier.weight(1f).fillMaxHeight())
+            ActiveDaysKpi(stats, Modifier.weight(1f).fillMaxHeight())
+            ComicsKpi(stats, Modifier.weight(1f).fillMaxHeight())
         }
     }
 }
@@ -637,9 +637,12 @@ private fun InsightRow(stats: DesktopReadingStats, mode: WideScreenLayoutMode) {
             HabitCard(stats, Modifier.fillMaxWidth())
         }
     } else {
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            TrendCard(stats, Modifier.weight(1.5f))
-            HabitCard(stats, Modifier.weight(1f))
+        Row(
+            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            TrendCard(stats, Modifier.weight(1.5f).fillMaxHeight())
+            HabitCard(stats, Modifier.weight(1f).fillMaxHeight())
         }
     }
 }
@@ -809,15 +812,11 @@ private fun MiniBars(dist: List<Int>, tokens: VeneraTokens) {
 private fun TopicsRow(stats: DesktopReadingStats, mode: WideScreenLayoutMode) {
     if (mode == WideScreenLayoutMode.Compact) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            TopicDonutCard(stats, Modifier.fillMaxWidth())
-            TagCloudCard(stats, Modifier.fillMaxWidth())
-            RankBoardCard(stats, Modifier.fillMaxWidth())
+            TopicDonutCard(stats, Modifier.fillMaxWidth()); TagCloudCard(stats, Modifier.fillMaxWidth()); RankBoardCard(stats, Modifier.fillMaxWidth())
         }
     } else {
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            TopicDonutCard(stats, Modifier.weight(1.1f))
-            TagCloudCard(stats, Modifier.weight(0.9f))
-            RankBoardCard(stats, Modifier.weight(1.3f))
+        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            TopicDonutCard(stats, Modifier.weight(1.1f).fillMaxHeight()); TagCloudCard(stats, Modifier.weight(0.9f).fillMaxHeight()); RankBoardCard(stats, Modifier.weight(1.3f).fillMaxHeight())
         }
     }
 }

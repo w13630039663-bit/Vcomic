@@ -1,13 +1,8 @@
 package com.venera.desktop.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -16,12 +11,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,7 +24,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.requiredWidth
@@ -51,7 +43,6 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -66,8 +57,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -76,7 +65,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
-import com.venera.compose.components.LocalVeneraSideBarDownloadAnchor
 import com.venera.compose.components.LocalUxPlatformServices
 import com.venera.compose.components.VeneraNavTab
 import com.venera.compose.components.VeneraRailSkinScope
@@ -90,6 +78,8 @@ import com.venera.desktop.gallery.ui.DesktopChromeColors
 import com.venera.desktop.gallery.ui.DesktopChromePalette
 import com.venera.desktop.gallery.ui.LocalChromePalette
 import com.venera.desktop.ui.components.DesktopPetSlot
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 
 private object LightRailTokens {
     private val palette: DesktopChromePalette
@@ -99,25 +89,14 @@ private object LightRailTokens {
     val ink2: Color @Composable @ReadOnlyComposable get() = palette.ink2
     val ink3: Color @Composable @ReadOnlyComposable get() = palette.ink3
     val pill: Color @Composable @ReadOnlyComposable get() = palette.pill
-    val glass: Color @Composable @ReadOnlyComposable get() = palette.railGlass
-    val page: Color @Composable @ReadOnlyComposable get() = palette.page
-    val sheen: Color @Composable @ReadOnlyComposable get() = palette.glassSheen
-    val raised: Color @Composable @ReadOnlyComposable get() = palette.raised
+    val railLine: Color @Composable @ReadOnlyComposable get() = palette.railLine
     val card: Color @Composable @ReadOnlyComposable get() = palette.card
     val hover: Color @Composable @ReadOnlyComposable get() = palette.hover
-    val hairline: Color @Composable @ReadOnlyComposable get() = palette.hairline
-    val danger: Color @Composable @ReadOnlyComposable get() = palette.danger
-    val brandStart: Color @Composable @ReadOnlyComposable get() = palette.brandStart
-    val brandEnd: Color @Composable @ReadOnlyComposable get() = palette.brandEnd
+    val accent: Color @Composable @ReadOnlyComposable get() = palette.accent
     val dark: Boolean @Composable @ReadOnlyComposable get() = palette.dark
-
-    val accent: Color = Color(0xFF8B7CF6)
-    val accentIcon: Color = Color(0xFFC4B5FD)
-    val statusOnline: Color = Color(0xFF34D399)
 }
 
-private val NavRowShape = RoundedCornerShape(7.dp)
-private val FooterIconShape = RoundedCornerShape(7.dp)
+private val FooterIconShape = RoundedCornerShape(8.dp)
 
 @Composable
 internal fun VeneraLightRailSkin(
@@ -136,14 +115,12 @@ internal fun VeneraLightRailSkin(
     val expanded = scope.isExpanded
     // 两档内容按各自目标宽度落位，宽度动画只裁剪窗口：
     // 展开档始终以 260 宽排版，收起时右缘被逐帧裁掉，文字不再在 64 宽里压缩重排。
-    val expandedW = scope.expandedWidth.takeIf { it != Dp.Unspecified } ?: 260.dp
+    val expandedW = scope.expandedWidth.takeIf { it != Dp.Unspecified } ?: 240.dp
     val collapsedW = scope.collapsedWidth.takeIf { it != Dp.Unspecified } ?: 64.dp
     Box(modifier = Modifier.fillMaxSize()) {
         LightGlassBackdrop(modifier = Modifier.matchParentSize())
-        // 三块玻璃同源同值后，右缘那条发丝线反而成了"两块板"的证据，已删；
-        // 分区改由导航项自身的选中态承担，不再靠画线切分。
         if (expanded) {
-            // requiredWidth 绕开父窗口的窄约束：宽度动画未走完时展开档仍按 260 排版，只被裁不被压。
+            // requiredWidth 绕开父窗口的窄约束：宽度动画未走完时展开档仍按目标宽排版，只被裁不被压。
             Box(modifier = Modifier.requiredWidth(expandedW).fillMaxHeight()) {
                 LightRailExpanded(
                     currentTab = currentTab,
@@ -176,6 +153,14 @@ internal fun VeneraLightRailSkin(
                 )
             }
         }
+        // 全窗同透明度下以 1dp 轻发丝线切分侧栏与内容区。
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .width(1.dp)
+                .fillMaxHeight()
+                .background(LightRailTokens.railLine),
+        )
     }
 }
 
@@ -183,9 +168,9 @@ internal fun VeneraLightRailSkin(
 private fun LightGlassBackdrop(modifier: Modifier) {
     val railBlur by com.venera.desktop.settings.DesktopRailBlur.visible.collectAsState()
     val palette = LocalChromePalette.current
-    // 与内容区/顶栏共用 DesktopGlass.surface，避免深浅色下侧栏基色或浓度漂移。
+    // 与内容区/顶栏共用 DesktopGlass.currentSurface，确保 Acrylic/Mica 两档全窗浓度一致。
     val bg = if (DesktopDwmBackdrop.active && railBlur) {
-        com.venera.desktop.gallery.ui.DesktopGlass.surface(palette)
+        com.venera.desktop.gallery.ui.DesktopGlass.currentSurface(palette)
     } else {
         palette.page
     }
@@ -215,11 +200,11 @@ private fun LightRailExpanded(
     val groupExpandedMap = remember { mutableStateMapOf<String, Boolean>() }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // 1. 顶部品牌区（保留 [V] VENERA）
+        // 1. 顶部轻量化品牌区
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 14.dp, end = 12.dp, top = 14.dp, bottom = 10.dp),
+                .padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Image(
@@ -227,123 +212,106 @@ private fun LightRailExpanded(
                 contentDescription = null,
                 contentScale = androidx.compose.ui.layout.ContentScale.Fit,
                 modifier = Modifier
-                    .size(28.dp)
-                    .clip(RoundedCornerShape(8.dp)),
+                    .size(22.dp)
+                    .clip(RoundedCornerShape(6.dp)),
             )
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(8.dp))
             Text(
                 "VCOMIC",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.8.sp,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.6.sp,
                 color = LightRailTokens.ink1,
             )
         }
 
-        // 2. 主导航区（4 项核心入口）：与品牌区留出一段呼吸距离
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 8.dp, end = 8.dp, top = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            VeneraNavTab.entries.forEach { tab ->
-                if (tab == VeneraNavTab.EXPLORE) return@forEach
-                val selected = !anySecondarySelected && tab == currentTab
-                MacNavRow(
-                    rowHeight = 36.dp,
-                    icon = { LightTabIcon(tab, selected = selected, size = 18.dp) },
-                    title = if (tab == VeneraNavTab.SEARCH) "漫画搜索" else tab.title,
-                    selected = selected,
-                    onClick = { if (!selected) { ux.hapticTap(); onTabSelected(tab) } },
-                )
-            }
-        }
+        // 2. 主导航区（2×2 Bento 磁贴网格）
+        DesktopRailBentoGrid(
+            currentTab = currentTab,
+            anySecondarySelected = anySecondarySelected,
+            onTabSelected = onTabSelected,
+        )
 
-        MacDivider()
-
-        // 3. 中间可折叠分组区 + 桌宠区
+        // 3. 下半区容器：滚动列表与桌宠铺满，底部叠放真 Haze 虚化底坞
+        val dockHazeState = rememberHazeState()
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
         ) {
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(start = 8.dp, end = 8.dp, bottom = if (petVisible) 168.dp else 12.dp),
+                    .hazeSource(dockHazeState, zIndex = 0f),
             ) {
-                secondaryGroups.forEach { group ->
-                    if (group.title.isBlank()) {
-                        group.items.forEach { item ->
-                            MacNavRow(
-                                rowHeight = 34.dp,
-                                icon = {
-                                    Icon(
-                                        item.icon,
-                                        contentDescription = null,
-                                        tint = if (item.selected) LightRailTokens.accentIcon else LightRailTokens.ink2,
-                                        modifier = Modifier.size(17.dp),
-                                    )
-                                },
-                                title = item.title,
-                                selected = item.selected,
-                                onClick = { if (!item.selected) { ux.hapticTap(); item.onClick() } },
-                            )
-                        }
-                    } else {
-                        val isGroupExpanded = groupExpandedMap[group.title] ?: true
-                        MacCollapsibleGroup(
-                            title = group.title,
-                            expanded = isGroupExpanded,
-                            onToggle = {
-                                ux.hapticTap()
-                                groupExpandedMap[group.title] = !isGroupExpanded
-                            },
-                        ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = if (petVisible) 298.dp else 166.dp),
+                ) {
+                    secondaryGroups.forEach { group ->
+                        if (group.title.isBlank()) {
                             group.items.forEach { item ->
-                                MacNavRow(
-                                    rowHeight = 34.dp,
-                                    icon = {
-                                        Icon(
-                                            item.icon,
-                                            contentDescription = null,
-                                            tint = if (item.selected) LightRailTokens.accentIcon else LightRailTokens.ink2,
-                                            modifier = Modifier.size(17.dp),
-                                        )
-                                    },
+                                DesktopRailMonoNavRow(
+                                    icon = item.icon,
                                     title = item.title,
                                     selected = item.selected,
                                     onClick = { if (!item.selected) { ux.hapticTap(); item.onClick() } },
                                 )
                             }
+                        } else {
+                            val isGroupExpanded = groupExpandedMap[group.title] ?: true
+                            MacCollapsibleGroup(
+                                title = group.title,
+                                expanded = isGroupExpanded,
+                                onToggle = {
+                                    ux.hapticTap()
+                                    groupExpandedMap[group.title] = !isGroupExpanded
+                                },
+                            ) {
+                                group.items.forEach { item ->
+                                    DesktopRailMonoNavRow(
+                                        icon = item.icon,
+                                        title = item.title,
+                                        selected = item.selected,
+                                        onClick = { if (!item.selected) { ux.hapticTap(); item.onClick() } },
+                                    )
+                                }
+                            }
                         }
                     }
                 }
+
+                // 4. 桌宠区（受外观设置开关控制，站立在天象开关正上方）
+                if (petVisible) {
+                    DesktopRailPetZone(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 152.dp),
+                    )
+                }
             }
 
-            // 4. 桌宠区（受外观设置开关控制）
-            if (petVisible) {
-                MacPetZone(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 6.dp),
+            // 5. 底部堆叠区：星穹实时天气昼夜开关 + 悬浮双层身份底坞
+            Column(
+                modifier = Modifier.align(Alignment.BottomCenter),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                DesktopRailThemeSwitch(expanded = true)
+                DesktopRailFloatingDock(
+                    downloadActivity = downloadActivity,
+                    onDownloadActivityClick = onDownloadActivityClick,
+                    downloadsSelected = downloadsSelected,
+                    accountCard = accountCard,
+                    onAccountCardClick = onAccountCardClick,
+                    onSettingsSelected = onSettingsSelected,
+                    settingsSelected = settingsSelected,
+                    onCollapse = onCollapse,
+                    hazeState = dockHazeState,
                 )
             }
         }
-
-        // 5. 极简单行底栏（46dp）
-        MacFooterBar(
-            downloadActivity = downloadActivity,
-            onDownloadActivityClick = onDownloadActivityClick,
-            downloadsSelected = downloadsSelected,
-            accountCard = accountCard,
-            onAccountCardClick = onAccountCardClick,
-            onSettingsSelected = onSettingsSelected,
-            settingsSelected = settingsSelected,
-            onCollapse = onCollapse,
-        )
     }
 }
 
@@ -362,38 +330,36 @@ private fun MacCollapsibleGroup(
         label = "GroupChevron",
     )
 
-    Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
+        // 分组标题左缘与下方条目图标左缘对齐，小箭头置右。
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(28.dp)
                 .clip(RoundedCornerShape(6.dp))
-                .background(if (hovered) LightRailTokens.hover else Color.Transparent)
                 .clickable(interactionSource = interaction, indication = null, onClick = onToggle)
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = 10.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Text(
+                text = title,
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = if (hovered) LightRailTokens.ink2 else LightRailTokens.ink3,
+                maxLines = 1,
+            )
+            Spacer(Modifier.width(4.dp))
             Icon(
                 imageVector = Icons.Rounded.KeyboardArrowDown,
                 contentDescription = null,
                 tint = if (hovered) LightRailTokens.ink2 else LightRailTokens.ink3,
                 modifier = Modifier
-                    .size(15.dp)
+                    .size(14.dp)
                     .graphicsLayer { rotationZ = chevronRotation },
-            )
-            Spacer(Modifier.width(5.dp))
-            Text(
-                text = title,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = if (hovered) LightRailTokens.ink2 else LightRailTokens.ink3,
-                maxLines = 1,
             )
         }
         AnimatedVisibility(
             visible = expanded,
-            enter = expandVertically(tween(200, easing = FastOutSlowInEasing)) + fadeIn(tween(160)),
-            exit = shrinkVertically(tween(180, easing = FastOutSlowInEasing)) + fadeOut(tween(120)),
+            enter = expandVertically(tween(180, easing = FastOutSlowInEasing)) + fadeIn(tween(140)),
+            exit = shrinkVertically(tween(160, easing = FastOutSlowInEasing)) + fadeOut(tween(110)),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
@@ -406,224 +372,34 @@ private fun MacCollapsibleGroup(
 }
 
 @Composable
-private fun MacPetZone(modifier: Modifier = Modifier) {
-    // 暂注释 PetFloat 无限浮动动画：持续驱动 Modifier.offset 每帧重组与全窗 GPU 重绘，导致空载单核高占用。
-    // val infiniteTransition = rememberInfiniteTransition(label = "PetFloat")
-    // val floatOffset by infiniteTransition.animateFloat(
-    //     initialValue = 0f,
-    //     targetValue = -3f,
-    //     animationSpec = infiniteRepeatable(
-    //         animation = tween(durationMillis = 2100, easing = FastOutSlowInEasing),
-    //         repeatMode = RepeatMode.Reverse,
-    //     ),
-    //     label = "PetFloatY",
-    // )
-    Box(
-        modifier = modifier.fillMaxWidth(),
-        contentAlignment = Alignment.BottomCenter,
-    ) {
-        // 脚底淡紫色环境光斑
-        Box(
-            modifier = Modifier
-                .padding(bottom = 4.dp)
-                .size(width = 96.dp, height = 20.dp)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(LightRailTokens.accent.copy(alpha = 0.24f), Color.Transparent),
-                    ),
-                    shape = CircleShape,
-                )
-        )
-        DesktopPetSlot()
-    }
-}
-
-@Composable
-private fun MacFooterBar(
-    downloadActivity: VeneraSideBarDownloadActivity?,
-    onDownloadActivityClick: (() -> Unit)?,
-    downloadsSelected: Boolean,
-    accountCard: VeneraSideBarAccountCard?,
-    onAccountCardClick: (() -> Unit)?,
-    onSettingsSelected: (() -> Unit)?,
-    settingsSelected: Boolean,
-    onCollapse: () -> Unit,
-) {
-    val ux = LocalUxPlatformServices.current
-    val downloadAnchor = LocalVeneraSideBarDownloadAnchor.current
-    val anchorPopKey = downloadAnchor?.popTick?.value ?: 0
-    val anchorPopScale = remember { Animatable(1f) }
-    LaunchedEffect(anchorPopKey) {
-        if (anchorPopKey > 0) {
-            anchorPopScale.animateTo(1.32f, tween(110))
-            anchorPopScale.animateTo(1f, spring(dampingRatio = 0.45f, stiffness = 850f))
-        }
-    }
-    val flyEntryReporter: Modifier = if (downloadAnchor != null) {
-        Modifier.onGloballyPositioned { downloadAnchor.boundsInRoot.value = it.boundsInRoot() }
-    } else {
-        Modifier
-    }
-
-    val activeCount = downloadActivity?.activeCount ?: 0
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(52.dp)
-            // 只留一丝压暗做图标衬底，不再叠 18% 黑——否则底条脱离玻璃、看着像实板。
-            .background(if (LightRailTokens.dark) Color(0x0F000000) else Color(0x05000000)),
-    ) {
-        // 顶边分割线 / 活跃下载进度光带
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(LightRailTokens.hairline),
-        )
-        if (activeCount > 0) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .fillMaxWidth(0.68f)
-                    .height(1.5.dp)
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(Color.Transparent, LightRailTokens.accent, LightRailTokens.accentIcon),
-                        )
-                    ),
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            // 折叠钮钉在底栏最左：与收起态竖列最底那颗展开钮同一纵线，收起/展开时按钮不横跳。
-            MacFooterIconButton(
-                icon = Icons.AutoMirrored.Outlined.ViewSidebar,
-                contentDescription = "折叠导航栏",
-                selected = false,
-                onClick = { ux.hapticTap(); onCollapse() },
-            )
-            // 左侧：头像 + 用户名
-            if (accountCard != null && onAccountCardClick != null) {
-                val chipInteraction = remember { MutableInteractionSource() }
-                val chipHovered by chipInteraction.collectIsHoveredAsState()
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(36.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (chipHovered) LightRailTokens.hover else Color.Transparent)
-                        .clickable(interactionSource = chipInteraction, indication = null) {
-                            ux.hapticTap()
-                            onAccountCardClick()
-                        }
-                        .padding(horizontal = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(modifier = Modifier.size(28.dp)) {
-                        LightAvatar(accountCard, size = 28.dp)
-                        if (accountCard.logged) {
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(LightRailTokens.statusOnline)
-                                    .border(1.5.dp, Color(0xFF18191E), CircleShape),
-                            )
-                        }
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = accountCard.name,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = LightRailTokens.ink1,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            } else {
-                Spacer(Modifier.weight(1f))
-            }
-
-            // 右侧：下载 + 设置
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                if (downloadActivity != null && onDownloadActivityClick != null) {
-                    MacFooterIconButton(
-                        icon = Icons.Outlined.Download,
-                        contentDescription = "下载与本地",
-                        selected = downloadsSelected,
-                        badgeCount = activeCount,
-                        badgeScale = anchorPopScale.value,
-                        modifier = flyEntryReporter,
-                        onClick = { ux.hapticTap(); onDownloadActivityClick() },
-                    )
-                }
-                if (onSettingsSelected != null) {
-                    MacFooterIconButton(
-                        icon = Icons.Outlined.Settings,
-                        contentDescription = "设置",
-                        selected = settingsSelected,
-                        onClick = { ux.hapticTap(); onSettingsSelected() },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun MacFooterIconButton(
     icon: ImageVector,
     contentDescription: String,
     selected: Boolean,
     badgeCount: Int = 0,
-    badgeScale: Float = 1f,
-    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
+    val palette = LocalChromePalette.current
+    val glassActive = rememberDesktopRailGlassActive()
     val interaction = remember { MutableInteractionSource() }
     val hovered by interaction.collectIsHoveredAsState()
-    val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.92f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 600f),
-        label = "FooterBtnScale",
-    )
 
     Box(
-        modifier = modifier
+        modifier = Modifier
             .size(32.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
+            .background(desktopRailGlassSurface(palette, glassActive, selected, hovered), FooterIconShape)
             .clip(FooterIconShape)
-            .background(
-                when {
-                    selected -> LightRailTokens.pill
-                    hovered -> LightRailTokens.hover
-                    else -> Color.Transparent
-                }
-            )
             .clickable(interactionSource = interaction, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = if (selected || hovered) LightRailTokens.ink1 else LightRailTokens.ink2,
+            tint = when {
+                selected -> LightRailTokens.accent
+                hovered -> LightRailTokens.ink1
+                else -> LightRailTokens.ink2
+            },
             modifier = Modifier.size(18.dp),
         )
         if (badgeCount > 0) {
@@ -631,10 +407,6 @@ private fun MacFooterIconButton(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(top = 1.dp, end = 1.dp)
-                    .graphicsLayer {
-                        scaleX = badgeScale
-                        scaleY = badgeScale
-                    }
                     .background(LightRailTokens.accent, CircleShape)
                     .padding(horizontal = 3.5.dp, vertical = 0.5.dp),
                 contentAlignment = Alignment.Center,
@@ -727,14 +499,14 @@ private fun LightRailCollapsed(
             }
         }
 
-        MacDivider()
+        Spacer(Modifier.height(10.dp))
 
         tierItems.forEach { item ->
             LightRailCell(selected = item.selected, onClick = { if (!item.selected) { ux.hapticTap(); item.onClick() } }) {
                 Icon(
-                    item.icon,
+                    imageVector = item.icon,
                     contentDescription = item.title,
-                    tint = if (item.selected) LightRailTokens.accentIcon else LightRailTokens.ink2,
+                    tint = if (item.selected) LightRailTokens.accent else LightRailTokens.ink2,
                     modifier = Modifier.size(18.dp),
                 )
             }
@@ -753,7 +525,7 @@ private fun LightRailCollapsed(
                 Icon(
                     channel.icon,
                     contentDescription = channel.title,
-                    tint = if (channelActive) LightRailTokens.accentIcon.copy(alpha = 0.75f) else LightRailTokens.ink2,
+                    tint = if (channelActive) LightRailTokens.accent else LightRailTokens.ink2,
                     modifier = Modifier.size(18.dp),
                 )
                 if (pinned) {
@@ -785,6 +557,10 @@ private fun LightRailCollapsed(
             }
         }
 
+        DesktopRailThemeSwitch(
+            expanded = false,
+            modifier = Modifier.padding(bottom = 6.dp),
+        )
         if (accountCard != null && onAccountCardClick != null) {
             Box(
                 modifier = Modifier
@@ -829,84 +605,6 @@ private fun LightRailCollapsed(
 // ────────────────────────── 基础组件 ──────────────────────────
 
 @Composable
-private fun MacNavRow(
-    rowHeight: Dp,
-    icon: @Composable () -> Unit,
-    title: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    val interaction = remember { MutableInteractionSource() }
-    val hovered by interaction.collectIsHoveredAsState()
-    val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.96f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 600f),
-        label = "NavRowScale",
-    )
-    val iconScale by animateFloatAsState(
-        targetValue = if (hovered && !selected) 1.06f else 1f,
-        animationSpec = spring(dampingRatio = 0.65f, stiffness = 500f),
-        label = "NavIconScale",
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(rowHeight)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(NavRowShape)
-            .background(
-                when {
-                    selected -> LightRailTokens.pill
-                    hovered -> LightRailTokens.hover
-                    else -> Color.Transparent
-                }
-            )
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
-    ) {
-        if (selected) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .width(3.dp)
-                    .height(rowHeight - 14.dp)
-                    .clip(RoundedCornerShape(topEnd = 3.dp, bottomEnd = 3.dp))
-                    .background(LightRailTokens.accent),
-            )
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier.graphicsLayer {
-                    scaleX = iconScale
-                    scaleY = iconScale
-                },
-            ) {
-                icon()
-            }
-            Spacer(Modifier.width(9.dp))
-            Text(
-                text = title,
-                fontSize = if (rowHeight >= 36.dp) 14.sp else 13.5.sp,
-                fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
-                color = if (selected || hovered) LightRailTokens.ink1 else LightRailTokens.ink2,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-}
-
-@Composable
 private fun LightRailCell(
     selected: Boolean,
     onClick: () -> Unit,
@@ -916,34 +614,21 @@ private fun LightRailCell(
     onHover: ((Boolean) -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
+    val palette = LocalChromePalette.current
+    val glassActive = rememberDesktopRailGlassActive()
     val interaction = remember { MutableInteractionSource() }
+    val cellShape = RoundedCornerShape(9.dp)
+    val cellBg = desktopRailGlassSurface(palette, glassActive, selected, hovered || hint)
     var mod = Modifier
         .padding(vertical = 2.dp)
         .size(40.dp)
-        .clip(RoundedCornerShape(9.dp))
-        .background(
-            when {
-                selected -> LightRailTokens.pill
-                hint -> LightRailTokens.accent.copy(alpha = 0.10f)
-                hovered -> LightRailTokens.hover
-                else -> Color.Transparent
-            }
-        )
+        .background(cellBg, cellShape)
+        .clip(cellShape)
         .clickable(interactionSource = interaction, indication = null, onClick = onClick)
     if (onHover != null) {
         mod = mod.hoverable(interaction)
     }
     Box(modifier = mod, contentAlignment = Alignment.Center) {
-        if (selected) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .width(3.dp)
-                    .height(18.dp)
-                    .clip(RoundedCornerShape(topEnd = 3.dp, bottomEnd = 3.dp))
-                    .background(LightRailTokens.accent),
-            )
-        }
         content()
     }
 }
@@ -953,19 +638,8 @@ private fun LightTabIcon(tab: VeneraNavTab, selected: Boolean, size: Dp = 15.dp)
     Icon(
         imageVector = if (selected) tab.filledIcon else tab.outlinedIcon,
         contentDescription = tab.title,
-        tint = if (selected) LightRailTokens.accentIcon else LightRailTokens.ink2,
+        tint = if (selected) LightRailTokens.accent else LightRailTokens.ink2,
         modifier = Modifier.size(size),
-    )
-}
-
-@Composable
-private fun MacDivider() {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-            .height(1.dp)
-            .background(LightRailTokens.hairline)
     )
 }
 
@@ -1037,7 +711,7 @@ private fun LightChannelPopup(
                     Icon(
                         item.icon,
                         contentDescription = null,
-                        tint = if (item.selected) LightRailTokens.accentIcon else LightRailTokens.ink2,
+                        tint = if (item.selected) LightRailTokens.ink1 else LightRailTokens.ink2,
                         modifier = Modifier.size(15.dp),
                     )
                     Spacer(Modifier.width(8.dp))

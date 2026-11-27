@@ -77,6 +77,9 @@ import com.venera.compose.ui.tokens.VeneraCardEnter
 import com.venera.compose.ui.tokens.VeneraTokens
 import com.venera.desktop.app.LocalShellBackHandled
 import com.venera.desktop.gallery.data.DesktopSourceIcons
+import com.venera.desktop.ui.DesktopButton
+import com.venera.desktop.ui.DesktopButtonSize
+import com.venera.desktop.ui.DesktopButtonVariant
 import com.venera.desktop.ui.DesktopPopUpButton
 import com.venera.desktop.ui.DesktopPushButton
 import com.venera.desktop.ui.DesktopSegmented
@@ -118,6 +121,14 @@ internal fun DesktopSourceManageScreen(
     onReorderSources: ((ordered: List<String>, enabled: Set<String>) -> Unit)? = null,
     /** 导入 .js（文件选择 → 先验装载 → 落用户源目录）。null = 不摆。 */
     onImportSource: (() -> Unit)? = null,
+    /** 打开在线站点源库弹窗。null = 不摆。 */
+    onOpenSourceStore: (() -> Unit)? = null,
+    /** 打开独立「站点延迟检测」页面。null = 不摆。 */
+    onOpenLatencyMonitor: (() -> Unit)? = null,
+    /** 主动触发一次当前源仓库检查与同步更新。null = 不摆。 */
+    onCheckSourceUpdate: (() -> Unit)? = null,
+    /** 页头下方源仓库切换条状态。null = 不摆（兼容既有测试调用）。 */
+    repoBar: DesktopSourceRepoBarUi? = null,
     /** 导入正在进行（添加站点的把手置灰）。 */
     updateBusy: Boolean = false,
     /** 导入/更新的回话。 */
@@ -192,8 +203,14 @@ internal fun DesktopSourceManageScreen(
                 addMenuOpen = addMenuOpen,
                 onDismissAddMenu = { addMenuOpen = false },
                 onImportSource = onImportSource,
+                onOpenSourceStore = onOpenSourceStore,
+                onOpenLatencyMonitor = onOpenLatencyMonitor,
+                onCheckSourceUpdate = onCheckSourceUpdate,
                 onBack = onBack,
             )
+            if (repoBar != null) {
+                SourceRepoBar(state = repoBar)
+            }
 
             Column(
                 modifier = Modifier
@@ -253,6 +270,7 @@ internal fun DesktopSourceManageScreen(
                                         row = row,
                                         onOpen = { openSiteOrDrawer(row.key, onOpenSite, onSelectedChange) },
                                         onManage = { onSelectedChange(row.key) },
+                                        onToggle = { onToggleSource(row.key, !row.enabled) },
                                         modifier = Modifier.fillMaxWidth(),
                                     )
                                 }
@@ -304,6 +322,7 @@ internal fun DesktopSourceManageScreen(
                                             row = row,
                                             onOpen = { openSiteOrDrawer(row.key, onOpenSite, onSelectedChange) },
                                             onManage = { onSelectedChange(row.key) },
+                                            onToggle = { onToggleSource(row.key, !row.enabled) },
                                             modifier = Modifier.fillMaxWidth(),
                                         )
                                     }
@@ -436,10 +455,13 @@ private fun WallHeader(
     addMenuOpen: Boolean,
     onDismissAddMenu: () -> Unit,
     onImportSource: (() -> Unit)?,
+    onOpenSourceStore: (() -> Unit)?,
+    onOpenLatencyMonitor: (() -> Unit)?,
+    onCheckSourceUpdate: (() -> Unit)?,
     onBack: () -> Unit,
 ) {
     val tokens = VeneraTokens
-    Column(modifier = Modifier.padding(start = 28.dp, end = 28.dp, top = 22.dp, bottom = 20.dp)) {
+    Column(modifier = Modifier.padding(start = 28.dp, end = 28.dp, top = 22.dp, bottom = 14.dp)) {
         if (!LocalShellBackHandled.current) {
             com.venera.desktop.ui.DesktopBackButton(onClick = onBack)
             Spacer(Modifier.height(8.dp))
@@ -466,6 +488,14 @@ private fun WallHeader(
                     selectedIndex = filter.ordinal,
                     onSelect = { i -> onFilterChange(Filter.entries[i]) },
                 )
+                if (onOpenLatencyMonitor != null) {
+                    DesktopButton(
+                        text = "延迟检测",
+                        onClick = onOpenLatencyMonitor,
+                        size = DesktopButtonSize.Medium,
+                        variant = DesktopButtonVariant.Secondary,
+                    )
+                }
                 Box {
                     AccentButton(
                         label = "添加站点",
@@ -477,10 +507,22 @@ private fun WallHeader(
                         expanded = addMenuOpen,
                         onDismissRequest = onDismissAddMenu,
                     ) {
+                        if (onOpenSourceStore != null) {
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text("浏览源库", fontSize = VeneraType.body.size) },
+                                onClick = { onDismissAddMenu(); onOpenSourceStore() },
+                            )
+                        }
                         if (onImportSource != null) {
                             androidx.compose.material3.DropdownMenuItem(
                                 text = { Text("导入站点脚本", fontSize = VeneraType.body.size) },
                                 onClick = { onDismissAddMenu(); onImportSource() },
+                            )
+                        }
+                        if (onCheckSourceUpdate != null) {
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text("检查同步更新", fontSize = VeneraType.body.size) },
+                                onClick = { onDismissAddMenu(); onCheckSourceUpdate() },
                             )
                         }
                     }
@@ -500,9 +542,9 @@ private fun SearchField(
         value = value,
         onValueChange = onValueChange,
         onSearch = {},
-        modifier = Modifier
-            .width(172.dp)
-            .semantics { contentDescription = "站点搜索框" },
+        modifier = Modifier.semantics { contentDescription = "站点搜索框" },
+        collapsedWidth = 172.dp,
+        expandedWidth = 240.dp,
         placeholder = "搜站点",
     )
 }
@@ -539,6 +581,7 @@ private fun SiteHeroCard(
     row: DesktopSourceRowUi,
     onOpen: () -> Unit,
     onManage: () -> Unit,
+    onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val tokens = VeneraTokens
@@ -584,9 +627,11 @@ private fun SiteHeroCard(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (row.loggedIn) StatusBadge("已登录", positive = true)
                 if (requiresProxy(row.key)) StatusBadge("需代理")
+                if (row.originLabel != "内置站点") StatusBadge(row.originLabel)
                 Text(
-                    // 稿 §2.3：副行念「内置站点 · N 项设置」；N 来自源脚本 settings 块的声明项数。
-                    text = "内置站点" + if (row.settingsCount > 0) " · ${row.settingsCount} 项设置" else "",
+                    // 稿 §2.3：副行念「来源 · N 项设置」；N 来自源脚本 settings 块的声明项数。
+                    text = (if (row.originLabel == "内置站点") "内置站点" else "已装载") +
+                        if (row.settingsCount > 0) " · ${row.settingsCount} 项设置" else "",
                     fontSize = VeneraType.aux.size, lineHeight = VeneraType.aux.lineHeight,
                     color = tokens.color.textTertiary,
                 )
@@ -599,16 +644,27 @@ private fun SiteHeroCard(
                 color = if (hovered) tokens.color.primary else tokens.color.textTertiary,
             )
         }
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .size(26.dp)
-                .graphicsLayer { alpha = if (hovered) 1f else 0.5f }
-                .clickable(onClick = onManage)
-                .semantics { contentDescription = "管理 ${row.key}" },
-            contentAlignment = Alignment.Center,
+        Row(
+            modifier = Modifier.align(Alignment.TopEnd),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text("⋯", fontSize = 15.sp, color = tokens.color.textTertiary)
+            com.venera.desktop.ui.DesktopSwitch(
+                checked = row.enabled,
+                onCheckedChange = { onToggle() },
+                enabled = row.canDisable,
+                modifier = Modifier.semantics { contentDescription = "站点开关 ${row.key}" },
+            )
+            Box(
+                modifier = Modifier
+                    .size(26.dp)
+                    .graphicsLayer { alpha = if (hovered) 1f else 0.5f }
+                    .clickable(onClick = onManage)
+                    .semantics { contentDescription = "管理 ${row.key}" },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("⋯", fontSize = 15.sp, color = tokens.color.textTertiary)
+            }
         }
     }
 }
@@ -619,6 +675,7 @@ private fun SiteCard(
     row: DesktopSourceRowUi,
     onOpen: () -> Unit,
     onManage: () -> Unit,
+    onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val tokens = VeneraTokens
@@ -665,13 +722,23 @@ private fun SiteCard(
                     ) {
                         if (row.loggedIn) StatusBadge("已登录", positive = true)
                         if (requiresProxy(row.key)) StatusBadge("需代理")
-                        Text(
-                            text = "内置站点",
-                            fontSize = 11.sp, lineHeight = 15.sp,
-                            color = tokens.color.textTertiary,
-                        )
+                        if (row.originLabel != "内置站点") {
+                            StatusBadge(row.originLabel)
+                        } else {
+                            Text(
+                                text = "内置站点",
+                                fontSize = 11.sp, lineHeight = 15.sp,
+                                color = tokens.color.textTertiary,
+                            )
+                        }
                     }
                 }
+                com.venera.desktop.ui.DesktopSwitch(
+                    checked = row.enabled,
+                    onCheckedChange = { onToggle() },
+                    enabled = row.canDisable,
+                    modifier = Modifier.semantics { contentDescription = "站点开关 ${row.key}" },
+                )
                 Box(
                     modifier = Modifier
                         .size(26.dp)
@@ -795,7 +862,7 @@ private fun Modifier.dashedBorder(
 
 /** 图标槽：有站方图标用真图，没有就写显示名首字。 */
 @Composable
-private fun SiteIconSlot(
+internal fun SiteIconSlot(
     key: String,
     title: String,
     size: androidx.compose.ui.unit.Dp,
@@ -923,8 +990,8 @@ private fun SiteDrawer(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (row.overridden) StatusBadge("已修改")
-                    // 稿 869-873：内置站点徽章 + 版本 + 站点主机，三段各自可缺（host 空就不摆）。
-                    StatusBadge("内置站点")
+                    // 稿 869-873：来源徽章 + 版本 + 站点主机，三段各自可缺（host 空就不摆）。
+                    StatusBadge(row.originLabel)
                     if (requiresProxy(row.key)) StatusBadge("需代理")
                     if (row.version.isNotBlank()) {
                         Text(
@@ -1092,11 +1159,12 @@ private fun SiteDrawer(
                     fontWeight = FontWeight.SemiBold,
                     color = tokens.color.textPrimary,
                 )
+                val scriptOrigin = if (row.originLabel == "内置站点") "内置" else row.originLabel
                 Text(
                     text = if (row.version.isNotBlank()) {
-                        com.venera.desktop.settings.DesktopI18n.t("v${row.version} · 内置", "v${row.version} · Built-in")
+                        com.venera.desktop.settings.DesktopI18n.t("v${row.version} · $scriptOrigin", "v${row.version} · $scriptOrigin")
                     } else {
-                        com.venera.desktop.settings.DesktopI18n.t("内置", "Built-in")
+                        scriptOrigin
                     },
                     fontSize = 11.sp, lineHeight = 16.sp,
                     color = tokens.color.textTertiary,
@@ -1110,7 +1178,12 @@ private fun SiteDrawer(
                     }
                     if (row.overridden && onClearSourceOverride != null) {
                         DesktopPushButton(onClick = { onClearSourceOverride(row.key) }) {
-                            Text(com.venera.desktop.settings.DesktopI18n.t("恢复内置脚本", "Restore Built-in"), fontSize = VeneraType.aux.size, lineHeight = VeneraType.aux.lineHeight)
+                            val revertLabel = if (row.isBundled) {
+                                com.venera.desktop.settings.DesktopI18n.t("恢复内置脚本", "Restore Built-in")
+                            } else {
+                                com.venera.desktop.settings.DesktopI18n.t("移除脚本", "Remove Script")
+                            }
+                            Text(revertLabel, fontSize = VeneraType.aux.size, lineHeight = VeneraType.aux.lineHeight)
                         }
                     }
                 }
@@ -1305,6 +1378,12 @@ data class DesktopSourceRowUi(
     val canDisable: Boolean = true,
     /** 盘上那颗罐里真有「已登录」那一格。 */
     val loggedIn: Boolean = false,
+    /** 来源标注（内置站点 / 官方源 / laincat/vensrc / 本地脚本）。 */
+    val originLabel: String = "内置站点",
+    /** 最近一次落盘登记的仓库 ID（null = 未登记或未覆写的随包源）。 */
+    val repoId: String? = null,
+    /** 是否存在随包原始版本（用于区分抽屉显示「恢复内置脚本」还是「移除脚本」）。 */
+    val isBundled: Boolean = true,
 )
 
 /**

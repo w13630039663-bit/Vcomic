@@ -1,6 +1,7 @@
 package com.venera.desktop.gallery.ui
 
 import com.venera.desktop.app.VeneraDesktopLargeScreen
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import io.github.composefluent.darkColors
@@ -256,18 +257,59 @@ internal data class DesktopChromePalette(
     val elevated: Color,
     /** 封面暗玻璃徽章底（55% 近黑，白字恒可读）。 */
     val glassDark: Color,
+    /** 侧栏导航项选中胶囊底：浅色轻灰半透 / 深色柔和提亮。 */
+    val railSelected: Color = pill,
 )
 
 /**
  * 三块玻璃（内容区 / 侧栏 / 顶栏）的唯一取值点。
  *
- * **只保留一个函数、一个值**：曾给侧栏开过 rail() 特例（不同基色 + 不同 alpha），
- * 结果就是三块深浅不一、看着割裂。要调亮/调透就改这里，三处一起变。
- * 深色基色用 raised（比 page 亮一档）而非 page，整体不至于沉成黑板。
+ * **只保留一个函数、一个值**：全窗保持同一透明度。
+ * 浅色使用高明度冷白避免叠加系统材质后发灰；深色使用抬高一档的 raised 保持透感同时防止背后杂字穿透。
  */
 internal object DesktopGlass {
     fun surface(p: DesktopChromePalette): Color =
-        (if (p.dark) p.raised else p.page).copy(alpha = if (p.dark) 0.20f else 0.72f)
+        if (p.dark) Color(0xFF14161C).copy(alpha = 0.44f) else Color.White.copy(alpha = 0.54f)
+
+    /**
+     * 按当前模糊效果返回全窗统一表面色：
+     * Acrylic 沿用高对比度平衡透度；Mica 本身已平滑取样壁纸色调，改用极轻透层以完整放行云母质感。
+     */
+    @Composable
+    fun currentSurface(p: DesktopChromePalette): Color {
+        val mica = com.venera.desktop.settings.DesktopBackdropMode.isMicaEffect()
+        return if (mica) {
+            if (p.dark) Color(0xFF24272E).copy(alpha = 0.16f) else Color.White.copy(alpha = 0.08f)
+        } else {
+            surface(p)
+        }
+    }
+}
+
+/** 侧栏二级分组微图标底色表（统一收编在令牌层）。 */
+internal object DesktopRailBadgeColors {
+    private val blue = Color(0xFF3B82F6)
+    private val orange = Color(0xFFF97316)
+    private val rose = Color(0xFFF43F5E)
+    private val teal = Color(0xFF14B8A6)
+    private val purple = Color(0xFF8B5CF6)
+    private val indigo = Color(0xFF6366F1)
+    private val amber = Color(0xFFD97706)
+    private val slate = Color(0xFF64748B)
+
+    fun badgeFor(key: String): Color = when (key) {
+        "reverse-search" -> blue
+        "daily" -> orange
+        "gallery-saved" -> rose
+        "followed-artists" -> teal
+        "collections" -> purple
+        "pixiv" -> blue
+        "history" -> indigo
+        "stats" -> amber
+        "sources" -> slate
+        "backup" -> teal
+        else -> slate
+    }
 }
 
 internal object DesktopChromeColors {
@@ -281,32 +323,27 @@ internal object DesktopChromeColors {
         return if (pureBlack) PureBlack else Dark
     }
 
-    /** 浅色档：LightRailTokens / HomeLightTokens 原值。 */
+    /** 浅色档：高明度纯白微透，兼顾通透光感与高对比可读性。 */
     val Light = DesktopChromePalette(
         dark = false,
-        // 浅色层次：底色压深一档，白卡才浮得起来（原 #F6F7F9 与纯白只差 9 级明度，卡片糊进底里）。
-        page = Color(0xFFEAEDF1),
-        // 浅色侧栏优化：0.38 的玻璃压在彩色壁纸上会透成"灰褐雾"，文字跟着发灰。
-        // 抬到 0.74（模糊实现不变，只调 tint 浓度）—— 浅色档要读成一块干净的浅面板。
-        railGlass = Color(0xFFFFFFFF).copy(alpha = 0.74f),
-        glassSheen = Color(0xFFFFFFFF).copy(alpha = 0.20f),
-        glassHazeTint = Color(0xFFFFFFFF).copy(alpha = 0.30f),
+        page = Color(0xFFF6F8FB),
+        railGlass = Color.White.copy(alpha = 0.54f),
+        glassSheen = Color(0xFFFFFFFF).copy(alpha = 0.24f),
+        glassHazeTint = Color(0xFFFFFFFF).copy(alpha = 0.35f),
         railLine = Color(0xFF1A1D21).copy(alpha = 0.09f),
         card = Color(0xFFFFFFFF),
         raised = Color(0xFFFFFFFF),
-        pill = Color(0xFFE4E9EF),
-        search = Color(0xFFE0E6EC),
+        pill = Color(0xFFE8ECF2),
+        search = Color(0xFFE4E9F0),
         ink1 = Color(0xFF1A1D21),
-        // 浅色文字加深：ink3 原 #9AA3AD 在浅底上 11-12sp 看着"发虚"（对比不足，
-        // 不是字体糊）。压到 #6F7883；ink2 同步略深一档。
-        ink2 = Color(0xFF4E5761),
-        ink3 = Color(0xFF6F7883),
+        ink2 = Color(0xFF384049),
+        ink3 = Color(0xFF5A636E),
         chrome = Color(0xFF3D454D),
         accent = Color(0xFF0A63F6),
         danger = Color(0xFFE81123),
         hairline = Color(0xFF1A1D21).copy(alpha = 0.06f),
         frame = Color(0xFF1A1D21).copy(alpha = 0.10f),
-        hover = Color(0xFF1A1D21).copy(alpha = 0.05f),
+        hover = Color(0xFF1A1D21).copy(alpha = 0.055f),
         brandStart = Color(0xFF3B82F6),
         brandEnd = Color(0xFF1D4ED8),
         heroStart = Color(0xFF37666C),
@@ -316,6 +353,7 @@ internal object DesktopChromeColors {
         segmentTrack = Color(0xFF787880).copy(alpha = 0.14f),
         elevated = Color(0xFFFFFFFF).copy(alpha = 0.92f),
         glassDark = Color(0xFF1C1C20).copy(alpha = 0.55f),
+        railSelected = Color(0xFF1A1D21).copy(alpha = 0.085f),
     )
 
     /** 深色档：只用上面五档阶梯 + 文字/强调既有值，不造新灰。 */
@@ -349,6 +387,7 @@ internal object DesktopChromeColors {
         segmentTrack = Color(0xFFFFFFFF).copy(alpha = 0.14f),
         elevated = DesktopTheme.SurfaceRaised,
         glassDark = Color(0xFF000000).copy(alpha = 0.62f),
+        railSelected = Color(0xFFFFFFFF).copy(alpha = 0.11f),
     )
 
     /** 纯黑档：针对 OLED 屏幕将窗底与主容器降为纯黑。 */
@@ -381,6 +420,7 @@ internal object DesktopChromeColors {
         segmentTrack = Color(0xFFFFFFFF).copy(alpha = 0.14f),
         elevated = Color(0xFF1E1E1E),
         glassDark = Color.Black.copy(alpha = 0.85f),
+        railSelected = Color(0xFFFFFFFF).copy(alpha = 0.12f),
     )
 
     /** 桌面端白色 surface 唯一出处：浅皮批原先在两个文件里写死 0xFFFFFFFF，统一收这里。 */

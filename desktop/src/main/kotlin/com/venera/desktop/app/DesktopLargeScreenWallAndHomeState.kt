@@ -73,12 +73,14 @@ import com.venera.desktop.gallery.ui.desktopGalleryWallFooter
 import com.venera.desktop.gallery.ui.desktopReaderModeOf
 import com.venera.desktop.gallery.ui.desktopReaderModeSeedNote
 import com.venera.desktop.settings.DesktopHomeSkin
+import com.venera.desktop.sourcemanage.DesktopSourceLatencyItem
 import com.venera.desktop.sourcemanage.DesktopSourceRowUi
 import com.venera.engineprobe.EngineSession
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** 首页源测速、统计、历史与阅读统计状态分组。 */
@@ -90,6 +92,8 @@ internal class DesktopHomeStatusSlice(
     val homeScope: CoroutineScope,
     val homeLines: List<Pair<String, String>>,
     val homeSourceRows: List<DesktopHomeSourceStatusRow>,
+    val latencyItems: List<DesktopSourceLatencyItem>,
+    val reprobeHosts: (List<String>) -> Unit,
     val historySourceName: String?,
     val homeHistory: DesktopHomeHistorySnapshot,
     val homeStats: DesktopHomeStats,
@@ -108,6 +112,7 @@ internal fun rememberDesktopHomeStatusSlice(
     currentTab: VeneraNavTab,
     route: DesktopRoute,
     historyTick: Int,
+    galleryPaths: PathProvider? = null,
 ): DesktopHomeStatusSlice {
     val homeLatencyByHost = remember { mutableStateMapOf<String, Long>() }
     val homeFailedHosts = remember { mutableStateMapOf<String, Long>() }
@@ -126,9 +131,8 @@ internal fun rememberDesktopHomeStatusSlice(
             (row.title.ifBlank { row.key }) to host
         }
     }
-    val homeVisible = currentTab == VeneraNavTab.HOME && route == DesktopRoute.Tab
-    val homeLines: List<Pair<String, String>> = remember(homeEnabledHosts, homeVisible) {
-        if (!homeVisible) emptyList() else listOf("pixiv" to "www.pixiv.net", "yande.re" to "yande.re") + homeEnabledHosts
+    val homeLines: List<Pair<String, String>> = remember(homeEnabledHosts) {
+        listOf("pixiv" to "www.pixiv.net", "yande.re" to "yande.re") + homeEnabledHosts
     }
     val homeSourceRows = homeLines.map { (name, host) ->
         val latency = homeLatencyByHost[host]
@@ -139,6 +143,74 @@ internal fun rememberDesktopHomeStatusSlice(
             latencyMs = latency,
             failed = latency == null && homeFailedHosts.containsKey(host),
         )
+    }
+
+    val allSourceHosts: Map<String, String> = remember(sourceRows, assetDir, overrideDir) {
+        sourceRows.associate { row ->
+            val h = row.host.ifBlank {
+                assetDir?.let { dir ->
+                    DesktopSourceNames.scriptOf(dir, row.key, overrideDir)?.let { DesktopSourceNames.apiHostOf(it) }
+                }.orEmpty()
+            }
+            row.key to h
+        }
+    }
+    val fixedGalleryLatency = listOf(
+        Triple("pixiv", "pixiv", "www.pixiv.net"),
+        Triple("yande", "yande.re", "yande.re"),
+    ).map { (k, name, host) ->
+        val latency = homeLatencyByHost[host]
+        DesktopSourceLatencyItem(
+            key = k,
+            name = name,
+            host = host,
+            originLabel = "画廊固定",
+            enabled = true,
+            requiresProxy = true,
+            probing = host in homeProbingHosts,
+            latencyMs = latency,
+            failed = latency == null && homeFailedHosts.containsKey(host),
+            canOpenSiteSettings = false,
+        )
+    }
+    val latencyItems: List<DesktopSourceLatencyItem> = fixedGalleryLatency + sourceRows.map { row ->
+        val host = allSourceHosts[row.key].orEmpty()
+        val latency = if (host.isBlank()) null else homeLatencyByHost[host]
+        DesktopSourceLatencyItem(
+            key = row.key,
+            name = row.title.ifBlank { row.key },
+            host = host,
+            originLabel = row.originLabel,
+            enabled = row.enabled,
+            requiresProxy = row.key in com.venera.desktop.platform.PROXY_REQUIRED_SOURCE_KEYS,
+            probing = host.isNotBlank() && host in homeProbingHosts,
+            latencyMs = latency,
+            failed = host.isNotBlank() && latency == null && homeFailedHosts.containsKey(host),
+            canOpenSiteSettings = true,
+        )
+    }
+    val reprobeHosts: (List<String>) -> Unit = { hosts ->
+        val unique = hosts.map { it.trim() }.filter { it.isNotBlank() }.distinct()
+        val stamp = System.currentTimeMillis()
+        val proxy = com.venera.desktop.gallery.data.DesktopSourceRepoPreferences.resolveProxy(galleryPaths)
+        unique.forEach { host ->
+            if (host !in homeProbingHosts) {
+                homeProbeStamp[host] = stamp
+                homeFailedHosts.remove(host)
+                homeProbingHosts.add(host)
+                homeScope.launch {
+                    val ms = com.venera.desktop.platform.DesktopSourceLatencyProbe.probe(host, proxy)
+                    homeProbingHosts.removeAll(listOf(host))
+                    if (ms != null) {
+                        homeLatencyByHost[host] = ms
+                        homeFailedHosts.remove(host)
+                    } else {
+                        homeLatencyByHost.remove(host)
+                        homeFailedHosts[host] = System.currentTimeMillis()
+                    }
+                }
+            }
+        }
     }
 
     val historySourceName: String? = sourceRows.firstOrNull { it.key == DESKTOP_EXPLORE_SOURCE }?.title
@@ -168,6 +240,8 @@ internal fun rememberDesktopHomeStatusSlice(
         homeScope = homeScope,
         homeLines = homeLines,
         homeSourceRows = homeSourceRows,
+        latencyItems = latencyItems,
+        reprobeHosts = reprobeHosts,
         historySourceName = historySourceName,
         homeHistory = homeHistory,
         homeStats = homeStats,

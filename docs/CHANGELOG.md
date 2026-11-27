@@ -9,6 +9,21 @@
 
 ## 新增功能（Features）
 
+- **2026-11-27 · 新增桌面端顶层像素互动伙伴（Pixel Buddy Overlay）与全窗逗猫棒指针，并默认关闭老侧栏小鱼桌宠**（`PixelBuddyOverlay.kt`、`PixelBuddySprites.kt`、`PixelBuddyCardPaintState.kt`、`PixelBuddyPaintParticles.kt`、`PixelBuddyAgentPhysics.kt`、`PixelBuddyPlayPhysics.kt`、`PixelBuddyQuickMenu.kt`、`PixelBuddyOverlayReactions.kt`、`DesktopPixelBuddyPrefs.kt`、`DesktopPixelBuddySettings.kt`、`DesktopSearchFieldEffects.kt`、`DesktopHomePane.kt`、`DesktopHomeLightScreen.kt`、`DesktopPetVisibility.kt`、`DesktopStartupBootstrap.kt`）
+  - **功能说明**：① 支持在设置页「像素伙伴」配置 1~3 只 2px 极简方块像素宠物（薰衣草紫猫 / 暖橘小方块 / 雾蓝小兔），在侧栏边界、顶栏底边与各页面卡片顶边巡逻、迎面贴贴与叠罗汉，具备落地压扁回弹、45° 拐角翻墙、甩尾巴/伸懒腰/扒边探头、长按顺毛挠下巴、拖拽甩飞与铲屎等交互及右键快捷胶囊菜单；② 接入搜索框实时拼字与搜索确认后的跨列踩台阶 + 多米诺光流点亮（滚动即刻收笔避让）；③ 接入画廊首页/瀑布流/等高流/每日热门、漫画搜索以及经典与浅色两套首页卡片；④ 接入 `DesktopPetCueBus` 全业务联动（搜空打盹 ZZZ、失败举锤敲重试按钮、收藏冒红心、取消收藏小汗滴、下载中举包裹搬砖与下完掉小鱼干、滚到底探头、深夜戴像素小睡帽、回窗迎接并带 `1.5s` 节流与专注保护）；⑤ 设置页与右键菜单开启「逗猫棒鼠标指针」后，软件窗体内指针直接替换为 16×16 放大版像素逗猫棒硬件光标，小家伙可跨卡片逐层追扑；⑥ 架构上采用 `ConcurrentHashMap` 无拷贝卡片注册（`1.5px` 抖动过滤）、闲置期零绘光流协程、`graphicsLayer` 位移热区、三级动态帧率与窗口失焦零耗电挂起；同时将老版「侧栏桌宠」默认改为关闭。
+
+- **2026-11-27 · 侧栏升级为悬浮感 Air Glass / Bento 卡片、实时天气服务与圆形扩散主题切换动效**（`VeneraLightRailSkin.kt`、`DesktopRailFloatingDock.kt`、`DesktopRailBentoSections.kt`、`DesktopRailWeatherService.kt`、`DesktopRailThemeSwitch.kt`、`DesktopRailThemeSwitchCanvas.kt`、`DesktopThemeRevealHost.kt`）
+  - **功能说明**：① 侧栏入口与分组升级为悬浮感卡片与底栏悬浮坞；② 接入轻量本地天气卡片与昼夜氛围感知；③ 新增圆形扩散揭幕动效切换浅/深色主题（`DesktopThemeRevealHost` + `DesktopRailThemeSwitchCanvas`）。
+
+- **2026-11-27 · 新增全源「快速搜索书签」、通用 `.torrent` 种子扩展与网络收藏增强，并接入多仓库订阅及测速监控**（`DesktopSearchBookmarks.kt`、`DesktopSearchBookmarksBar.kt`、`DesktopComicTorrentDialog.kt`、`DesktopNetworkFavoritesActions.kt`、`ehentai.js`、`DesktopSourceUpdate.kt`、`DesktopSourceLatencyScreen.kt`、`DesktopSourceRepoSections.kt`、`DesktopGallerySearchPagination.kt`、`DesktopGallerySearchPagerBar.kt`）
+  - **功能说明**：① 漫画搜索支持将单源或聚合查询词、站源与筛选组存为可置顶快速书签一键回填；② 新增通用 `comic.torrents` 种子协议并首批适配 `ehentai.js`，详情页支持查看与下载 `.torrent` 或复制链接；③ 网络收藏支持提交/回显收藏备注（`favnote`）、云端夹内搜索，以及多选批量移动与批量取消收藏；④ 站点管理支持官方源与社区稳定源（`laincat/vensrc` 等）仓库一键切换与自动 jsDelivr 回退，并新增独立线路延迟测速监控页；⑤ 画廊搜索支持在「无限滚动」与「分页切换」之间切换并提供页码跳转栏。
+
+- **2026-11-27 · 官网展示区与双语 README 新增 Acrylic 透明与 Mica 云母实拍展示**（`index.html`、`README.md`、`README.en.md`、`assets/screenshots/home-{acrylic,mica}.jpg`、`docs/images/home-{acrylic,mica}.webp`）
+  - **功能说明**：在官网 `#showcase` 实拍截图切换区（扩展至 8 屏）与中英文 README「界面预览」中补充 Acrylic 半透明毛玻璃与 Mica 云母材质实拍对比。
+
+- **2026-11-27 · 重塑桌面端侧栏为通透极简风格、重构全窗透明定调并将「首页皮肤」升级为「模糊效果（Acrylic / Mica）」**（`VeneraLightRailSkin.kt`、`DesktopTheme.kt`、`DesktopShellPanes.kt`、`DesktopLargeScreenChrome.kt`、`VeneraDesktop.kt`、`DesktopBackdropMode.kt`、`DesktopSettingsCardsGallery.kt`、`DesktopCommandBar.kt`）
+  - **功能说明**：① 保持全窗同一透明度（`DesktopGlass.currentSurface`：`Acrylic` 浅色 `Color.White @ 0.54f` / 深色 `0xFF14161C @ 0.44f`；`Mica` 浅色走 `MicaAlt @ 0.08f`、深色走温润 `Mica` + `0xFF24272E @ 0.16f` 避免淤青死黑），并补回侧栏右缘 `1.dp` 轻发丝线区分左右结构；② 设置页原「首页皮肤」改为「模糊效果」，提供 `Acrylic` 与 `Mica` 切换，并与「底板/侧栏/顶栏模糊」三枚开关解耦记忆；③ 浅皮展开侧栏宽收窄至 `240.dp`，去除选中行左侧紫色竖条改用圆角胶囊选区，移除 `MacDivider()` 横线，分组小箭头置右并与下方图标左缘垂线对齐；④ 为二级分组替换撞车图标并配柔和彩色微标底，底栏精简为 4 枚等距纯图标按钮（消除昵称截断省略号）。
+
 - **2026-11-24 · 清理并拆分 TOP 10 巨型源码文件，完成 `app/`、`data/`、`ui/` 根目录三层归位与静态体积/分层护栏**（`VeneraDesktop`、`DesktopSettingsHub`、`DesktopReaderScreen`、`DesktopLargeScreenStateInit`、`DesktopTabHost`、`DesktopGalleryAndAccountHost`、`DesktopComicAndSourceHost`、`ForensicFlags`、`EngineSession`、`ContributorAvatars`、`DesktopFileSizeAndLayerGuardTest.kt`）
   - **功能说明**：① 将贡献者像素画内置为二进制资源，移除死代码，并将 139.6 KB–81.4 KB 的 10 个头部巨型文件按单一职责拆分为模块化小文件（均控制在 40 KB 以内）；② 将 `com.venera.desktop` 根目录 66 个散落裸文件按 `app/`（38）、`data/`（11）、`ui/`（17）三层归位，实现根目录零散落文件且 `data` 层零 Compose 依赖；③ 新增 `DesktopFileSizeAndLayerGuardTest` 静态护栏，强制约束新文件与已拆分文件 <= 40 KB 及三层单向依赖。
 
@@ -31,6 +46,18 @@
   - **功能说明**：在「下载与本地 → 本机内容 → 漫画」新增「导入文件夹」入口，通过系统文件夹选择器选中单个漫画文件夹后原地关联写入 `local_comic_imports` 表（零文件拷贝），自动兼容单话直接放图与多话子目录结构，支持直接阅读或先选话再阅读；切换下载目录不丢失记录，移除关联时仅清理台账不删除硬盘原文件夹。
 
 ## Bug 修复（Fixes）
+
+- **2026-11-27 · 修复 Hitomi 缩略图子域错误失效、Pixiv 作品页大片灰框与排行榜缺少作者头像，并重构阅读器 HUD 与画廊分享卡片**（`hitomi.js`、`DesktopCloudflareCenter.kt`、`DesktopPixivWorkScreen.kt`、`PixivFeedParse.kt`、`DesktopReaderBottomHud.kt`、`DesktopReaderChromeControl.kt`、`DesktopGalleryShareCard.kt`、`DesktopShareCardRenderer.kt`）
+  - **原因**：① `hitomi.js` 将缩略图子域硬编码为已失效的 `wtn` 且 `gold-usergeneratedcontent.net` 未入必需代理域，导致缩略图大量加载失败；② Pixiv 日/周/月榜解析遗漏 `profile_img` 头像字段，作品详情页仅在未报尺寸时置空，碰到多页异形图会出现大片灰框；③ 阅读器底部 HUD 与壳层沉浸态耦合、画廊分享卡片缺少独立高清纯渲染管线。
+  - **解决方案**：① 按 Hitomi `gg.js` 哈希规则动态计算 `atn` / `btn` 缩略图子域（缓存 5 分钟），并将 `gold-usergeneratedcontent.net` 加入代理域列表；② `PixivFeedParse` 补全 `authorAvatarUrl` 解析，`DesktopPixivWorkScreen` 在图片解码后用真实像素比覆盖画布宽高比；③ 拆出独立 `DesktopReaderBottomHud`、`DesktopReaderChromeController` 沉浸切换挂手，以及独立 `DesktopGalleryShareCard` / `DesktopShareCardRenderer` 卡片生成器。
+
+- **2026-11-27 · 修复像素互动伙伴点击失灵、全屏拦点击、半空卡死、最近搜索跳页错位及高 CPU 占用**（`PixelBuddyOverlay.kt`、`PixelBuddyQuickMenu.kt`、`PixelBuddyAgentPhysics.kt`、`PixelBuddyPlayPhysics.kt`、`DesktopSearchField.kt`、`DesktopSearchFieldEffects.kt`、`DesktopGalleryTopSearch.kt`、`DesktopGallerySearchScreen.kt`、`DesktopPixelBuddyPrefs.kt`、`DesktopLargeScreenChrome.kt`、`DesktopPixelBuddySettings.kt`）
+  - **原因**：① 主循环采用硬编码毫秒假设而非真实 `nanoTime` 增量，点击热区与画布绘制未共用单源坐标函数，且全屏鼠标监听误挂在覆盖层上导致截断底层按钮点击；② 搜空/失败后落入 `BuddyWall.FLOOR` 缺乏行走与自动回墙出口，卡死在屏幕正中原地蹦，且逗猫棒光标悬停会无冷却无限连跳；③ 顶栏点「最近搜索」跳往画廊搜索页时旧搜索框坐标未清理、新框初帧 `searching=false` 误覆盖搜索态，且首页旧卡片未屏蔽导致抢跑；④ 每帧 60fps 对 40+ 张卡片做 `mapValues` 全量拷贝、热区 `Modifier.offset` 触发布局重排及闲置期持续满帧重绘导致 CPU 占用约 20%；⑤ 设置弹窗仅渲染 `<= 15` 字短说明且逗猫棒行错用 `Action` 控件。
+  - **解决方案**：① 抽取单源 `buddyVisualPose` 与基于 `nanoTime` 真实毫秒的动画节拍，将旁路指针监听移至祖先容器 `PointerEventPass.Initial` 不消费事件；② 为 `BuddyWall.FLOOR` 补充情绪短驻自动跳回侧栏、卡片/搜索框失效立刻脱离，以及逗猫棒落地 `460ms` 猛扑冷却；③ 修复 `DesktopSearchField` 仅在 `wasSearching` 转假时通报结束、顶栏卸载清理残框并屏蔽跨页未销毁旧卡片；④ 卡片位置改为 `ConcurrentHashMap` + `1.5px` 抖动过滤、闲置卡片零绘光流协程、热区改走 `graphicsLayer`、三级动态降帧（`20ms / 80ms / 250ms`）与窗口失焦休眠；⑤ 设置页逗猫棒改用标准 `Toggle` 并全部精简为 `<= 15` 字适用范围说明。
+
+- **2026-11-27 · 修复浅色透明模式下整窗严重偏暗发灰的问题**（`VeneraDesktop.kt`、`DesktopTheme.kt`）
+  - **原因**：① `VeneraDesktop` 未调用 Nucleus 官方 `WindowAppearance` 同步浅/深色窗口外观，导致在 Windows 深色系统下浅色主题窗口底层仍被判定为深色；② `WindowsBackdrop` 未显式传入 `tint` 参数，Nucleus 缺省在窗口最底层叠加了一层 `60%` 透明度的系统深灰底雾，叠加 `Light.page` 原偏灰蓝底 `#EAEDF1` 后导致整窗压暗发闷。
+  - **解决方案**：① 在 `VeneraDesktop` 中随 `DesktopThemeMode` 同步调用 `WindowAppearance(Light/Dark)`，并为 `WindowsBackdrop` 显式传入近全透明 `tint`（浅色 `0x01FFFFFF` / 深色 `0x01000000`）掐断默认灰雾；② 将 `DesktopGlass.surface` 浅色基底洗净为 `Color.White @ 0.54f`，深色调整为 `0xFF14161C @ 0.44f`。
 
 - **2026-11-24 · 修复详情页收藏弹窗未点完成即提前显示「已收藏」、加号图标偏位，并补全交互动效**（`DesktopComicDetailFavoriteDialog.kt`、`DesktopFavoriteFoldersUiTest.kt`、`DesktopNewScreensSemanticsTest.kt`）
   - **原因**：① 收藏弹窗内点击复选框即立刻落库并显示「已收藏」，与底部的「关闭 / 完成」双按钮语义冲突，导致未收藏或仅点选时就抢先显示「已收藏」且点「关闭」无法取消；② 「新建收藏夹」左侧方框内使用 `Text("+")`，受字体行高与基线影响向右下偏位；③ 弹窗与列表行缺少交互过渡反馈。

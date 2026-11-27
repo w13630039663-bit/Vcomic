@@ -574,6 +574,7 @@ class Ehentai extends ComicSource {
         // whether support multi folders
         multiFolder: true,
         singleFolderForSingleComic: true,
+        supportNote: true,
         /**
          * add or delete favorite.
          * throw `Login expired` to indicate login expired, App will automatically re-login and re-add/delete favorite
@@ -581,19 +582,21 @@ class Ehentai extends ComicSource {
          * @param folderId {string}
          * @param isAdding {boolean} - true for add, false for delete
          * @param favoriteId {string?} - [Comic.favoriteId]
+         * @param note {string?} - optional favorite note (max 200 chars)
          * @returns {Promise<any>} - return any value to indicate success
          */
-        addOrDelFavorite: async (comicId, folderId, isAdding, favoriteId) => {
+        addOrDelFavorite: async (comicId, folderId, isAdding, favoriteId, note) => {
             let parsed = this.parseUrl(comicId)
             let id = parsed.id
             let token = parsed.token
+            let encodedNote = encodeURIComponent((note ?? "").slice(0, 200))
             if(isAdding) {
                 let res = await Network.post(
                     `${this.baseUrl}/gallerypopups.php?gid=${id}&t=${token}&act=addfav`,
                     {
                         "Content-Type": "application/x-www-form-urlencoded",
                     },
-                    `favcat=${folderId}&favnote=&apply=Add+to+Favorites&update=1`
+                    `favcat=${folderId}&favnote=${encodedNote}&apply=Add+to+Favorites&update=1`
                 );
                 if (res.status !== 200 || res.body.length === 0 || res.body[0] !== "<") {
                     throw "Failed to add favorite"
@@ -662,6 +665,32 @@ class Ehentai extends ComicSource {
                 url += `?favcat=${folder}`
             }
             return this.getGalleries(next ?? url, false);
+        },
+        search: async (keyword, folder, next) => {
+            let params = [`f_search=${encodeURIComponent(keyword ?? "")}`];
+            if (folder && folder !== '-1') {
+                params.push(`favcat=${folder}`);
+            }
+            let url = `${this.baseUrl}/favorites.php?${params.join('&')}`;
+            return this.getGalleries(next ?? url, false);
+        },
+        batchMoveFavorites: async (comicIds, targetFolderId) => {
+            if (!Array.isArray(comicIds) || comicIds.length === 0) return "ok";
+            let ddact = targetFolderId === 'favdel' ? 'delete' : `fav${targetFolderId}`;
+            let bodyParts = [`ddact=${encodeURIComponent(ddact)}`, "apply=Apply"];
+            for (let cid of comicIds) {
+                let gid = this.parseUrl(cid).id;
+                if (gid) bodyParts.push(`modifygids[]=${encodeURIComponent(gid)}`);
+            }
+            let res = await Network.post(
+                `${this.baseUrl}/favorites.php`,
+                { "Content-Type": "application/x-www-form-urlencoded" },
+                bodyParts.join('&')
+            );
+            if (res.status !== 200) {
+                throw `Invalid status code: ${res.status}`;
+            }
+            return "ok";
         }
     }
 
@@ -1198,6 +1227,47 @@ class Ehentai extends ComicSource {
             }
 
             return json.comment_score
+        },
+        torrents: {
+            getTorrents: async (cid) => {
+                let parsed = this.parseUrl(cid);
+                let res = await Network.get(
+                    `${this.baseUrl}/gallerytorrents.php?gid=${parsed.id}&t=${parsed.token}`,
+                    {}
+                );
+                if (res.status !== 200) {
+                    throw `Invalid status code: ${res.status}`;
+                }
+                let document = new HtmlDocument(res.body);
+                let items = [];
+                for (let form of document.querySelectorAll("div#torrentinfo form")) {
+                    let link = form.querySelector("table tr:last-child a");
+                    if (!link) continue;
+                    let url = link.attributes["href"] ?? "";
+                    let name = (link.text ?? "").trim();
+                    let tds = form.querySelectorAll("table td");
+                    let posted = tds[0]?.text?.replace("Posted:", "").trim() ?? "";
+                    let size = tds[1]?.text?.replace("Size:", "").trim() ?? "";
+                    let seeds = tds[3]?.text?.replace("Seeds:", "").trim() ?? "0";
+                    let peers = tds[4]?.text?.replace("Peers:", "").trim() ?? "0";
+                    let downloads = tds[5]?.text?.replace("Downloads:", "").trim() ?? "0";
+                    let uploader = tds[6]?.text?.replace("Uploader:", "").trim() ?? "";
+                    if (url && name) {
+                        items.push({
+                            name: name,
+                            url: url,
+                            size: size,
+                            posted: posted,
+                            seeds: seeds,
+                            peers: peers,
+                            downloads: downloads,
+                            uploader: uploader,
+                        });
+                    }
+                }
+                document.dispose();
+                return items;
+            },
         },
         archive: {
             getArchives: async (cid) => {

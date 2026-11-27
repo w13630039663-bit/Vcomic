@@ -60,11 +60,11 @@ class DesktopSourceStateTest {
     }
 
     @Test
-    fun 默认档是随包四颗而交集只吃清单里有的() {
-        val keys = listOf("baozi", "copy_manga", "jm", "manga_dex", "nhentai")
+    fun 默认档是随包五颗含goda而交集只吃清单里有的() {
+        val keys = listOf("baozi", "copy_manga", "goda", "jm", "manga_dex", "nhentai")
         assertEquals(
-            "没用户账时落默认四颗",
-            setOf("baozi", "copy_manga", "jm", "manga_dex"),
+            "没用户账时落默认五颗（含 goda）",
+            setOf("baozi", "copy_manga", "goda", "jm", "manga_dex"),
             DesktopSourceState.effectiveEnabled(keys, null),
         )
         // 随包清单哪天少了 jm ⇒ 默认档不许指向一颗不存在的源
@@ -72,6 +72,28 @@ class DesktopSourceStateTest {
         assertEquals("默认档与清单求交后用（清单里没有的那颗不许进）", setOf("baozi", "copy_manga"), DesktopSourceState.effectiveEnabled(short, null))
         // 用户账原样生效，默认档不再插手
         assertEquals(setOf("nhentai"), DesktopSourceState.effectiveEnabled(keys, setOf("nhentai")))
+    }
+
+    @Test
+    fun 老用户账首次读入自动补开一次goda且允许后续手动关闭() {
+        val paths = TempPaths(tempRoot("backfill"))
+        val raw = com.venera.compose.data.platform.JsonKeyValueStore(DesktopSourceState.PREFS_NAME, paths)
+        raw.putAll(mapOf("enabled_sources_init" to true, "enabled_sources" to setOf("baozi")))
+
+        val firstRead = DesktopSourceState(paths).enabledKeys()
+        assertEquals(
+            "老用户账首次升级应自动补开 goda",
+            setOf("baozi", "goda"),
+            firstRead,
+        )
+
+        val state = DesktopSourceState(paths)
+        state.setEnabledKeys(setOf("baozi"))
+        assertEquals(
+            "补开仅执行一次，用户手动关闭 goda 后不得再次复开",
+            setOf("baozi"),
+            DesktopSourceState(paths).enabledKeys(),
+        )
     }
 
 

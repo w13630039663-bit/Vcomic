@@ -50,20 +50,9 @@ internal suspend fun openInBrowser(url: String): String? {
 /**
  * 把一张 AWT 位图当「图片」写进系统剪贴板（分享卡片那一族）。成功回 null，失败回上屏的话。
  *
- * Transferable 报的是 DataFlavor.imageFlavor——聊天工具粘贴认的那一档。
+ * 复用 [desktopWriteAwtImageToClipboard]，保证全包只持有一份 `DataFlavor.imageFlavor` 约定。
  */
-internal suspend fun desktopShareAwtImageToClipboard(image: java.awt.image.BufferedImage): String? =
-    withContext(Dispatchers.IO) {
-        runCatching {
-            val selection = object : java.awt.datatransfer.Transferable {
-                override fun getTransferDataFlavors() = arrayOf(java.awt.datatransfer.DataFlavor.imageFlavor)
-                override fun isDataFlavorSupported(flavor: java.awt.datatransfer.DataFlavor) =
-                    flavor == java.awt.datatransfer.DataFlavor.imageFlavor
-                override fun getTransferData(flavor: java.awt.datatransfer.DataFlavor) = image
-            }
-            java.awt.Toolkit.getDefaultToolkit().systemClipboard.setContents(selection, null)
-        }.fold(
-            onSuccess = { null },
-            onFailure = { "复制卡片图没成：${it::class.java.simpleName}" },
-        )
-    }
+internal suspend fun desktopShareAwtImageToClipboard(image: java.awt.image.BufferedImage): String? {
+    val err = desktopWriteAwtImageToClipboard(image) ?: return null
+    return "复制卡片图没成：${err::class.java.simpleName}"
+}

@@ -10,7 +10,6 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -532,14 +531,16 @@ internal fun DesktopMascotPet(
     }
 
     val windowFocused = androidx.compose.ui.platform.LocalWindowInfo.current.isWindowFocused
-    LaunchedEffect(windowFocused) {
+    LaunchedEffect(windowFocused, pose) {
         if (!windowFocused) return@LaunchedEffect
-        // 用定频 66ms(15fps) 替代每帧 withFrameNanos 空转，且窗口失焦自动暂停以降低 CPU/GPU 唤醒。
+        // 交互/情感态维持 15fps，常规待机降到 6fps（160ms）以降低常驻 CPU/GPU 唤醒；失焦立刻暂停。
         var lastMs = System.currentTimeMillis()
         while (true) {
-            kotlinx.coroutines.delay(66L)
+            val activeMotion = pose != MascotPetPose.IDLE && pose != MascotPetPose.NIGHT
+            val intervalMs = if (activeMotion || state.blinkActive || state.sparkleAlpha > 0.02f || state.heartAlpha > 0.02f) 66L else 160L
+            kotlinx.coroutines.delay(intervalMs)
             val nowMs = System.currentTimeMillis()
-            val dtSec = ((nowMs - lastMs) / 1000f).coerceIn(0.001f, 0.08f)
+            val dtSec = ((nowMs - lastMs) / 1000f).coerceIn(0.001f, 0.2f)
             lastMs = nowMs
             val effective = if (pose == MascotPetPose.IDLE && lateNight) MascotPetPose.NIGHT else pose
             state.tick(nowMs, dtSec, effective)

@@ -79,7 +79,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
-import kotlin.math.roundToInt
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -94,7 +93,6 @@ import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.contentDescription
@@ -312,9 +310,6 @@ internal fun DesktopGalleryCard(
     val platformContext = LocalPlatformContext.current
     val actions = LocalDesktopGalleryCardActions.current
     val scope = rememberCoroutineScope()
-    // 分享卡片取画面用屏幕截取：GraphicsLayer 的离屏位图在桌面录出的是黑帧，
-    // Robot 对着屏幕上这张卡已渲染出来的像素取，内容与缩放都是用户眼见的那份。
-    var shareBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
     val post = card.sourcePost
     val isPixiv = post?.site == com.venera.compose.gallery.data.GallerySite.PIXIV ||
         card.url.contains("pixiv.net") || (post != null && post.source.contains("pixiv.net"))
@@ -541,40 +536,26 @@ internal fun DesktopGalleryCard(
         }
     }
 
-    // 分享卡片：Robot 截屏卡片当前这块屏幕区域进剪贴板。等 250ms 是让右键菜单先收起，
-    // 不然浮层会被一起截进图里。
+    var shareBusy by remember { mutableStateOf(false) }
+
+    // 分享卡片：直接在内存中合成卡片位图写入系统剪贴板，不依赖屏幕截图与窗口坐标。
     val triggerShareCard: () -> Unit = {
-        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            kotlinx.coroutines.delay(250)
-            val bounds = shareBounds
-            if (bounds == null || bounds.width < 1f || bounds.height < 1f) {
-                actions?.onNotify("分享失败：卡片还没上屏，取不到画面")
-                return@launch
-            }
-            val frame = java.awt.Window.getWindows().firstOrNull { it.isActive && it.isShowing }
-                ?: java.awt.Window.getWindows().firstOrNull { it.isShowing }
-            if (frame == null) {
-                actions?.onNotify("分享失败：找不到主窗口")
-                return@launch
-            }
-            runCatching {
-                val insets = frame.insets
-                val capture = java.awt.Robot().createScreenCapture(
-                    java.awt.Rectangle(
-                        frame.locationOnScreen.x + insets.left + bounds.left.roundToInt(),
-                        frame.locationOnScreen.y + insets.top + bounds.top.roundToInt(),
-                        bounds.width.roundToInt(),
-                        bounds.height.roundToInt(),
-                    ),
-                )
-                val error = desktopShareAwtImageToClipboard(capture)
-                if (error != null) {
-                    actions?.onNotify("分享失败：$error")
-                } else {
-                    actions?.onNotify("卡片图已复制到剪贴板，去聊天工具粘贴即可")
+        if (!shareBusy) {
+            shareBusy = true
+            scope.launch {
+                try {
+                    desktopShareGalleryCard(
+                        context = platformContext,
+                        card = card,
+                        titleOverride = titleOverride,
+                        avatarUrl = avatarUrl,
+                        authorOverride = authorOverride,
+                        hideSourceBadge = hideSourceBadge,
+                        isDark = isDark,
+                    )
+                } finally {
+                    shareBusy = false
                 }
-            }.onFailure {
-                actions?.onNotify("分享失败：${it::class.java.simpleName}")
             }
         }
     }
@@ -684,12 +665,6 @@ internal fun DesktopGalleryCard(
         items = buildMenuEntries,
         modifier = modifier
             .fillMaxWidth()
-            .onGloballyPositioned {
-                val pos = it.positionInWindow()
-                shareBounds = androidx.compose.ui.geometry.Rect(
-                    pos.x, pos.y, pos.x + it.size.width, pos.y + it.size.height,
-                )
-            }
             .zIndex(if (isCardHovered || menuExpanded) 1f else 0f),
     ) {
         val baseBorder = when {
@@ -927,74 +902,44 @@ internal fun DesktopGalleryCard(
                             }
                         }
 
-                        if ((post?.pageCount ?: 1) > 1) {
-                            Row(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(Color(0xB80A0D12))
-                                    .border(1.dp, Color(0x24FFFFFF), RoundedCornerShape(6.dp))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp),
-                                horizontalArrangement = Arrangement.spacedBy(3.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Layers,
-                                    contentDescription = null,
-                                    tint = Color(0xFFF2F5FA),
-                                    modifier = Modifier.size(11.dp),
-                                )
-                                Text(
-                                    text = "${post?.pageCount ?: 1}",
-                                    fontSize = 10.sp,
-                                    lineHeight = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFFF2F5FA),
-                                )
-                            }
-                        }
-                        if (post?.isVideo == true) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(Color(0xB80A0D12))
-                                    .border(1.dp, Color(0x24FFFFFF), RoundedCornerShape(6.dp))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp),
-                            ) {
-                                Text(
-                                    text = "动图",
-                                    fontSize = 10.sp,
-                                    lineHeight = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFFF2F5FA),
-                                )
-                            }
-                        }
+                        DesktopGalleryCardTopLeftBadges(post = post)
                     }
 
-                    // 右上角常态已收藏微标，悬停时无缝淡出让位给三联动作药丸。
+                    // 右上角常态角标区（R18 / AI + 已收藏红心），悬停时无缝淡出让位给三联动作药丸。
                     androidx.compose.animation.AnimatedVisibility(
-                        visible = isFavorite && !isCardHovered && !hasActiveFeedback,
-                        enter = fadeIn(tween(180)) + scaleIn(initialScale = 0.82f),
-                        exit = fadeOut(tween(120)) + scaleOut(targetScale = 0.82f),
+                        visible = !isCardHovered && !hasActiveFeedback,
+                        enter = fadeIn(tween(180)) + scaleIn(initialScale = 0.88f),
+                        exit = fadeOut(tween(120)) + scaleOut(targetScale = 0.88f),
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(8.dp)
                             .offset(x = animUiOffsetX, y = animUiOffsetY),
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xB810141C))
-                                .border(1.dp, Color(0x66E26D8A), CircleShape),
-                            contentAlignment = Alignment.Center,
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Icon(
-                                imageVector = Icons.Filled.Favorite,
-                                contentDescription = "已收藏",
-                                tint = GalleryTokens.Color.StatusFavorite,
-                                modifier = Modifier.size(13.dp),
+                            DesktopGalleryCardTopRightBadges(
+                                card = card,
+                                showAiBadge = LocalDesktopGalleryAiBadge.current,
                             )
+                            if (isFavorite) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xB810141C))
+                                        .border(1.dp, Color(0x66E26D8A), CircleShape),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Favorite,
+                                        contentDescription = "已收藏",
+                                        tint = GalleryTokens.Color.StatusFavorite,
+                                        modifier = Modifier.size(13.dp),
+                                    )
+                                }
+                            }
                         }
                     }
 

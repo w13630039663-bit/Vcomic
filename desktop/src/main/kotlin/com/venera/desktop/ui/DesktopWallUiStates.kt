@@ -187,6 +187,16 @@ internal class SourceManageUiState {
     var sourceNote by mutableStateOf<String?>(null)
     var sourceUpdateBusy by mutableStateOf(false)
     var sourceUpdateNote by mutableStateOf<String?>(null)
+    var sourceStoreOpen by mutableStateOf(false)
+    var selectedSourceRepo by mutableStateOf(com.venera.engineprobe.DesktopSourceUpdate.SourceRepo.OFFICIAL)
+    var repoCatalogEntries by mutableStateOf<List<com.venera.engineprobe.DesktopSourceUpdate.Entry>>(emptyList())
+    var repoCatalogRepo by mutableStateOf<com.venera.engineprobe.DesktopSourceUpdate.SourceRepo?>(null)
+    var onSelectRepo: ((com.venera.engineprobe.DesktopSourceUpdate.SourceRepo) -> Unit)? = null
+    var onCheckSync: (() -> Unit)? = null
+    var onInstallStoreEntry: (suspend (com.venera.engineprobe.DesktopSourceUpdate.Entry) -> String?)? = null
+    var proxyProvider: (() -> String?)? = null
+    var latencyItems by mutableStateOf<List<com.venera.desktop.sourcemanage.DesktopSourceLatencyItem>>(emptyList())
+    var onReprobeHosts: ((List<String>) -> Unit)? = null
     var sourceSelectedKey by mutableStateOf<String?>(null)
     var sourceSettings by mutableStateOf<List<com.venera.desktop.sourcemanage.DesktopSourceSettingUi>?>(null)
     var sourceSettingsNote by mutableStateOf<String?>(null)

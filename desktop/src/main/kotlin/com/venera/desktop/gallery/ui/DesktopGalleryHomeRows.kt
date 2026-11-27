@@ -49,6 +49,7 @@ import com.venera.compose.gallery.domain.GalleryHomeDomain
 import com.venera.compose.gallery.ui.PixivRankingModeChips
 import com.venera.compose.ui.tokens.VeneraTokens
 import com.venera.desktop.gallery.data.DesktopPixivisionArticle
+import com.venera.desktop.ui.components.registerPixelBuddyCard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -127,6 +128,8 @@ internal fun DesktopGalleryHomeRows(
     pixivisionArticles: List<DesktopPixivisionArticle> = emptyList(),
     /** 文章卡点下去 = 进二级页（壳存文章 + 切路由；不再直接外链）。**必传无默认值**。 */
     onOpenPixivisionArticle: (DesktopPixivisionArticle) -> Unit,
+    /** 横向预览条点击 Pixiv 卡片画师行直达画师页。 */
+    onOpenPixivArtist: ((Long, String) -> Unit)?,
 ) {
     val tokens = VeneraTokens
     when (domain) {
@@ -140,6 +143,7 @@ internal fun DesktopGalleryHomeRows(
                 onOpenPost = onOpenPost,
                 onOpenDaily = onOpenDaily,
                 headerEnd = null,
+                onOpenPixivArtist = null,
             )
         }
         GalleryHomeDomain.PIXIV -> {
@@ -164,6 +168,7 @@ internal fun DesktopGalleryHomeRows(
                     onOpenPost = onOpenPost,
                     onOpenDaily = null,
                     avatars = followingAvatars,
+                    onOpenPixivArtist = onOpenPixivArtist,
                     headerEnd = null,
                 )
             }
@@ -177,12 +182,14 @@ internal fun DesktopGalleryHomeRows(
                 onOpenDaily = null,
                 avatars = previewAvatars,
                 titles = previewTitles,
+                onOpenPixivArtist = onOpenPixivArtist,
                 showRank = true,
                 headerEnd = {
                     PixivRankingModeChips(
                         selected = rankingMode,
                         onPick = onPickRankingMode,
                         fill = false,
+                        large = true,
                     )
                 },
             )
@@ -203,8 +210,8 @@ private fun DesktopGallerySectionHeader(title: String, enTag: String, end: (@Com
             .padding(
                 start = tokens.spacing.screenHorizontal,
                 end = tokens.spacing.screenHorizontal,
-                top = tokens.spacing.space2,
-                bottom = tokens.spacing.space2,
+                top = 14.dp,
+                bottom = 12.dp,
             ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(tokens.spacing.space2),
@@ -243,7 +250,7 @@ private fun DesktopGalleryArtistsRow(
     // `null` 那一档 = 名单还在读：什么都不摆（首页那栏对同一档念"画师名单还在读…"，
     // 而这一行紧挨那面墙，一句灰字插在墙头上比不摆更吵；读到了自然亮）。
     if (artists == null) return
-    Column(Modifier.fillMaxWidth()) {
+    Column(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
         DesktopGallerySectionHeader(title = "正在关注的画师", enTag = "ARTISTS", end = null)
         Spacer(Modifier.height(tokens.spacing.space2))
         val row = artists.artists
@@ -356,13 +363,14 @@ private fun DesktopGalleryDailyRow(
     headerEnd: (@Composable () -> Unit)?,
     /** 卡图左上角名次角标（v3 排行榜架）：`true` 时按横滑序号画 #N（榜单腿本就按名次到货）。 */
     showRank: Boolean = false,
+    onOpenPixivArtist: ((Long, String) -> Unit)?,
 ) {
     val tokens = VeneraTokens
     if (cards.isEmpty()) return
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val gap = DesktopGalleryMetrics.wallGridGap
-    Column(Modifier.fillMaxWidth()) {
+    Column(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
         DesktopGallerySectionHeader(
             title = title,
             enTag = enTag,
@@ -372,11 +380,9 @@ private fun DesktopGalleryDailyRow(
                     horizontalArrangement = Arrangement.spacedBy(tokens.spacing.space3),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    Spacer(Modifier.weight(1f))
                     if (headerEnd != null) {
-                        // fill = false：chips 不吃满整行，把余量让给 Spacer 与右端读数
-                        // （吃满会把「N 张」压成一字一行 ——主人截图指认的竖排）。
                         headerEnd()
-                        Spacer(Modifier.weight(1f))
                     }
                     Text(
                         text = "${cards.size} 张",
@@ -412,6 +418,7 @@ private fun DesktopGalleryDailyRow(
                         titleOverride = card.sourcePost?.let { titles[it.uid] } ?: card.title,
                         avatarUrl = card.sourcePost?.let { avatars[it.uid] },
                         onOpenPost = onOpenPost,
+                        onOpenPixivArtist = onOpenPixivArtist,
                     )
                 }
             }
@@ -488,6 +495,7 @@ private fun DailyRowCard(
     titleOverride: String?,
     avatarUrl: String?,
     onOpenPost: (DesktopWallCardModel) -> Unit,
+    onOpenPixivArtist: ((Long, String) -> Unit)?,
 ) {
     val tokens = VeneraTokens
     val coverUrl = card.sourcePost?.let { post ->
@@ -501,6 +509,16 @@ private fun DailyRowCard(
 
     val post = card.sourcePost
     val finalTitle = titleOverride ?: card.title
+    val pixivArtist = remember(card, onOpenPixivArtist) {
+        if (onOpenPixivArtist == null || !card.openable) null else desktopPixivArtistTargetOf(card)
+    }
+    val clickArtistAction: (() -> Unit)? = remember(pixivArtist, onOpenPixivArtist) {
+        if (pixivArtist != null && onOpenPixivArtist != null) {
+            { onOpenPixivArtist(pixivArtist.first, pixivArtist.second) }
+        } else {
+            null
+        }
+    }
 
     // 按序梯队弹性入场动效（对齐漫画搜索规格）。
     val cardKey = card.uid.ifBlank { card.url }.ifBlank { card.title }
@@ -519,6 +537,7 @@ private fun DailyRowCard(
     Column(
         modifier = Modifier
             .width(width)
+            .registerPixelBuddyCard("home-row-$cardKey")
             .graphicsLayer {
                 alpha = entrance.value
                 translationY = (1f - entrance.value) * 14f
@@ -562,6 +581,11 @@ private fun DailyRowCard(
                     )
                 }
             }
+            DesktopGalleryCardTopRightBadges(
+                card = card,
+                showAiBadge = LocalDesktopGalleryAiBadge.current,
+                modifier = Modifier.align(Alignment.TopEnd).padding(tokens.spacing.space2),
+            )
         }
         if (post != null) {
             DesktopGalleryCardInfo(
@@ -569,7 +593,7 @@ private fun DailyRowCard(
                 title = finalTitle,
                 avatarUrl = avatarUrl,
                 modifier = Modifier.padding(top = tokens.spacing.space2),
-                onClickArtist = null,
+                onClickArtist = clickArtistAction,
                 trailingAction = null,
             )
         } else {
@@ -578,7 +602,7 @@ private fun DailyRowCard(
                 titleOverride = finalTitle,
                 avatarUrl = avatarUrl,
                 modifier = Modifier.padding(top = tokens.spacing.space2),
-                onClickArtist = null,
+                onClickArtist = clickArtistAction,
                 trailingAction = null,
             )
         }

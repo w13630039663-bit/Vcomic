@@ -9,7 +9,7 @@
 A multi-source manga reader and multi-site gallery browser for Windows desktop.<br/>
 34 bundled JavaScript manga sources, Pixiv plus several gallery sites, a two-page reader, offline downloads, follow-updates tracking and reading statistics.
 
-[![Version](https://img.shields.io/badge/version-1.0.0-orange)](desktop/build.gradle.kts)
+[![Version](https://img.shields.io/badge/version-1.0.2-orange)](desktop/build.gradle.kts)
 [![Website](https://img.shields.io/badge/Website-VComic-FF7A00?logo=googlechrome&logoColor=white)](https://w13630039663-bit.github.io/Vcomic/#top)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.10-7F52FF?logo=kotlin&logoColor=white)](gradle/libs.versions.toml)
 [![Compose](https://img.shields.io/badge/Compose_Multiplatform-1.12.2-2A2A2A)](gradle/libs.versions.toml)
@@ -64,8 +64,12 @@ The desktop build has removed the original Android `:app` module and its source 
   <img src="docs/images/reading-stats.webp" width="48%" alt="Reading stats" />
   <img src="docs/images/home-light.webp" width="48%" alt="Light theme" />
 </p>
+<p align="center">
+  <img src="docs/images/home-acrylic.webp" width="48%" alt="Acrylic backdrop" />
+  <img src="docs/images/home-mica.webp" width="48%" alt="Mica backdrop" />
+</p>
 
-<p align="center"><sub>Home · Gallery wall · Manga detail · Reader · Gallery search · Artist profile · Reading stats · Light theme (captured on a development machine, compressed)</sub></p>
+<p align="center"><sub>Home · Gallery wall · Manga detail · Reader · Gallery search · Artist profile · Reading stats · Light theme · Acrylic backdrop · Mica backdrop (captured on a development machine, compressed)</sub></p>
 
 ### Android app
 
@@ -94,8 +98,9 @@ The desktop build has removed the original Android `:app` module and its source 
 
 ### 1. Manga explore, search and reading
 
-- **Multi-source engine**: 34 JavaScript manga source scripts ship with the app (default enabled: `baozi`, `copy_manga`, `jm`, `manga_dex`). Supports category explore, rankings, single-source and aggregate search, plus local search-history suggestions.
-- **Manga detail**: chapter list, synopsis, tags, related works, read-only paginated comments, a continue-reading capsule, and a follow button with four states (follow / followed / checking / reading).
+- **Multi-source engine**: 34 JavaScript manga source scripts ship with the app (default enabled: `baozi`, `copy_manga`, `jm`, `manga_dex`). Supports category explore, rankings, single-source and aggregate search, local search-history suggestions, and pinnable quick search bookmarks.
+- **Source latency monitor & repository switching**: dedicated latency monitor screen alongside source management, supporting mirror repository switching, auto-updates and in-place script editing.
+- **Manga detail**: chapter list, synopsis, tags, related works, read-only paginated comments, a continue-reading capsule, generic `.torrent` list/download support (enabled on E-Hentai), and a follow button with four states (follow / followed / checking / reading).
 - **Desktop reader**:
   - Four reading modes: continuous strip, two-page spread, Japanese right-to-left, Western left-to-right.
   - Input and navigation: wheel zoom (0.5x–4x), double-click zoom toggle, drag panning, keyboard shortcuts (`←`/`→`, `PageUp`/`PageDown`, `Home`/`End`, space and more), immersive mode, auto page turn, bookmarks and a magnifier.
@@ -112,7 +117,7 @@ The desktop build has removed the original Android `:app` module and its source 
 
 ### 3. Favorites, history and statistics
 
-- **Local and network favorites**: multiple custom folders, network favorites sync and a gallery favorites wall; local favorites support grid / two-column switching and a right-click "follow updates" action.
+- **Local and network favorites**: multiple custom folders, network favorite notes (`favnote`), in-folder search, multi-select batch move/unfavorite, and a gallery favorites wall; local favorites support grid / two-column switching and a right-click "follow updates" action.
 - **Gallery favorites wall**: grouped by site and artist, with a unified card entrance animation across the whole app (35ms stagger × max 6 steps, low-spring, fade + 14dp rise + 0.985 micro-scale).
 - **Reading history**: a timeline of progress with source filtering, shelving marks and two-step clearing.
 - **Reading statistics**: daily / weekly / streak stats, a 14-day trend, a Top 10 list and a reading heatmap.
@@ -125,13 +130,14 @@ The desktop build has removed the original Android `:app` module and its source 
 
 ### 5. Gallery and Pixiv
 
-- **Multi-site gallery**: yande.re, Gelbooru (requires account credentials) and Safebooru, with waterfall / justified grid switching, density and card size controls, rating filters, tag search and scroll position retention; opened posts are recorded in browsing history with a jump back to its card (fetches on demand; masked posts are not recorded).
+- **Multi-site gallery**: yande.re, Gelbooru (requires account credentials) and Safebooru, with waterfall / justified grid switching, infinite scroll / paged navigation switching, density and card size controls, rating filters, tag search, share card export and scroll position retention; opened posts are recorded in browsing history with a jump back to its card (fetches on demand; masked posts are not recorded).
 - **Reverse image search and fullscreen viewer**: SauceNAO and ascii2d side by side; three quality tiers, zoom, an info drawer, and in-place video (requires VLC) and Ugoira playback, allowing you to save the current image to disk.
 - **Pixiv**: PKCE callback, pasted link or token login; daily, weekly and monthly rankings; work detail; artist pages; the account feed and cloud bookmarks; cross-site artist and tag jumps between Pixiv and gallery sites.
 
 ### 6. Appearance, window and interaction
 
-- **Window and materials**: built on the Nucleus window host, with dark, light and follow-system themes, Mica / Acrylic / solid backdrop switching, independent rail and top-bar blur toggles, and UI scaling from 80% to 150%.
+- **Window and materials**: built on the Nucleus window host, with dark, light and follow-system themes featuring a circular reveal transition, Mica / Acrylic / solid backdrop switching, a floating sidebar with live weather Bento cards, independent rail and top-bar blur toggles, and UI scaling from 80% to 150%.
+- **Pixel Buddy interactive overlay**: 1–3 minimalist 2px pixel companions that roam across the sidebar, top edge and home/gallery/comic search cards, stack up, spell search queries, illuminate results with column light beams, chase a full-app pixel cat-wand cursor and react to app cues (download crate carrying, late-night sleep caps, window-return hops) with zero-CPU sleep when unfocused; the legacy sidebar fish mascot is off by default.
 - **Unified visual system**: transparent glass cards (two material tiers: `Primary` and `Nested`), a single input field (34dp, r8, 1dp outline, accent 2dp on focus), unified segmented controls and select boxes; every button has at least default / hover / pressed / focused / disabled states, plus a loading state for async actions.
 - **Unified motion**: card entrances only use the `VeneraMotion` tools (`VeneraCardEnter` / `rememberCardEnterProgress`); page transitions only use the shared presets, with no ad-hoc durations, staggers or springs.
 - **Card layout**: a dedicated "comic card layout" setting with adaptive or custom 1–6 rows × 1–8 columns, applied across all comic card pages.

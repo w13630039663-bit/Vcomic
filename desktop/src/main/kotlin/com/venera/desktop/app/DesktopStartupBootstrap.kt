@@ -44,9 +44,12 @@ import java.time.ZoneOffset
  */
 internal fun restoreDesktopStartupPreferences(paths: PathProvider) {
     val startupPrefs = JsonKeyValueStore(PreferenceKeys.PREFS_NAME, paths)
-    DesktopThemeMode.restore(
+    DesktopThemeMode.bind(
+        startupPrefs,
         startupPrefs.getString("pref_desktop_theme_mode", null) ?: DesktopThemeMode.DARK,
     )
+    com.venera.desktop.settings.DesktopThemeRevealPrefs.bind(startupPrefs)
+    com.venera.desktop.settings.DesktopRailWeatherService.bind(startupPrefs)
     DesktopErrorBus.suppressStartupHomeImageToast = true
     DesktopLanguage.restore(
         startupPrefs.getString("pref_desktop_language", null) ?: DesktopLanguage.ZH,
@@ -66,7 +69,8 @@ internal fun restoreDesktopStartupPreferences(paths: PathProvider) {
     DesktopComicCardLayout.restore(startupPrefs)
     DesktopCanvasFrame.restore(startupPrefs)
     DesktopMascot.restore(startupPrefs)
-    DesktopPetVisibility.restore(startupPrefs.getBoolean("pref_desktop_pet_visible", true))
+    DesktopPetVisibility.restore(startupPrefs.getBoolean("pref_desktop_pet_visible", false))
+    com.venera.desktop.settings.DesktopPixelBuddyPrefs.restore(startupPrefs)
     DesktopReaderBackground.bind(startupPrefs)
     DesktopReaderPreferences.bind(startupPrefs)
     val backdropOverride = System.getProperty("desktop.backdrop")

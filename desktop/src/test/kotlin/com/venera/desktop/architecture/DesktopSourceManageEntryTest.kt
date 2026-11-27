@@ -35,12 +35,12 @@ class DesktopSourceManageEntryTest {
 
     @Test
     fun 有一处真把路由切到源管理() {
-        // 仅扫描代码行：route = DesktopRoute.SourceManage 含入口与返回共 8 处，按回调名区分入口与返回路径。
+        // 仅扫描代码行：route = DesktopRoute.SourceManage 含入口与返回共 10 处，按回调名区分入口与返回路径。
         val cuts = shell.lines().filter { Regex("""(?:route\s*=|onRouteChange\()\s*DesktopRoute\.SourceManage\b""").containsMatchIn(it) }
         assertEquals(
             "切进源管理路由的赋值总数变了（口径：5 处入口（3 枚 onGoSourceManage + 2 枚 onOpenSourceManage）"
-                + " + 2 处来自编辑弹窗的返回 + 1 处来自登录屏的返回）：",
-            8, cuts.size,
+                + " + 2 处来自编辑弹窗的返回 + 1 处来自登录屏的返回 + 2 处来自延迟检测页跳源管理/设置）：",
+            10, cuts.size,
         )
         val entries = cuts.filter {
             Regex("""onOpenSourceManage\s*=\s*\{\s*(?:route\s*=|onRouteChange\()\s*DesktopRoute\.SourceManage\b""").containsMatchIn(it)

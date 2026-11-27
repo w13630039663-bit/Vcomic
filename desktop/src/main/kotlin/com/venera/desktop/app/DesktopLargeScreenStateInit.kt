@@ -141,8 +141,6 @@ internal fun rememberDesktopLargeScreenState(
     val layoutMode = wideScreenLayoutMode(windowWidth)
     val sideBarActive = layoutMode != WideScreenLayoutMode.Compact
     val effectiveMode = sideBarModeFor(layoutMode, sideBarActive)
-    val fullscreenChrome = route is DesktopRoute.Reader || route is DesktopRoute.GalleryPostViewer
-    val shellMode = if (fullscreenChrome) WideScreenLayoutMode.Compact else effectiveMode
 
     val currentTabState = remember { mutableStateOf(initialTab) }
     val currentTab by currentTabState
@@ -153,6 +151,16 @@ internal fun rememberDesktopLargeScreenState(
     val railExpandedSavedState = remember(railPrefs) {
         mutableStateOf(railPrefs?.getBoolean("pref_sidebar_expanded", false) ?: false)
     }
+    val readerChromePolicy = rememberDesktopReaderShellChromePolicy(
+        contentRoute = contentRoute,
+        savedRailExpanded = railExpandedSavedState.value,
+        onSaveRailExpanded = { expanded ->
+            railExpandedSavedState.value = expanded
+            railPrefs?.put("pref_sidebar_expanded", expanded)
+        },
+    )
+    val fullscreenChrome = readerChromePolicy.fullscreenChrome
+    val shellMode = if (fullscreenChrome) WideScreenLayoutMode.Compact else effectiveMode
     val comicCache = remember(galleryPaths) { galleryPaths?.let { DesktopComicCache(it.cacheRoot) } }
     val queueConcurrency = remember(galleryPaths) {
         galleryPaths?.let {
@@ -164,7 +172,7 @@ internal fun rememberDesktopLargeScreenState(
 
     val explore = rememberDesktopExploreSlice(railPrefs)
     val search = rememberDesktopSearchAndGallerySearchSlice(ports, railPrefs)
-    val sourceAndFiles = rememberDesktopSourceAndFilesSlice(scope, engine, overrideDir)
+    val sourceAndFiles = rememberDesktopSourceAndFilesSlice(scope, engine, overrideDir, galleryPaths, assetDir)
 
     val home = rememberDesktopHomeStatusSlice(
         ports = ports,
@@ -174,7 +182,10 @@ internal fun rememberDesktopLargeScreenState(
         currentTab = currentTab,
         route = route,
         historyTick = sourceAndFiles.historyTickState.intValue,
+        galleryPaths = galleryPaths,
     )
+    sourceAndFiles.sourceUi.latencyItems = home.latencyItems
+    sourceAndFiles.sourceUi.onReprobeHosts = home.reprobeHosts
 
     val currentMaskMode = maskModeOf()
     val wall = rememberDesktopWallAndPixivSlice(
@@ -448,6 +459,7 @@ internal fun rememberDesktopLargeScreenState(
         desktopShellBackWithSearch = desktopShellBackFn,
         shellMode = shellMode,
         fullscreenChrome = fullscreenChrome,
+        readerChromePolicy = readerChromePolicy,
         railExpandedSavedState = railExpandedSavedState,
         pixivAccountAvatarUrl = wall.pixivAccountAvatarUrl,
         flyState = flyState,

@@ -14,7 +14,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 import com.venera.compose.components.venera.VeneraPressFeedback
 import com.venera.compose.gallery.data.PixivRankingMode
 import com.venera.compose.ui.tokens.VeneraTokens
@@ -48,6 +50,8 @@ internal fun PixivRankingModeChips(
      * 压成一字一行（竖排），截图指认。
      */
     fill: Boolean = true,
+    /** 放大档：桌面排行榜节头右侧需要更大的可点药丸。 */
+    large: Boolean = false,
 ) {
     // 五档都是现量匿名 200 的那五档；R-18 两档匿名 403 ⇒ 一枚都不摆。
     PixivPillRow(
@@ -57,6 +61,7 @@ internal fun PixivRankingModeChips(
         onPick = onPick,
         modifier = modifier,
         fill = fill,
+        large = large,
     )
 }
 
@@ -114,11 +119,12 @@ private fun <T> PixivPillRow(
     onPick: (T) -> Unit,
     modifier: Modifier = Modifier,
     fill: Boolean = true,
+    large: Boolean = false,
 ) {
     val tokens = VeneraTokens
     Row(
         modifier = if (fill) modifier.fillMaxWidth() else modifier,
-        horizontalArrangement = Arrangement.spacedBy(tokens.spacing.space3),
+        horizontalArrangement = Arrangement.spacedBy(if (large) 8.dp else tokens.spacing.space3),
     ) {
         items.forEach { item ->
             val isOn = item == selected
@@ -131,17 +137,15 @@ private fun <T> PixivPillRow(
             ) {
                 Text(
                     text = labelOf(item),
-                    fontSize = tokens.type.caption,
+                    fontSize = if (large) 13.5.sp else tokens.type.caption,
                     // 行高写死：这一枚切换时字重跳，行高必须钉住（理由见 `TEXT_LINE_HEIGHT` 的注）。
                     lineHeight = TEXT_LINE_HEIGHT.em,
                     fontWeight = if (isOn) tokens.type.weightSemibold else tokens.type.weightRegular,
                     color = if (isOn) tokens.color.onPrimaryContainer else tokens.color.textPrimary,
                     maxLines = 1,
                     modifier = Modifier.padding(
-                        horizontal = tokens.spacing.space4,
-                        // 4dp → 2dp。两排标签共用这一档数值，
-                        // 所以它们恒等高 —— 同一屏里摆两种尺寸的分段器会被读成"这两个不是一套东西"。
-                        vertical = tokens.spacing.space1,
+                        horizontal = if (large) 15.dp else tokens.spacing.space4,
+                        vertical = if (large) 6.dp else tokens.spacing.space1,
                     ),
                 )
             }

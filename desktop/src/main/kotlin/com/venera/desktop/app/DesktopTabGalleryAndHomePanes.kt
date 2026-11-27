@@ -331,15 +331,19 @@ internal fun DesktopHomeTab(
         }
     }
     val dailyCards = if (dailyGallery.homePixivPick) dailyGallery.homePixivCards else dailyGallery.homeCards
-    val recommendComics = if (homeRecommendComics.isNotEmpty()) homeRecommendComics else remember(exploreSections) {
-        exploreSections.firstOrNull { it.title == "最新" }?.comics
-            ?.takeIf { it.isNotEmpty() }
-            ?: exploreSections.flatMap { it.comics }
+    val recommendComics = if (homeRecommendComics.isNotEmpty()) {
+        homeRecommendComics
+    } else {
+        remember(exploreSections) {
+            exploreSections.firstOrNull { it.title == "熱門更新" || it.title == "热门更新" }?.comics
+                .orEmpty()
+        }
     }
     val comicMaskedOf: (EngineSession.ComicCard) -> Boolean = { card ->
         val jmKey = sourceUi.sourceRows.firstOrNull { it.title.contains("禁漫") }?.key ?: ("j" + "m")
+        val targetSourceKey = if (homeRecommendR18) jmKey else DESKTOP_HOME_RECOMMEND_SOURCE
         desktopUx.coverMaskStateOf(
-            sourceKey = jmKey,
+            sourceKey = targetSourceKey,
             title = card.title,
             author = "",
             tags = emptyList(),
@@ -348,7 +352,7 @@ internal fun DesktopHomeTab(
     }
     val onOpenComicCard: (EngineSession.ComicCard) -> Unit = { card ->
         val jmKey = sourceUi.sourceRows.firstOrNull { it.title.contains("禁漫") }?.key ?: ("j" + "m")
-        val targetSourceKey = if (homeRecommendR18) jmKey else DESKTOP_EXPLORE_SOURCE
+        val targetSourceKey = if (homeRecommendR18) jmKey else DESKTOP_HOME_RECOMMEND_SOURCE
         detailUi.detailInfo = null
         detailUi.detailNote = null
         route = DesktopRoute.Detail(
@@ -422,6 +426,13 @@ internal fun DesktopHomeTab(
             onRetryHome = onRetryHome,
             onOpenLocalComics = onOpenLocalComics,
             onGoSourceManage = { route = DesktopRoute.SourceManage },
+            onOpenSourceLatency = { route = DesktopRoute.SourceLatency(backToSourceManage = false) },
+            onRefreshSourceLatency = sourceUi.onReprobeHosts?.let { reprobe ->
+                {
+                    val hosts = homeSourceRows.mapNotNull { it.host.takeIf(String::isNotBlank) }.distinct()
+                    if (hosts.isNotEmpty()) reprobe(hosts)
+                }
+            },
             onOpenAllHistory = {
                 historyTick++
                 route = DesktopRoute.History
@@ -453,6 +464,13 @@ internal fun DesktopHomeTab(
             onPickDailyPixiv = onPickDailyPixiv,
             onRetryHome = onRetryHome,
             onGoSourceManage = { route = DesktopRoute.SourceManage },
+            onOpenSourceLatency = { route = DesktopRoute.SourceLatency(backToSourceManage = false) },
+            onRefreshSourceLatency = sourceUi.onReprobeHosts?.let { reprobe ->
+                {
+                    val hosts = homeSourceRows.mapNotNull { it.host.takeIf(String::isNotBlank) }.distinct()
+                    if (hosts.isNotEmpty()) reprobe(hosts)
+                }
+            },
             onOpenAllHistory = {
                 historyTick++
                 route = DesktopRoute.History

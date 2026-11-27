@@ -545,6 +545,7 @@ internal class DesktopLargeScreenState(
     val desktopShellBackWithSearch: ((DesktopRoute) -> Unit) -> (() -> Unit)?,
     val shellMode: WideScreenLayoutMode,
     val fullscreenChrome: Boolean,
+    val readerChromePolicy: DesktopReaderShellChromePolicy,
     val railExpandedSavedState: MutableState<Boolean>,
     val pixivAccountAvatarUrl: String?,
     val flyState: DesktopFlyState,

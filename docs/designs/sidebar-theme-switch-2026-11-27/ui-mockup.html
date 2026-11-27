@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VComic 侧栏星穹天气昼夜开关 · sidebar-theme-switch-2026-11-27</title>
+<style>
+  :root {
+    --accent: #0A63F6;
+    --accent-soft: rgba(10, 99, 246, 0.12);
+    --accent-border: rgba(10, 99, 246, 0.34);
+    --bg-desktop: radial-gradient(circle at 16% 18%, #cfe0f9 0%, #e9e4f5 48%, #d7ecef 100%);
+    --win-bg: rgba(255, 255, 255, 0.72);
+    --rail-bg: rgba(246, 248, 252, 0.76);
+    --content-bg: rgba(255, 255, 255, 0.80);
+    --card-bg: rgba(255, 255, 255, 0.62);
+    --dock-bg: rgba(255, 255, 255, 0.42);
+    --dock-border: rgba(255, 255, 255, 0.72);
+    --hover-bg: rgba(23, 32, 46, 0.06);
+    --hairline: rgba(23, 32, 46, 0.09);
+    --ink1: #17202E;
+    --ink2: #526074;
+    --ink3: #8390A3;
+    --online: #22C55E;
+    --win-border: rgba(255, 255, 255, 0.82);
+  }
+
+  [data-theme="dark"] {
+    --accent: #0A84FF;
+    --accent-soft: rgba(10, 132, 255, 0.18);
+    --accent-border: rgba(10, 132, 255, 0.42);
+    --bg-desktop: radial-gradient(circle at 18% 20%, #1d2944 0%, #10141f 52%, #191428 100%);
+    --win-bg: rgba(20, 22, 29, 0.76);
+    --rail-bg: rgba(34, 38, 46, 0.72);
+    --content-bg: rgba(24, 27, 34, 0.84);
+    --card-bg: rgba(255, 255, 255, 0.055);
+    --dock-bg: rgba(255, 255, 255, 0.06);
+    --dock-border: rgba(255, 255, 255, 0.14);
+    --hover-bg: rgba(255, 255, 255, 0.08);
+    --hairline: rgba(255, 255, 255, 0.09);
+    --ink1: #F2F6FC;
+    --ink2: #A6B2C4;
+    --ink3: #717D91;
+    --online: #2DD46B;
+    --win-border: rgba(255, 255, 255, 0.14);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei UI", sans-serif;
+    min-height: 100vh;
+    background: var(--bg-desktop);
+    color: var(--ink1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 18px 24px 28px;
+    transition: background 0.55s cubic-bezier(0.22, 1, 0.36, 1), color 0.3s ease;
+  }
+
+  /* 顶部控制台 */
+  .toolbar {
+    width: 100%;
+    max-width: 1160px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--win-bg);
+    backdrop-filter: blur(22px);
+    border: 1px solid var(--hairline);
+    margin-bottom: 16px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.10);
+  }
+
+  .toolbar-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .toolbar-title {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .toolbar-badge {
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid var(--accent-border);
+  }
+
+  .toolbar-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .seg {
+    display: inline-flex;
+    padding: 3px;
+    border-radius: 10px;
+    background: var(--hover-bg);
+    border: 1px solid var(--hairline);
+    gap: 2px;
+  }
+
+  .seg-btn {
+    border: none;
+    background: transparent;
+    color: var(--ink2);
+    font-size: 11.5px;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.16s ease, color 0.16s ease, transform 0.12s ease;
+  }
+
+  .seg-btn:hover { color: var(--ink1); }
+  .seg-btn:active { transform: scale(0.97); }
+  .seg-btn.active {
+    background: var(--content-bg);
+    color: var(--ink1);
+    font-weight: 600;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+  }
+
+  .trigger-pill {
+    border: 1px solid var(--accent-border);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.12s ease;
+  }
+  .trigger-pill:hover { filter: brightness(1.08); }
+  .trigger-pill:active { transform: scale(0.96); }
+
+  .geo-status {
+    font-size: 11px;
+    color: var(--ink2);
+  }
+
+  /* 模拟真实桌面窗口 */
+  .stage-grid {
+    width: 100%;
+    max-width: 1160px;
+    display: grid;
+    grid-template-columns: 500px 1fr;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  @media (max-width: 980px) {
+    .stage-grid { grid-template-columns: 1fr; }
+  }
+
+  .app-shell {
+    height: 720px;
+    border-radius: 14px;
+    background: var(--win-bg);
+    backdrop-filter: blur(36px) saturate(145%);
+    border: 1px solid var(--win-border);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.24);
+    display: flex;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* 全窗主题切换快照揭幕层（模拟 Compose GraphicsLayer.toImageBitmap） */
+  .win-reveal-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    pointer-events: none;
+    overflow: hidden;
+    border-radius: inherit;
+  }
+  .win-shockwave-ring {
+    position: absolute;
+    inset: 0;
+    z-index: 45;
+    pointer-events: none;
+  }
+
+  .sidebar {
+    width: 240px;
+    height: 100%;
+    background: var(--rail-bg);
+    border-right: 1px solid var(--hairline);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    flex-shrink: 0;
+    transition: width 0.32s cubic-bezier(0.22, 1, 0.36, 1), background 0.5s ease;
+  }
+
+  .sidebar.collapsed { width: 64px; }
+
+  .brand-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 14px 8px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+  .sidebar.collapsed .brand-head { justify-content: center; padding: 12px 0 8px; }
+
+  .brand-logo {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #0A84FF, #7C5CFF);
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .brand-name { font-size: 13px; font-weight: 700; letter-spacing: 0.6px; color: var(--ink1); }
+  .sidebar.collapsed .brand-name { display: none; }
+
+  .bento-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 4px 8px 6px;
+    flex-shrink: 0;
+  }
+  .sidebar.collapsed .bento-grid { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 8px; }
+
+  .bento-tile {
+    height: 54px;
+    border-radius: 11px;
+    padding: 8px 10px;
+    background: var(--card-bg);
+    border: 1px solid var(--hairline);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    color: var(--ink2);
+  }
+  .sidebar.collapsed .bento-tile { width: 40px; height: 40px; padding: 0; align-items: center; justify-content: center; border-radius: 9px; }
+  .sidebar.collapsed .bento-label, .sidebar.collapsed .bento-dot { display: none; }
+  .bento-tile.active { border-color: var(--accent-border); color: var(--ink1); }
+  .bento-tile.active svg { color: var(--accent); }
+  .bento-top { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+  .sidebar.collapsed .bento-top { justify-content: center; }
+  .bento-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); opacity: 0; }
+  .bento-tile.active .bento-dot { opacity: 1; }
+  .bento-label { font-size: 12px; font-weight: 600; }
+
+  .nav-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .nav-scroll::-webkit-scrollbar { width: 0; }
+  .sidebar.collapsed .nav-scroll { align-items: center; padding: 6px 8px; }
+  .nav-group-head { padding: 8px 8px 3px; font-size: 11px; font-weight: 600; color: var(--ink3); }
+  .sidebar.collapsed .nav-group-head { display: none; }
+  .nav-row { height: 30px; border-radius: 8px; padding: 0 10px; display: flex; align-items: center; gap: 9px; color: var(--ink2); font-size: 12.5px; cursor: pointer; }
+  .nav-row:hover { background: var(--hover-bg); color: var(--ink1); }
+  .sidebar.collapsed .nav-row { width: 40px; height: 40px; padding: 0; justify-content: center; }
+  .sidebar.collapsed .nav-row span { display: none; }
+
+  .pet-slot { margin: 4px auto; display: flex; justify-content: center; pointer-events: none; transition: all 0.25s ease; }
+  .pet-slot.hidden { opacity: 0; height: 0; margin: 0; overflow: hidden; }
+  .pet-chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
+    background: var(--accent-soft); border: 1px dashed var(--accent-border); color: var(--accent); font-size: 10.5px; font-weight: 600;
+  }
+  .sidebar.collapsed .pet-chip span { display: none; }
+
+  /* 底部堆叠区：天象开关 + 用户卡片底坞 */
+  .rail-bottom-stack {
+    padding: 6px 8px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+    z-index: 5;
+  }
+  .sidebar.collapsed .rail-bottom-stack { align-items: center; padding: 6px 8px 10px; gap: 6px; }
+
+  .floating-dock {
+    border-radius: 12px;
+    background: var(--dock-bg);
+    backdrop-filter: blur(22px);
+    border: 1px solid var(--dock-border);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .sidebar.collapsed .floating-dock { width: 48px; padding: 4px; align-items: center; background: transparent; border-color: transparent; backdrop-filter: none; }
+
+  .account-row { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 8px; cursor: pointer; }
+  .account-row:hover { background: var(--hover-bg); }
+  .sidebar.collapsed .account-row { padding: 2px; justify-content: center; }
+  .sidebar.collapsed .account-meta, .sidebar.collapsed .account-arrow { display: none; }
+
+  .avatar-wrap { position: relative; width: 28px; height: 28px; flex-shrink: 0; }
+  .avatar-img {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, #f6d365, #fda085 45%, #8b5cf6 100%);
+    border: 1.5px solid rgba(255, 255, 255, 0.7);
+    display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #fff;
+  }
+  .avatar-status { position: absolute; right: -1px; bottom: -1px; width: 8px; height: 8px; border-radius: 50%; background: var(--online); border: 1.5px solid #1E222B; }
+  .account-meta { flex: 1; min-width: 0; }
+  .account-name { font-size: 12px; font-weight: 700; color: var(--ink1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .account-sub { font-size: 10.5px; color: var(--ink3); margin-top: 1px; }
+  .account-arrow { color: var(--ink3); flex-shrink: 0; }
+  .dock-divider { height: 1px; background: var(--hairline); margin: 1px 0; }
+  .sidebar.collapsed .dock-divider { display: none; }
+  .dock-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  .sidebar.collapsed .dock-actions { display: flex; flex-direction: column; gap: 4px; width: 100%; align-items: center; }
+  .dock-btn { height: 30px; border-radius: 8px; border: none; background: transparent; color: var(--ink2); display: grid; place-items: center; cursor: pointer; }
+  .sidebar.collapsed .dock-btn { width: 34px; height: 32px; }
+  .dock-btn:hover { background: var(--hover-bg); color: var(--ink1); }
+
+  .content-peek {
+    flex: 1;
+    background: var(--content-bg);
+    padding: 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+  }
+  .peek-top { display: flex; align-items: center; gap: 8px; }
+  .peek-search { flex: 1; height: 30px; border-radius: 8px; background: var(--card-bg); border: 1px solid var(--hairline); display: flex; align-items: center; padding: 0 10px; font-size: 11px; color: var(--ink3); }
+  .peek-pill { height: 30px; padding: 0 10px; border-radius: 8px; background: var(--accent-soft); border: 1px solid var(--accent-border); color: var(--accent); font-size: 11px; font-weight: 600; display: grid; place-items: center; }
+  .peek-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; }
+  .peek-work {
+    border-radius: 10px;
+    background: var(--card-bg);
+    border: 1px solid var(--hairline);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .peek-thumb { flex: 1; border-radius: 7px; background: linear-gradient(135deg, var(--accent-soft), rgba(140, 100, 255, 0.16)); border: 1px solid var(--hairline); }
+  .peek-line { height: 8px; border-radius: 4px; background: var(--hover-bg); width: 78%; }
+  .peek-line.short { width: 48%; }
+
+  /* 右侧赏析舞台 */
+  .showcase-pane {
+    border-radius: 14px;
+    background: var(--win-bg);
+    backdrop-filter: blur(32px);
+    border: 1px solid var(--win-border);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .showcase-title { font-size: 18px; font-weight: 750; }
+  .showcase-sub { font-size: 12.5px; color: var(--ink2); margin-top: 4px; line-height: 1.55; }
+
+  .zoom-stage {
+    flex: 1;
+    min-height: 270px;
+    border-radius: 14px;
+    background: radial-gradient(circle at 50% 45%, var(--accent-soft), transparent 68%), var(--card-bg);
+    border: 1px solid var(--hairline);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding: 28px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .zoom-label { font-size: 11px; font-weight: 600; letter-spacing: 0.5px; color: var(--ink3); }
+  .zoom-wrapper { transform: scale(1.75); transform-origin: center; }
+
+  .spec-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  @media (max-width: 720px) { .spec-cards { grid-template-columns: 1fr; } }
+  .spec-card { border-radius: 10px; padding: 12px 13px; background: var(--card-bg); border: 1px solid var(--hairline); }
+  .spec-card h4 { font-size: 12px; font-weight: 700; color: var(--ink1); margin-bottom: 5px; }
+  .spec-card p { font-size: 11.5px; color: var(--ink2); line-height: 1.55; }
+
+  /* ========== 星穹天象天气开关样式 ========== */
+  .theme-switch-host {
+    width: 224px;
+    position: relative;
+    user-select: none;
+  }
+  .theme-switch-host.compact { width: 40px; }
+
+  .celestial-btn {
+    position: relative;
+    width: 100%;
+    height: 48px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    overflow: hidden;
+    padding: 0;
+    outline: none;
+    display: block;
+    background: #101935;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), 0 4px 16px rgba(0, 0, 0, 0.22);
+    transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease;
+  }
+  .celestial-btn:hover {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.48), 0 6px 22px rgba(10, 132, 255, 0.26);
+  }
+  .celestial-btn:active { transform: scale(0.975); }
+  .theme-switch-host.compact .celestial-btn { width: 40px; height: 40px; border-radius: 11px; }
+
+  .celestial-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .celestial-border-glow { position: absolute; inset: 0; border-radius: inherit; border: 1px solid rgba(255, 255, 255, 0.24); pointer-events: none; }
+
+  .celestial-sweep {
+    position: absolute; top: -30%; left: -60%; width: 45%; height: 160%;
+    background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.55) 50%, transparent 80%);
+    transform: skewX(-18deg); pointer-events: none; opacity: 0;
+  }
+  .celestial-sweep.firing { animation: sweepAcross 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+  @keyframes sweepAcross { 0% { left: -55%; opacity: 0.9; } 100% { left: 135%; opacity: 0; } }
+
+  .celestial-overlay {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    pointer-events: none;
+  }
+  .theme-switch-host.compact .celestial-overlay { display: none; }
+
+  .celestial-tag {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    transition: opacity 0.35s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .celestial-tag.right { text-align: right; align-items: flex-end; }
+  .celestial-tag .t-main { font-size: 12px; font-weight: 700; color: #fff; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45); display: flex; align-items: center; gap: 5px; }
+  .celestial-tag .t-sub { font-size: 9.5px; font-weight: 500; color: rgba(255, 255, 255, 0.86); text-shadow: 0 1px 4px rgba(0, 0, 0, 0.40); margin-top: 1px; }
+
+  .celestial-btn[data-state="light"] .celestial-tag.left { opacity: 0; transform: translateX(-10px); }
+  .celestial-btn[data-state="light"] .celestial-tag.right { opacity: 1; transform: translateX(0); }
+  .celestial-btn[data-state="dark"] .celestial-tag.left { opacity: 1; transform: translateX(0); }
+  .celestial-btn[data-state="dark"] .celestial-tag.right { opacity: 0; transform: translateX(10px); }
+
+  .auto-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 4px;
+  }
+  .auto-micro-chip {
+    font-size: 9.5px; font-weight: 600; padding: 1px 7px; border-radius: 999px;
+    border: 1px solid var(--hairline); background: var(--card-bg); color: var(--ink3);
+    cursor: pointer; transition: all 0.18s ease;
+  }
+  .auto-micro-chip:hover { color: var(--ink1); border-color: var(--accent-border); }
+  .auto-micro-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .theme-switch-host.compact .auto-row { display: none; }
+</style>
+</head>
+<body>
+
+  <!-- 顶部交互控制台 -->
+  <div class="toolbar">
+    <div class="toolbar-row">
+      <div class="toolbar-left">
+        <span class="toolbar-title">方案一升级版 · 星穹实时天气昼夜舱</span>
+        <span class="toolbar-badge">5 种天象 × 昼夜双态 = 10 种特效</span>
+      </div>
+      <div class="toolbar-controls">
+        <div class="seg" id="railSeg">
+          <button class="seg-btn active" data-rail="expanded">展开态 (240dp)</button>
+          <button class="seg-btn" data-rail="collapsed">折叠窄轨 (64dp)</button>
+        </div>
+        <div class="seg" id="speedSeg">
+          <button class="seg-btn active" data-speed="1">1.0x 原速</button>
+          <button class="seg-btn" data-speed="0.35">0.35x 慢放</button>
+        </div>
+        <button class="seg-btn active" id="petToggleBtn" style="border:1px solid var(--hairline);background:var(--card-bg);">桌宠：显示</button>
+        <button class="trigger-pill" id="quickFlipBtn">⚡ 切换昼夜</button>
+      </div>
+    </div>
+
+    <!-- 第二排：实时天气模拟与真实 IP 拉取试测 -->
+    <div class="toolbar-row">
+      <div class="toolbar-controls">
+        <span style="font-size:11.5px;font-weight:600;color:var(--ink2);">模拟天气：</span>
+        <div class="seg" id="weatherSeg">
+          <button class="seg-btn active" data-weather="clear">☀ 晴朗</button>
+          <button class="seg-btn" data-weather="cloudy">☁ 多云阴天</button>
+          <button class="seg-btn" data-weather="rain">🌧 小雨淅沥</button>
+          <button class="seg-btn" data-weather="storm">⛈ 雷暴闪电</button>
+          <button class="seg-btn" data-weather="snow">❄ 漫天飘雪</button>
+        </div>
+        <button class="trigger-pill" id="fetchLiveWeatherBtn">📍 读取当前位置实时天气</button>
+      </div>
+      <span class="geo-status" id="geoStatus">当前位置：示例城市 · 上海</span>
+    </div>
+
+    <!-- 第三排：全窗昼夜切换大片转场特效 -->
+    <div class="toolbar-row">
+      <div class="toolbar-controls">
+        <span style="font-size:11.5px;font-weight:600;color:var(--ink2);">全窗切换特效：</span>
+        <div class="seg" id="winFxSeg">
+          <button class="seg-btn active" data-winfx="ripple">🌌 终极星爆冲击波（双波纹 + 36星粒飞溅）</button>
+          <button class="seg-btn" data-winfx="rift">🌠 次元极光裂隙（对角撕裂 + 电弧光刃）</button>
+          <button class="seg-btn" data-winfx="vortex">🌀 螺旋星轨光阑（360° 光幕扫屏）</button>
+        </div>
+      </div>
+      <span class="geo-status">点击下方开关，即可看到全窗被光波/光刃横扫完成昼夜更替！</span>
+    </div>
+  </div>
+
+  <!-- 主舞台 -->
+  <div class="stage-grid">
+    <!-- 左侧：模拟真实桌面侧栏与用户卡片底坞 -->
+    <div class="app-shell" id="appShell">
+      <aside class="sidebar" id="sidebar">
+        <div class="brand-head">
+          <div class="brand-logo">V</div>
+          <span class="brand-name">VCOMIC</span>
+        </div>
+
+        <div class="bento-grid">
+          <div class="bento-tile active">
+            <div class="bento-top"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 4 9v12h5v-7h6v7h5V9z"/></svg><span class="bento-dot"></span></div>
+            <span class="bento-label">首页</span>
+          </div>
+          <div class="bento-tile">
+            <div class="bento-top"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="bento-dot"></span></div>
+            <span class="bento-label">漫画搜索</span>
+          </div>
+          <div class="bento-tile">
+            <div class="bento-top"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="bento-dot"></span></div>
+            <span class="bento-label">画廊</span>
+          </div>
+          <div class="bento-tile">
+            <div class="bento-top"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg><span class="bento-dot"></span></div>
+            <span class="bento-label">收藏</span>
+          </div>
+        </div>
+
+        <div class="nav-scroll">
+          <div class="nav-group-head">画廊频道 ▾</div>
+          <div class="nav-row"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>今日推荐</span></div>
+          <div class="nav-row"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span>收藏作品</span></div>
+          <div class="nav-row"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>关注画师</span></div>
+          <div class="nav-row"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span>浏览历史</span></div>
+          <div class="nav-group-head">工具 ▾</div>
+          <div class="nav-row"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20V10M18 20V4M6 20v-4"/></svg><span>阅读统计</span></div>
+          <div class="nav-row"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg><span>漫画源管理</span></div>
+        </div>
+
+        <div class="pet-slot" id="petSlot">
+          <div class="pet-chip">🐾 <span>桌宠栖息位（已上移避让）</span></div>
+        </div>
+
+        <div class="rail-bottom-stack">
+          <div id="sidebarSwitchSlot"></div>
+
+          <div class="floating-dock">
+            <div class="account-row">
+              <div class="avatar-wrap">
+                <div class="avatar-img">极</div>
+                <span class="avatar-status"></span>
+              </div>
+              <div class="account-meta">
+                <div class="account-name">极东的Djehuty</div>
+                <div class="account-sub">pixiv · 已登录</div>
+              </div>
+              <svg class="account-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+            <div class="dock-divider"></div>
+            <div class="dock-actions">
+              <button class="dock-btn" title="下载与本地"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+              <button class="dock-btn" title="设置"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.77 1 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+              <button class="dock-btn" id="railDockCollapseBtn" title="折叠 / 展开侧栏"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="9" y1="4" x2="9" y2="20"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <div class="content-peek">
+        <div class="peek-top">
+          <div class="peek-search">搜索画师、标签或作品 ID…</div>
+          <div class="peek-pill">pixiv</div>
+        </div>
+        <div class="peek-grid">
+          <div class="peek-work"><div class="peek-thumb"></div><div class="peek-line"></div><div class="peek-line short"></div></div>
+          <div class="peek-work"><div class="peek-thumb" style="background:linear-gradient(135deg,rgba(255,150,80,0.22),var(--accent-soft));"></div><div class="peek-line"></div><div class="peek-line short"></div></div>
+          <div class="peek-work"><div class="peek-thumb" style="background:linear-gradient(135deg,rgba(52,211,153,0.20),var(--accent-soft));"></div><div class="peek-line"></div><div class="peek-line short"></div></div>
+          <div class="peek-work"><div class="peek-thumb" style="background:linear-gradient(135deg,rgba(244,114,182,0.22),var(--accent-soft));"></div><div class="peek-line"></div><div class="peek-line short"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧赏析舞台 -->
+    <section class="showcase-pane">
+      <div>
+        <h2 class="showcase-title">方案一 · 星穹实时天气昼夜舱（Weather-Aware Celestial Horizon）</h2>
+        <p class="showcase-sub">
+          基于方案一进化：保持「太阳抛物线落日 + 弯月伴星升起 + 暮色渐变 + 流星扫边」完整昼夜交响的同时，叠加当前城市实时天气！切换上方 5 种天气按钮，直接预览晴、云、雨、雷暴、雪在白天与夜晚的不同表现。
+        </p>
+      </div>
+
+      <div class="zoom-stage">
+        <span class="zoom-label">1.75× 高清细节放大 · 点击切换昼夜，或上方切换 5 种天气</span>
+        <div class="zoom-wrapper">
+          <div id="zoomSwitchSlot"></div>
+        </div>
+        <span class="zoom-label" id="stateReadout">当前：深色夜幕 · 晴朗 · 上海 14°C</span>
+      </div>
+
+      <div class="spec-cards">
+        <div class="spec-card">
+          <h4>跨平台位置获取（零弹窗）</h4>
+          <p>Windows / Linux 均无需系统 GPS 权限：优先 IP 粗定位获取经纬度，再调免 Key 的 Open-Meteo 气象接口；支持设置手动指定城市，彻底解决开代理 IP 漂移问题。</p>
+        </div>
+        <div class="spec-card">
+          <h4>5 种天气 × 昼夜视觉层</h4>
+          <p>晴天（日晕/星芒流星）、多云（厚云半遮日/月）、雨天（斜雨丝+底边水花涟漪）、雷暴（紫黑乌云+随机分叉电光闪耀）、飘雪（景深雪花+底部薄雪积线）。</p>
+        </div>
+        <div class="spec-card">
+          <h4>低功耗与隐私兜底</h4>
+          <p>启动拉取并缓存 30 分钟，断网或关闭天气联动时无感退回原版晴空/星夜；悬停与切换时全速播放粒子，窗口失焦或闲置可节流降帧保护 GPU。</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+<script>
+(() => {
+  let currentTheme = 'dark';
+  let autoMode = false;
+  let railMode = 'expanded';
+  let speedScale = 1;
+  let weather = 'clear'; // 'clear' | 'cloudy' | 'rain' | 'storm' | 'snow'
+  let winFx = 'ripple'; // 'ripple' | 'blade' | 'nebula'
+  let cityName = '上海';
+  let tempText = '14°C';
+
+  let animProgress = 1;
+  let animStart = 1;
+  let animTarget = 1;
+  let animStartTime = 0;
+  let animDuration = 720;
+  let isAnimating = false;
+  let meteorTime = -9999;
+
+  // 玻璃窗静态凝露水珠（雨天高级拟物，不遮挡文字）
+  const glassDroplets = [
+    { x: 0.10, y: 0.28, r: 2.3 },
+    { x: 0.17, y: 0.68, r: 3.1 },
+    { x: 0.27, y: 0.42, r: 1.9 },
+    { x: 0.36, y: 0.76, r: 2.6 },
+    { x: 0.44, y: 0.26, r: 1.7 },
+    { x: 0.56, y: 0.70, r: 2.1 },
+  ];
+  // 细雨微丝（仅少量、极细、限左半区/云底，只在悬停/切换/阵雨呼吸期轻拂）
+  const fineDrops = Array.from({ length: 10 }, (_, i) => ({
+    x: 12 + (i * 19) % 128,
+    y: (i * 17) % 44,
+    len: 4.5 + (i % 3) * 1.8,
+    speed: 1.35 + (i % 4) * 0.28,
+  }));
+  const ripples = Array.from({ length: 3 }, (_, i) => ({
+    x: 28 + i * 42,
+    phase: i * 0.33,
+  }));
+  const snowFlakes = Array.from({ length: 22 }, (_, i) => ({
+    x: (i * 29) % 230,
+    y: (i * 13) % 50,
+    r: 1.1 + (i % 3) * 0.65,
+    speed: 0.35 + (i % 4) * 0.14,
+    sway: i * 0.9,
+  }));
+  let nextLightningAt = 0;
+  let lightningAlpha = 0;
+  let lightningX = 72;
+  let cloudFlashAlpha = 0;
+  let btnSparkTime = -9999; // 按钮内星尘爆散时间
+  const btnSparks = Array.from({ length: 12 }, (_, i) => ({
+    ang: (Math.PI * 2 / 12) * i + 0.15,
+    dist: 10 + (i % 3) * 6,
+    size: 1.1 + (i % 2) * 0.7,
+  }));
+  let isAnySwitchHovered = false;
+
+  const instances = [];
+
+  const WEATHER_LABEL = {
+    clear: { day: '晴空', night: '星夜' },
+    cloudy: { day: '多云', night: '阴云' },
+    rain: { day: '细雨', night: '夜雨' },
+    storm: { day: '雷雨', night: '雷暴' },
+    snow: { day: '飞雪', night: '雪夜' },
+  };
+
+  function easeInOutCubic(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+  function easeOutBack(t) { const c1 = 1.65, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); }
+  function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function lerpColor(c1, c2, t) {
+    return `rgb(${Math.round(lerp(c1[0], c2[0], t))},${Math.round(lerp(c1[1], c2[1], t))},${Math.round(lerp(c1[2], c2[2], t))})`;
+  }
+
+  function buildSwitchDOM(slotEl, isCompact) {
+    slotEl.innerHTML = '';
+    const host = document.createElement('div');
+    host.className = 'theme-switch-host' + (isCompact ? ' compact' : '');
+
+    const autoRow = document.createElement('div');
+    autoRow.className = 'auto-row';
+    const autoBtn = document.createElement('button');
+    autoBtn.className = 'auto-micro-chip' + (autoMode ? ' active' : '');
+    autoBtn.textContent = autoMode ? '自动 · 跟随系统' : '跟随系统';
+    autoBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      autoMode = !autoMode;
+      syncAllUI();
+    });
+    autoRow.appendChild(autoBtn);
+
+    const btn = document.createElement('button');
+    btn.className = 'celestial-btn';
+    btn.dataset.state = currentTheme;
+    btn.innerHTML = `
+      <canvas class="celestial-canvas"></canvas>
+      <div class="celestial-sweep"></div>
+      <div class="celestial-overlay">
+        <div class="celestial-tag left">
+          <span class="t-main"><em class="w-lbl-night">星夜</em> · 深色</span>
+          <span class="t-sub"><em class="loc-sub">${cityName} ${tempText}</em></span>
+        </div>
+        <div class="celestial-tag right">
+          <span class="t-main"><em class="w-lbl-day">晴空</em> · 浅色</span>
+          <span class="t-sub"><em class="loc-sub">${cityName} ${tempText}</em></span>
+        </div>
+      </div>
+      <div class="celestial-border-glow"></div>
+    `;
+    btn.addEventListener('mouseenter', () => { isAnySwitchHovered = true; });
+    btn.addEventListener('mouseleave', () => { isAnySwitchHovered = false; });
+    btn.addEventListener('click', () => toggleTheme(false));
+    host.appendChild(autoRow);
+    host.appendChild(btn);
+    slotEl.appendChild(host);
+    return { canvas: btn.querySelector('canvas'), compact: isCompact };
+  }
+
+  function rebuildSwitches() {
+    instances.length = 0;
+    instances.push(buildSwitchDOM(document.getElementById('sidebarSwitchSlot'), railMode === 'collapsed'));
+    instances.push(buildSwitchDOM(document.getElementById('zoomSwitchSlot'), false));
+  }
+
+  function fireWindowRevealTransition(oldTheme, newTheme) {
+    const shell = document.getElementById('appShell');
+    const switchSlot = document.getElementById('sidebarSwitchSlot');
+    if (!shell || !switchSlot) return;
+
+    // 清理未播完的旧特效层
+    shell.querySelectorAll('.win-reveal-overlay, .win-shockwave-ring').forEach(el => el.remove());
+
+    const shellRect = shell.getBoundingClientRect();
+    const swRect = switchSlot.getBoundingClientRect();
+    const ox = swRect.left - shellRect.left + swRect.width / 2;
+    const oy = swRect.top - shellRect.top + swRect.height / 2;
+    const maxR = Math.hypot(
+      Math.max(ox, shellRect.width - ox),
+      Math.max(oy, shellRect.height - oy)
+    ) + 24;
+
+    // 克隆整扇旧窗口（锁定旧主题颜色变量）作为顶层待揭幕层；底层随即切为新主题！
+    const oldTokens = oldTheme === 'dark'
+      ? {
+          '--accent':'#0A84FF','--accent-soft':'rgba(10,132,255,0.18)','--accent-border':'rgba(10,132,255,0.42)',
+          '--win-bg':'rgba(20,22,29,0.92)','--rail-bg':'rgba(34,38,46,0.94)','--content-bg':'rgba(24,27,34,0.96)',
+          '--card-bg':'rgba(255,255,255,0.055)','--dock-bg':'rgba(255,255,255,0.06)','--dock-border':'rgba(255,255,255,0.14)',
+          '--hover-bg':'rgba(255,255,255,0.08)','--hairline':'rgba(255,255,255,0.09)','--ink1':'#F2F6FC',
+          '--ink2':'#A6B2C4','--ink3':'#717D91','--online':'#2DD46B','--win-border':'rgba(255,255,255,0.14)'
+        }
+      : {
+          '--accent':'#0A63F6','--accent-soft':'rgba(10,99,246,0.12)','--accent-border':'rgba(10,99,246,0.34)',
+          '--win-bg':'rgba(255,255,255,0.92)','--rail-bg':'rgba(246,248,252,0.95)','--content-bg':'rgba(255,255,255,0.96)',
+          '--card-bg':'rgba(255,255,255,0.72)','--dock-bg':'rgba(255,255,255,0.52)','--dock-border':'rgba(255,255,255,0.75)',
+          '--hover-bg':'rgba(23,32,46,0.06)','--hairline':'rgba(23,32,46,0.09)','--ink1':'#17202E',
+          '--ink2':'#526074','--ink3':'#8390A3','--online':'#22C55E','--win-border':'rgba(255,255,255,0.82)'
+        };
+
+    // 为了反向擦除旧层或正向揭开新层：让新主题层做覆盖其实需要克隆新层；
+    // 更巧妙：把当前“新主题”后的内容留在底层，还是“旧主题”克隆在底层、“新主题”做正向 clip-path 扩张？
+    // 正确做法：先克隆旧 DOM 放底层（或顶层），由于我们需要新开关在动效中继续跑 Canvas，
+    // 所以**真正的实时 DOM（带新主题）放在底层不动**，我们只需要在顶层用**新主题做 clip-path**？不对，旧快照放顶层用反向径向 mask 擦除，就能完全不遮住底层正在丝滑动画的新开关，且洞口透出实时新主题！
+    const snap = document.createElement('div');
+    snap.className = 'win-reveal-overlay';
+    snap.style.display = 'flex';
+    Object.entries(oldTokens).forEach(([k, v]) => snap.style.setProperty(k, v));
+    snap.style.background = oldTokens['--win-bg'];
+    // 拷贝当前结构（在切换 document data-theme 之前调用！）
+    snap.innerHTML = shell.innerHTML;
+    // 把原 Canvas 画面拷贝进快照里的 canvas，避免黑块
+    const origCanvases = shell.querySelectorAll('canvas');
+    const snapCanvases = snap.querySelectorAll('canvas');
+    origCanvases.forEach((oc, i) => {
+      const sc = snapCanvases[i];
+      if (!sc) return;
+      sc.width = oc.width;
+      sc.height = oc.height;
+      const sctx = sc.getContext('2d');
+      if (sctx && oc.width && oc.height) sctx.drawImage(oc, 0, 0);
+    });
+
+    const ringCanvas = document.createElement('canvas');
+    ringCanvas.className = 'win-shockwave-ring';
+    ringCanvas.width = shellRect.width * (window.devicePixelRatio || 1);
+    ringCanvas.height = shellRect.height * (window.devicePixelRatio || 1);
+
+    shell.appendChild(snap);
+    shell.appendChild(ringCanvas);
+
+    const dur = (winFx === 'vortex' ? 760 : 820) / speedScale;
+    const t0 = performance.now();
+
+    // 预生成 36 颗星爆飞溅光粒
+    const sparks = Array.from({ length: 36 }, (_, i) => ({
+      angle: (Math.PI * 2 / 36) * i + (Math.random() - 0.5) * 0.14,
+      speedBias: 0.78 + Math.random() * 0.42,
+      size: 1.6 + Math.random() * 2.2,
+      tail: 14 + Math.random() * 20,
+    }));
+
+    function stepReveal(now) {
+      if (!snap.isConnected) return;
+      const raw = clamp01((now - t0) / dur);
+      const p = 1 - Math.pow(1 - raw, 3.0);
+      const dpr = window.devicePixelRatio || 1;
+      const rctx = ringCanvas.getContext('2d');
+      rctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      rctx.clearRect(0, 0, shellRect.width, shellRect.height);
+
+      if (winFx === 'ripple') {
+        // 终极星爆冲击波：先引力蓄力缩放 -> 双层色散脉冲波 + 36颗星芒粒子沿波前飞溅！
+        const punch = raw < 0.12 ? 1 - (raw / 0.12) * 0.012 : lerp(0.988, 1, clamp01((raw - 0.12) / 0.35));
+        shell.style.transform = `scale(${punch})`;
+
+        const r1 = p * maxR;
+        const feather = 30;
+        const mask = `radial-gradient(circle at ${ox}px ${oy}px, transparent ${Math.max(0, r1 - feather)}px, black ${r1 + 4}px)`;
+        snap.style.webkitMaskImage = mask;
+        snap.style.maskImage = mask;
+
+        const ringAlpha = (1 - raw) * 0.95;
+        if (r1 > 4 && ringAlpha > 0.01) {
+          // 主色散极光冲击环
+          const grad = rctx.createRadialGradient(ox, oy, Math.max(0, r1 - 30), ox, oy, r1 + 18);
+          if (newTheme === 'dark') {
+            grad.addColorStop(0, 'rgba(10,132,255,0)');
+            grad.addColorStop(0.45, `rgba(10,132,255,${ringAlpha * 0.62})`);
+            grad.addColorStop(0.68, `rgba(167,139,250,${ringAlpha * 0.95})`);
+            grad.addColorStop(0.84, `rgba(255,255,255,${ringAlpha * 0.80})`);
+            grad.addColorStop(1, 'rgba(10,132,255,0)');
+          } else {
+            grad.addColorStop(0, 'rgba(255,200,80,0)');
+            grad.addColorStop(0.45, `rgba(255,165,45,${ringAlpha * 0.65})`);
+            grad.addColorStop(0.70, `rgba(255,248,205,${ringAlpha * 0.98})`);
+            grad.addColorStop(0.86, `rgba(120,210,255,${ringAlpha * 0.50})`);
+            grad.addColorStop(1, 'rgba(255,200,80,0)');
+          }
+          rctx.strokeStyle = grad;
+          rctx.lineWidth = 28;
+          rctx.beginPath();
+          rctx.arc(ox, oy, r1, 0, Math.PI * 2);
+          rctx.stroke();
+
+          // 延迟半拍的回声波纹
+          if (raw > 0.10) {
+            const p2 = clamp01((raw - 0.10) / 0.90);
+            const r2 = (1 - Math.pow(1 - p2, 2.6)) * maxR * 0.92;
+            rctx.strokeStyle = newTheme === 'dark'
+              ? `rgba(139,92,246,${(1 - p2) * 0.45})`
+              : `rgba(255,215,120,${(1 - p2) * 0.50})`;
+            rctx.lineWidth = 3;
+            rctx.beginPath();
+            rctx.arc(ox, oy, r2, 0, Math.PI * 2);
+            rctx.stroke();
+          }
+
+          // 36 颗拖尾飞溅星芒粒子
+          sparks.forEach(sp => {
+            const sr = r1 * sp.speedBias;
+            const sx = ox + Math.cos(sp.angle) * sr;
+            const sy = oy + Math.sin(sp.angle) * sr;
+            const tx = ox + Math.cos(sp.angle) * Math.max(0, sr - sp.tail * (1 - raw * 0.5));
+            const ty = oy + Math.sin(sp.angle) * Math.max(0, sr - sp.tail * (1 - raw * 0.5));
+            const sGrad = rctx.createLinearGradient(tx, ty, sx, sy);
+            sGrad.addColorStop(0, 'rgba(255,255,255,0)');
+            sGrad.addColorStop(1, newTheme === 'dark' ? `rgba(190,225,255,${ringAlpha})` : `rgba(255,244,180,${ringAlpha})`);
+            rctx.strokeStyle = sGrad;
+            rctx.lineWidth = sp.size;
+            rctx.lineCap = 'round';
+            rctx.beginPath(); rctx.moveTo(tx, ty); rctx.lineTo(sx, sy); rctx.stroke();
+          });
+        }
+      } else if (winFx === 'rift') {
+        // 次元极光裂隙：中央对角亮缝先闪亮 -> 双向推开揭幕全窗 + 电光边缘
+        const cx = shellRect.width * 0.46;
+        const cy = shellRect.height * 0.52;
+        const halfSpread = p * (shellRect.width + shellRect.height) * 0.72;
+        const mask = `linear-gradient(128deg, black calc(50% - ${halfSpread + 14}px), transparent calc(50% - ${Math.max(0, halfSpread - 8)}px), transparent calc(50% + ${Math.max(0, halfSpread - 8)}px), black calc(50% + ${halfSpread + 14}px))`;
+        snap.style.webkitMaskImage = mask;
+        snap.style.maskImage = mask;
+
+        const edgeAlpha = (1 - raw) * 0.95;
+        rctx.save();
+        rctx.translate(cx, cy);
+        rctx.rotate(38 * Math.PI / 180);
+        const col = newTheme === 'dark' ? `rgba(100,180,255,${edgeAlpha})` : `rgba(255,220,120,${edgeAlpha})`;
+        const drawBeam = (offset) => {
+          const g = rctx.createLinearGradient(0, offset - 18, 0, offset + 18);
+          g.addColorStop(0, 'rgba(255,255,255,0)');
+          g.addColorStop(0.5, col);
+          g.addColorStop(1, 'rgba(255,255,255,0)');
+          rctx.fillStyle = g;
+          rctx.fillRect(-900, offset - 18, 1800, 36);
+        };
+        drawBeam(-halfSpread);
+        drawBeam(halfSpread);
+        rctx.restore();
+      } else {
+        // 螺旋星轨光阑（360° 光幕旋转扫屏 + 轻柔微缩景深）
+        const sweepDeg = p * 360;
+        const mask = `conic-gradient(from -90deg at ${ox}px ${oy}px, transparent 0deg, transparent ${Math.max(0, sweepDeg - 18)}deg, black ${sweepDeg + 4}deg, black 360deg)`;
+        snap.style.webkitMaskImage = mask;
+        snap.style.maskImage = mask;
+        snap.style.opacity = String(1 - Math.pow(raw, 3));
+
+        const rad = (sweepDeg - 90) * Math.PI / 180;
+        const bx = ox + Math.cos(rad) * maxR;
+        const by = oy + Math.sin(rad) * maxR;
+        const bGrad = rctx.createLinearGradient(ox, oy, bx, by);
+        bGrad.addColorStop(0, 'rgba(255,255,255,0.9)');
+        bGrad.addColorStop(0.5, newTheme === 'dark' ? 'rgba(10,132,255,0.85)' : 'rgba(255,190,70,0.85)');
+        bGrad.addColorStop(1, 'rgba(255,255,255,0)');
+        rctx.strokeStyle = bGrad;
+        rctx.lineWidth = 6;
+        rctx.beginPath(); rctx.moveTo(ox, oy); rctx.lineTo(bx, by); rctx.stroke();
+      }
+
+      if (raw < 1) {
+        requestAnimationFrame(stepReveal);
+      } else {
+        shell.style.transform = '';
+        snap.remove();
+        ringCanvas.remove();
+      }
+    }
+    requestAnimationFrame(stepReveal);
+  }
+
+  function toggleTheme(keepAuto) {
+    if (!keepAuto) autoMode = false;
+    const oldTheme = currentTheme;
+    currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    fireWindowRevealTransition(oldTheme, currentTheme);
+    document.documentElement.setAttribute('data-theme', currentTheme);
+
+    animStart = animProgress;
+    animTarget = currentTheme === 'dark' ? 1 : 0;
+    animStartTime = performance.now();
+    animDuration = 720 / speedScale;
+    isAnimating = true;
+
+    document.querySelectorAll('.celestial-sweep').forEach(el => {
+      el.classList.remove('firing');
+      void el.offsetWidth;
+      el.style.animationDuration = `${0.65 / speedScale}s`;
+      el.classList.add('firing');
+    });
+
+    if (currentTheme === 'dark' && weather === 'clear') {
+      meteorTime = performance.now() + 360 / speedScale;
+    }
+    btnSparkTime = performance.now() + 300 / speedScale;
+    syncAllUI();
+  }
+
+  function syncAllUI() {
+    document.querySelectorAll('.celestial-btn').forEach(el => { el.dataset.state = currentTheme; });
+    document.querySelectorAll('.w-lbl-night').forEach(el => { el.textContent = WEATHER_LABEL[weather].night; });
+    document.querySelectorAll('.w-lbl-day').forEach(el => { el.textContent = WEATHER_LABEL[weather].day; });
+    document.querySelectorAll('.loc-sub').forEach(el => { el.textContent = `${cityName} · ${tempText}`; });
+    document.querySelectorAll('.auto-micro-chip').forEach(el => {
+      el.classList.toggle('active', autoMode);
+      el.textContent = autoMode ? '自动 · 跟随系统' : '跟随系统';
+    });
+    const modeStr = currentTheme === 'dark' ? '深色' : '浅色';
+    const wStr = currentTheme === 'dark' ? WEATHER_LABEL[weather].night : WEATHER_LABEL[weather].day;
+    document.getElementById('stateReadout').textContent = `当前：${modeStr} · ${wStr} · ${cityName} ${tempText}`;
+  }
+
+  // ===== 天空基调色板随天气 + 昼夜变化 =====
+  function getSkyStops(p) {
+    let dTop, dMid, dBot, nTop, nMid, nBot;
+    if (weather === 'clear') {
+      dTop = [45, 165, 245]; dMid = [118, 206, 252]; dBot = [228, 246, 255];
+      nTop = [10, 15, 36];   nMid = [20, 32, 72];    nBot = [35, 28, 74];
+    } else if (weather === 'cloudy') {
+      dTop = [102, 148, 192]; dMid = [154, 188, 218]; dBot = [212, 226, 240];
+      nTop = [18, 24, 42];    nMid = [32, 42, 68];    nBot = [46, 54, 80];
+    } else if (weather === 'rain') {
+      dTop = [64, 98, 134];  dMid = [98, 132, 166];  dBot = [148, 174, 198];
+      nTop = [11, 18, 34];   nMid = [19, 34, 62];    nBot = [28, 52, 84];
+    } else if (weather === 'storm') {
+      dTop = [44, 52, 78];   dMid = [66, 74, 104];   dBot = [102, 108, 136];
+      nTop = [9, 10, 22];    nMid = [22, 20, 48];    nBot = [40, 26, 70];
+    } else { // snow
+      dTop = [124, 178, 224]; dMid = [178, 214, 242]; dBot = [235, 245, 255];
+      nTop = [14, 24, 48];    nMid = [26, 42, 78];    nBot = [48, 66, 108];
+    }
+
+    if (p < 0.5) {
+      const k = p * 2;
+      return [
+        lerpColor(dTop, [56, 40, 108], k),
+        lerpColor(dMid, [168, 84, 132], k),
+        lerpColor(dBot, [238, 148, 90], k),
+      ];
+    } else {
+      const k = (p - 0.5) * 2;
+      return [
+        lerpColor([56, 40, 108], nTop, k),
+        lerpColor([168, 84, 132], nMid, k),
+        lerpColor([238, 148, 90], nBot, k),
+      ];
+    }
+  }
+
+  function drawCloudShape(ctx, cx, cy, s, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 9 * s, 0, Math.PI * 2);
+    ctx.arc(cx + 10 * s, cy - 3.5 * s, 11.5 * s, 0, Math.PI * 2);
+    ctx.arc(cx + 21 * s, cy + 0.5 * s, 8.5 * s, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawCelestialWeather(canvas, p, now, isCompact) {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const w = rect.width, h = rect.height;
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+    }
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    // 1. 天空渐变
+    const [topC, midC, botC] = getSkyStops(p);
+    const skyGrad = ctx.createLinearGradient(0, 0, w * 0.4, h);
+    skyGrad.addColorStop(0, topC);
+    skyGrad.addColorStop(0.55, midC);
+    skyGrad.addColorStop(1, botC);
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // 雷暴：厚云内部蓄电光斑 + 间歇细锐闪电（不再密密麻麻划线条）
+    if (weather === 'storm') {
+      if (now > nextLightningAt) {
+        lightningAlpha = 0.92;
+        cloudFlashAlpha = 0.65;
+        lightningX = w * (0.16 + Math.random() * 0.28); // 避开右半侧文字区
+        nextLightningAt = now + (2200 + Math.random() * 2600) / speedScale;
+      }
+      if (cloudFlashAlpha > 0.02) {
+        const cFlash = ctx.createRadialGradient(lightningX, 10, 2, lightningX, 14, w * 0.45);
+        cFlash.addColorStop(0, `rgba(175, 200, 255, ${cloudFlashAlpha * 0.55})`);
+        cFlash.addColorStop(1, 'rgba(120, 140, 255, 0)');
+        ctx.fillStyle = cFlash;
+        ctx.fillRect(0, 0, w, h);
+        cloudFlashAlpha *= 0.88;
+      }
+      if (lightningAlpha > 0.03) {
+        ctx.strokeStyle = `rgba(235, 245, 255, ${lightningAlpha})`;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(lightningX, 6);
+        ctx.lineTo(lightningX - 5, h * 0.36);
+        ctx.lineTo(lightningX + 4, h * 0.48);
+        ctx.lineTo(lightningX - 3, h * 0.78);
+        ctx.stroke();
+        lightningAlpha *= 0.80;
+      }
+    }
+
+    // 切换交界瞬间地平线极光脉冲（p ≈ 0.5 附近爆发）
+    const horizonPulse = Math.max(0, 1 - Math.abs(p - 0.5) * 4.5);
+    if (horizonPulse > 0.02) {
+      const hp = ctx.createRadialGradient(w * 0.5, h * 0.85, 4, w * 0.5, h * 0.75, w * 0.65);
+      hp.addColorStop(0, `rgba(255, 210, 140, ${horizonPulse * 0.65})`);
+      hp.addColorStop(0.55, `rgba(167, 139, 250, ${horizonPulse * 0.38})`);
+      hp.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = hp;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    // 2. 星辰（晴天亮，多云稀疏，雨雪极少）
+    const starDensity = weather === 'clear' ? 1 : (weather === 'cloudy' ? 0.35 : 0.15);
+    if (p > 0.35 && starDensity > 0) {
+      const stars = isCompact
+        ? [[0.24, 0.25, 2.5, 0], [0.76, 0.72, 1.9, 0.2]]
+        : [[0.52, 0.26, 2.7, 0.0], [0.64, 0.66, 2.0, 0.10], [0.72, 0.22, 2.3, 0.18], [0.46, 0.74, 1.7, 0.25], [0.88, 0.24, 1.9, 0.32]];
+      stars.forEach(([sx, sy, sr, delay], idx) => {
+        const sp = clamp01((p - 0.40 - delay * 0.5) / 0.40) * starDensity;
+        if (sp <= 0.02) return;
+        const twinkle = 0.72 + 0.28 * Math.sin(now * 0.004 + idx * 1.9);
+        const r = sr * twinkle;
+        ctx.save();
+        ctx.translate(sx * w, sy * h);
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.92 * sp * twinkle})`;
+        ctx.beginPath();
+        ctx.moveTo(0, -r * 1.6);
+        ctx.quadraticCurveTo(0, 0, r * 1.6, 0);
+        ctx.quadraticCurveTo(0, 0, 0, r * 1.6);
+        ctx.quadraticCurveTo(0, 0, -r * 1.6, 0);
+        ctx.quadraticCurveTo(0, 0, 0, -r * 1.6);
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+
+    // 流星（仅晴夜）
+    const meteorElapsed = (now - meteorTime) * speedScale;
+    if (weather === 'clear' && p > 0.75 && meteorElapsed > 0 && meteorElapsed < 520) {
+      const mt = meteorElapsed / 520;
+      const mx = lerp(w * 0.82, w * 0.44, mt);
+      const my = lerp(h * 0.10, h * 0.72, mt);
+      const tailLen = 36 * Math.sin(mt * Math.PI);
+      const grad = ctx.createLinearGradient(mx, my, mx + tailLen, my - tailLen * 0.45);
+      grad.addColorStop(0, 'rgba(255,255,255,0.95)');
+      grad.addColorStop(1, 'rgba(120,190,255,0)');
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + tailLen, my - tailLen * 0.45); ctx.stroke();
+    }
+
+    // 3. 太阳（带运动残影拖尾，晴天最亮，多云/雨雪柔和）
+    const sunT = clamp01(p / 0.55);
+    if (sunT < 0.99 && weather !== 'storm') {
+      const sunR = isCompact ? 9 : 11;
+      const dim = weather === 'clear' ? 1 : (weather === 'cloudy' ? 0.82 : 0.55);
+      // 运动时画 3 帧残影拖尾
+      if (isAnimating) {
+        for (let tStep = 3; tStep >= 1; tStep--) {
+          const trailT = clamp01((p - tStep * 0.045) / 0.55);
+          const tr = easeInOutCubic(trailT);
+          const tx = isCompact ? lerp(w * 0.50, w * 0.22, tr) : lerp(26, 64, tr);
+          const ty = isCompact ? lerp(h * 0.50, h + 14, tr) : lerp(h * 0.50, h + 18, tr) - Math.sin(tr * Math.PI) * 14;
+          ctx.fillStyle = `rgba(255, 210, 90, ${0.14 * (4 - tStep) * dim})`;
+          ctx.beginPath(); ctx.arc(tx, ty, sunR * 0.85, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      const st = easeInOutCubic(sunT);
+      const sunX = isCompact ? lerp(w * 0.50, w * 0.22, st) : lerp(26, 64, st);
+      const sunY = isCompact ? lerp(h * 0.50, h + 14, st) : lerp(h * 0.50, h + 18, st) - Math.sin(st * Math.PI) * 14;
+
+      ctx.save();
+      ctx.globalAlpha = dim;
+      const glow = ctx.createRadialGradient(sunX, sunY, sunR * 0.3, sunX, sunY, sunR * 2.5);
+      glow.addColorStop(0, 'rgba(255, 238, 160, 0.80)');
+      glow.addColorStop(1, 'rgba(255, 160, 40, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.arc(sunX, sunY, sunR * 2.5, 0, Math.PI * 2); ctx.fill();
+
+      const sunBody = ctx.createRadialGradient(sunX - 3, sunY - 3, 2, sunX, sunY, sunR);
+      sunBody.addColorStop(0, '#FFFBEB');
+      sunBody.addColorStop(0.65, '#FFD447');
+      sunBody.addColorStop(1, '#FF9914');
+      ctx.fillStyle = sunBody;
+      ctx.beginPath(); ctx.arc(sunX, sunY, sunR, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    // 4. 弯月 + 落位星尘溅射
+    const moonRaw = clamp01((p - 0.25) / 0.75);
+    if (moonRaw > 0.01 && weather !== 'storm') {
+      const mt = easeOutBack(moonRaw);
+      const moonEndX = isCompact ? w * 0.52 : w - 28;
+      const moonStartX = isCompact ? w * 0.78 : w - 58;
+      const moonX = lerp(moonStartX, moonEndX, clamp01(moonRaw));
+      const moonY = lerp(h + 18, h * 0.50, mt);
+      const moonR = isCompact ? 9 : 11;
+      const dim = weather === 'clear' ? 1 : (weather === 'cloudy' ? 0.8 : 0.55);
+
+      ctx.save();
+      ctx.globalAlpha = dim;
+      const mGlow = ctx.createRadialGradient(moonX, moonY, moonR * 0.4, moonX, moonY, moonR * 2.3);
+      mGlow.addColorStop(0, 'rgba(180, 218, 255, 0.45)');
+      mGlow.addColorStop(1, 'rgba(10, 132, 255, 0)');
+      ctx.fillStyle = mGlow;
+      ctx.beginPath(); ctx.arc(moonX, moonY, moonR * 2.3, 0, Math.PI * 2); ctx.fill();
+
+      ctx.translate(moonX, moonY);
+      ctx.rotate(lerp(-0.55, -0.18, clamp01(moonRaw)));
+      ctx.beginPath();
+      ctx.arc(0, 0, moonR, -Math.PI * 0.42, Math.PI * 0.72, false);
+      ctx.arc(moonR * 0.58, -moonR * 0.28, moonR * 0.85, Math.PI * 0.55, -Math.PI * 0.52, true);
+      ctx.closePath();
+      const mBody = ctx.createLinearGradient(-moonR, -moonR, moonR, moonR);
+      mBody.addColorStop(0, '#FFFFFF'); mBody.addColorStop(1, '#8CC0FF');
+      ctx.fillStyle = mBody;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // 切换落位瞬间的微型星尘粒溅射（按钮内）
+    const spElapsed = (now - btnSparkTime) * speedScale;
+    if (spElapsed > 0 && spElapsed < 480) {
+      const st = spElapsed / 480;
+      const cx = currentTheme === 'dark' ? (isCompact ? w * 0.52 : w - 28) : (isCompact ? w * 0.50 : 26);
+      const cy = h * 0.5;
+      btnSparks.forEach(s => {
+        const r = lerp(4, s.dist + 10, 1 - Math.pow(1 - st, 2));
+        ctx.fillStyle = currentTheme === 'dark'
+          ? `rgba(180,220,255,${(1 - st) * 0.9})`
+          : `rgba(255,240,160,${(1 - st) * 0.9})`;
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(s.ang) * r, cy + Math.sin(s.ang) * r, s.size * (1 - st * 0.5), 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    // 5. 云层叠加（晴天轻云仅白天；多云/雨/雷暴全天候立体云海）
+    const drift = Math.sin(now * 0.0012) * 5;
+    if (weather === 'clear') {
+      const cloudVis = 1 - clamp01(p / 0.55);
+      if (cloudVis > 0.01 && !isCompact) {
+        ctx.save();
+        ctx.globalAlpha = cloudVis * 0.88;
+        drawCloudShape(ctx, w * 0.34 + drift, h * 0.88 + (1 - cloudVis) * 18, 1.0, 'rgba(255,255,255,0.88)');
+        ctx.restore();
+      }
+    } else if (weather === 'cloudy' || weather === 'rain' || weather === 'storm') {
+      const cloudColor = weather === 'storm'
+        ? lerpColor([88, 96, 126], [30, 34, 58], p)
+        : lerpColor([250, 252, 255], [64, 78, 114], p);
+      ctx.save();
+      ctx.globalAlpha = weather === 'storm' ? 0.90 : 0.78;
+      if (!isCompact) {
+        drawCloudShape(ctx, 18 + drift * 0.8, 11, 1.15, cloudColor);
+        drawCloudShape(ctx, w * 0.45 - drift * 0.6, 8, 1.25, cloudColor);
+        drawCloudShape(ctx, w * 0.78 + drift * 0.5, 13, 1.0, cloudColor);
+      } else {
+        drawCloudShape(ctx, 8 + drift * 0.3, 12, 0.9, cloudColor);
+      }
+      ctx.restore();
+    }
+
+    // 6. 重构后的雨天视觉：静态玻璃凝露水珠 + 仅阵雨/悬停微拂的极细烟雨丝（绝不乱划文字！）
+    if (weather === 'rain' || weather === 'storm') {
+      // 6a. 玻璃表面晶莹拟物凝露水珠（干净、克制、零视觉噪点）
+      if (!isCompact) {
+        glassDroplets.forEach(dr => {
+          const gx = dr.x * w;
+          const gy = dr.y * h;
+          // 微暗投影
+          ctx.fillStyle = 'rgba(0, 10, 25, 0.22)';
+          ctx.beginPath(); ctx.arc(gx + 0.6, gy + 0.8, dr.r, 0, Math.PI * 2); ctx.fill();
+          // 水珠通透玻璃体
+          const dGrad = ctx.createRadialGradient(gx - dr.r * 0.3, gy - dr.r * 0.3, 0.3, gx, gy, dr.r);
+          dGrad.addColorStop(0, 'rgba(255, 255, 255, 0.85)');
+          dGrad.addColorStop(0.55, 'rgba(185, 220, 255, 0.28)');
+          dGrad.addColorStop(1, 'rgba(120, 165, 220, 0.45)');
+          ctx.fillStyle = dGrad;
+          ctx.beginPath(); ctx.arc(gx, gy, dr.r, 0, Math.PI * 2); ctx.fill();
+        });
+      }
+
+      // 6b. 阵雨呼吸与悬停唤醒：平时极柔和偶发，悬停或切换时细腻飘落（且仅限左半侧避开文字！）
+      const breathWave = Math.max(0, Math.sin(now * 0.0011)); // 时停时下、自然呼吸
+      const rainIntensity = (isAnySwitchHovered || isAnimating) ? 1.0 : breathWave * 0.45;
+      if (rainIntensity > 0.06) {
+        const activeCount = weather === 'storm' ? 9 : 6;
+        const wind = weather === 'storm' ? -2.2 : -1.0;
+        ctx.lineWidth = 0.75;
+        ctx.lineCap = 'round';
+        for (let i = 0; i < activeCount; i++) {
+          const d = fineDrops[i];
+          d.y += d.speed * speedScale;
+          d.x += wind * 0.18 * speedScale;
+          const maxDropX = isCompact ? w : w * 0.62; // 右侧留给文字清晰阅读
+          if (d.y > h - 2) { d.y = 6; d.x = 10 + (d.x + 37) % (maxDropX - 16); }
+          if (d.x < 6) d.x += maxDropX - 12;
+          const fade = Math.sin((d.y / h) * Math.PI);
+          const alpha = rainIntensity * fade * (p > 0.5 ? 0.42 : 0.48);
+          const g = ctx.createLinearGradient(d.x, d.y, d.x + wind, d.y + d.len);
+          g.addColorStop(0, 'rgba(255,255,255,0)');
+          g.addColorStop(1, p > 0.5 ? `rgba(170,215,255,${alpha})` : `rgba(255,255,255,${alpha})`);
+          ctx.strokeStyle = g;
+          ctx.beginPath();
+          ctx.moveTo(d.x, d.y);
+          ctx.lineTo(d.x + wind, d.y + d.len);
+          ctx.stroke();
+        }
+      }
+
+      // 6c. 左半底边轻盈小涟漪
+      if (!isCompact && rainIntensity > 0.15) {
+        ripples.forEach(rp => {
+          rp.phase = (rp.phase + 0.014 * speedScale) % 1;
+          const rr = rp.phase * 8;
+          ctx.strokeStyle = `rgba(210, 235, 255, ${(1 - rp.phase) * 0.35 * rainIntensity})`;
+          ctx.lineWidth = 0.85;
+          ctx.beginPath();
+          ctx.ellipse(rp.x, h - 2.5, rr, rr * 0.25, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+      }
+    }
+
+    // 7. 飘雪 + 底部薄雪线（snow）
+    if (weather === 'snow') {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.82)';
+      snowFlakes.forEach(sf => {
+        sf.y += sf.speed * speedScale;
+        sf.sway += 0.03 * speedScale;
+        if (sf.y > h + 4) { sf.y = -4; sf.x = (sf.x + 51) % w; }
+        const sx = (sf.x + Math.sin(sf.sway) * 6 + w) % w;
+        ctx.beginPath();
+        ctx.arc(sx, sf.y, sf.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // 底部薄雪层
+      const snowPile = ctx.createLinearGradient(0, h - 6, 0, h);
+      snowPile.addColorStop(0, 'rgba(255,255,255,0)');
+      snowPile.addColorStop(1, 'rgba(245,250,255,0.52)');
+      ctx.fillStyle = snowPile;
+      ctx.fillRect(0, h - 6, w, 6);
+    }
+  }
+
+  function frame(now) {
+    if (isAnimating) {
+      const elapsed = now - animStartTime;
+      const t = clamp01(elapsed / animDuration);
+      animProgress = lerp(animStart, animTarget, t);
+      if (t >= 1) { animProgress = animTarget; isAnimating = false; }
+    }
+    for (const inst of instances) {
+      drawCelestialWeather(inst.canvas, animProgress, now, inst.compact);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ===== WMO 天气代码映射 =====
+  function mapWmoToWeather(code) {
+    if (code === 0 || code === 1) return 'clear';
+    if (code === 2 || code === 3 || code === 45 || code === 48) return 'cloudy';
+    if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return 'rain';
+    if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snow';
+    if (code >= 95) return 'storm';
+    return 'clear';
+  }
+
+  async function fetchLiveWeather() {
+    const statusEl = document.getElementById('geoStatus');
+    const btn = document.getElementById('fetchLiveWeatherBtn');
+    btn.disabled = true;
+    statusEl.textContent = '正在获取 IP 粗略位置与实时天气...';
+    try {
+      const ipRes = await fetch('https://ipapi.co/json/');
+      if (!ipRes.ok) throw new Error('IP 服务响应异常');
+      const ipData = await ipRes.json();
+      const lat = ipData.latitude;
+      const lon = ipData.longitude;
+      const city = ipData.city || ipData.region || '未知地区';
+
+      const wUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,is_day`;
+      const wRes = await fetch(wUrl);
+      if (!wRes.ok) throw new Error('天气接口响应异常');
+      const wData = await wRes.json();
+      const cur = wData.current || {};
+      const mapped = mapWmoToWeather(cur.weather_code ?? 0);
+
+      cityName = city;
+      tempText = cur.temperature_2m != null ? `${Math.round(cur.temperature_2m)}°C` : '--';
+      setWeather(mapped);
+      statusEl.textContent = `实测成功：${cityName} · ${tempText}（WMO=${cur.weather_code} → ${WEATHER_LABEL[mapped].day}/${WEATHER_LABEL[mapped].night}）`;
+    } catch (err) {
+      statusEl.textContent = `在线拉取受限（${err.message}），可直接在左侧点击 5 种天气模拟试玩`;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function setWeather(w) {
+    weather = w;
+    document.querySelectorAll('#weatherSeg .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.weather === w));
+    syncAllUI();
+  }
+
+  document.getElementById('weatherSeg').addEventListener('click', (e) => {
+    const btn = e.target.closest('.seg-btn');
+    if (!btn) return;
+    setWeather(btn.dataset.weather);
+  });
+
+  document.getElementById('winFxSeg').addEventListener('click', (e) => {
+    const btn = e.target.closest('.seg-btn');
+    if (!btn) return;
+    winFx = btn.dataset.winfx;
+    document.querySelectorAll('#winFxSeg .seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+  });
+
+  document.getElementById('fetchLiveWeatherBtn').addEventListener('click', fetchLiveWeather);
+
+  document.getElementById('railSeg').addEventListener('click', (e) => {
+    const btn = e.target.closest('.seg-btn');
+    if (!btn) return;
+    setRailMode(btn.dataset.rail);
+  });
+
+  document.getElementById('railDockCollapseBtn').addEventListener('click', () => {
+    setRailMode(railMode === 'expanded' ? 'collapsed' : 'expanded');
+  });
+
+  function setRailMode(mode) {
+    railMode = mode;
+    document.getElementById('sidebar').classList.toggle('collapsed', mode === 'collapsed');
+    document.querySelectorAll('#railSeg .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.rail === mode));
+    rebuildSwitches();
+    syncAllUI();
+  }
+
+  document.getElementById('speedSeg').addEventListener('click', (e) => {
+    const btn = e.target.closest('.seg-btn');
+    if (!btn) return;
+    speedScale = parseFloat(btn.dataset.speed);
+    document.querySelectorAll('#speedSeg .seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+  });
+
+  document.getElementById('petToggleBtn').addEventListener('click', (e) => {
+    const hidden = document.getElementById('petSlot').classList.toggle('hidden');
+    e.currentTarget.classList.toggle('active', !hidden);
+    e.currentTarget.textContent = hidden ? '桌宠：隐藏' : '桌宠：显示';
+  });
+
+  document.getElementById('quickFlipBtn').addEventListener('click', () => toggleTheme(false));
+
+  rebuildSwitches();
+  syncAllUI();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

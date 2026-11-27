@@ -53,14 +53,29 @@ class DesktopSourceState(paths: PathProvider) {
      * 标志与数据必须**一次写**（[setEnabledKeys] 走 `putAll`），分两次写会留下"数据落了、标志没落"
      * 的半截窗口 —— 那等于默认档永远压着用户账。
      */
-    fun enabledKeys(): Set<String>? =
-        if (store.getBoolean(KEY_ENABLED_INIT, false)) store.getStringSet(KEY_ENABLED) else null
+    fun enabledKeys(): Set<String>? {
+        if (!store.getBoolean(KEY_ENABLED_INIT, false)) return null
+        val saved = store.getStringSet(KEY_ENABLED)
+        // 老用户已存用户账且尚未走过 GoDa 默认补开迁移：自动补开一次并立标，后续允许手动关闭不反复复开。
+        if (!store.getBoolean(KEY_GODA_BACKFILLED, false)) {
+            val next = (saved + DEFAULT_RECOMMEND_SOURCE).sorted().toSet()
+            store.putAll(mapOf(KEY_ENABLED to next, KEY_GODA_BACKFILLED to true))
+            return next
+        }
+        return saved
+    }
 
     /**
      * 整份交回而不是增量记：空集也要真写回一份空数组，并与 `init` 标志同一次落盘。
      */
     fun setEnabledKeys(keys: Set<String>) {
-        store.putAll(mapOf(KEY_ENABLED_INIT to true, KEY_ENABLED to keys.sorted().toSet()))
+        store.putAll(
+            mapOf(
+                KEY_ENABLED_INIT to true,
+                KEY_ENABLED to keys.sorted().toSet(),
+                KEY_GODA_BACKFILLED to true,
+            ),
+        )
     }
 
     /**
@@ -90,15 +105,19 @@ class DesktopSourceState(paths: PathProvider) {
         /** 伴生标志：`true` = 用户真的动过开关（数据键的"存在但为空"由此与"从没写过"分开）。 */
         private const val KEY_ENABLED_INIT = "enabled_sources_init"
 
+        /** 首页正常推荐源改用 GoDa 后，给既有老用户自动补开一次的迁移标记。 */
+        private const val KEY_GODA_BACKFILLED = "goda_default_backfilled_v1"
+
+        private const val DEFAULT_RECOMMEND_SOURCE = "goda"
+
         /** 站点墙拖出来的顺序（逗号分隔的 key 串）。 */
         private const val KEY_ORDER = "source_order"
 
         /**
-         * 默认开启的那几颗 —— **逐字对齐**对岸 `ComicSourceManager.kt` 的 `BUNDLED_DEFAULT_FILES`
-         * （baozi / copy_manga / jm / manga_dex；键 = 脚本文件名去 .js）。
-         * 对岸新增第五颗随包默认源而桌面没跟上时，由 [DEFAULT_ENABLED] 的回核尺子咬（见测试）。
+         * 默认开启的那几颗 —— 对岸随包默认四颗（`baozi / copy_manga / jm / manga_dex`）
+         * 外加桌面首页推荐安全直连源 `goda`。
          */
-        val DEFAULT_ENABLED: Set<String> = setOf("baozi", "copy_manga", "jm", "manga_dex")
+        val DEFAULT_ENABLED: Set<String> = setOf("baozi", "copy_manga", "goda", "jm", "manga_dex")
 
         /**
          * 这一台此刻该算「开着」的集合：有用户账用用户的账，没账落默认档 ∩ 清单。

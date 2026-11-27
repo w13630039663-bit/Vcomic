@@ -46,6 +46,7 @@ import com.venera.compose.gallery.data.PixivUser
 import com.venera.compose.ui.tokens.VeneraTokens
 import com.venera.desktop.gallery.data.DesktopPixivisionArticle
 import com.venera.desktop.ui.components.desktopCardLiftModifier
+import com.venera.desktop.ui.components.registerPixelBuddyCard
 import com.venera.desktop.ui.theme.VeneraType
 
 /**
@@ -121,6 +122,7 @@ private fun PixivisionArticleCard(
 
     Box(
         modifier = modifier
+            .registerPixelBuddyCard("pixivision-${article.id}")
             .then(desktopCardLiftModifier(shape))
             .clip(shape)
             .background(tokens.color.surfaceVariant.copy(alpha = tokens.current.placeholderAlpha))
@@ -280,6 +282,7 @@ private fun RecommendedUserCard(
         modifier = Modifier
             .width(280.dp)
             .height(224.dp)
+            .registerPixelBuddyCard("user-${user.id}")
             .then(desktopCardLiftModifier(shape))
             .clip(shape)
             .background(tokens.color.surfaceVariant.copy(alpha = tokens.current.placeholderAlpha))

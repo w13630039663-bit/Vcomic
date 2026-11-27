@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,7 +29,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -39,9 +43,13 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 
@@ -246,48 +254,149 @@ fun DesktopSearchField(
     interactionSource: MutableInteractionSource? = null,
     onClick: (() -> Unit)? = null,
     onFocusChanged: ((Boolean) -> Unit)? = null,
+    collapsedWidth: Dp? = null,
+    expandedWidth: Dp? = null,
+    collapsedWidthFraction: Float? = null,
+    showPixelBuddy: Boolean = false,
+    clearFocusOnSearch: Boolean = false,
 ) {
-    DesktopInputField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = modifier,
-        placeholder = placeholder,
-        leadingIcon = Icons.Outlined.Search,
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        keyboardActions = KeyboardActions(onSearch = { onSearch() }),
-        focusRequester = focusRequester,
-        interactionSource = interactionSource,
-        onClick = onClick,
-        onFocusChanged = onFocusChanged,
-        colors = colors,
-        trailing = {
-            if (onClear != null && value.isNotEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(colors.fieldBorder.copy(alpha = 0.65f))
-                        .clickable { onClear() },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Close,
-                        contentDescription = "清除",
-                        tint = colors.iconTint,
-                        modifier = Modifier.size(12.dp),
-                    )
-                }
-                Spacer(Modifier.width(6.dp))
+    val focusManager = LocalFocusManager.current
+    var focused by remember { mutableStateOf(false) }
+    var wasSearching by remember { mutableStateOf(false) }
+    var typingTick by remember { mutableIntStateOf(0) }
+    var confirmTick by remember { mutableIntStateOf(0) }
+    var latestBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    androidx.compose.runtime.LaunchedEffect(searching) {
+        if (searching) {
+            com.venera.desktop.settings.DesktopPixelBuddyBus.reportSearchConfirm(value)
+        } else if (wasSearching) {
+            com.venera.desktop.settings.DesktopPixelBuddyBus.reportSearching(false)
+            if (focused) {
+                focusManager.clearFocus()
             }
-            if (!shortcutHint.isNullOrBlank()) {
-                Text(
-                    text = shortcutHint,
-                    fontSize = VeneraType.micro.size,
-                    lineHeight = VeneraType.micro.lineHeight,
-                    color = colors.hintColor,
+        }
+        wasSearching = searching
+    }
+    // 从顶栏点最近搜索跳入新页但结果秒出（外层未触发 searching=true）时，短延迟后自动释放跨页等待
+    androidx.compose.runtime.LaunchedEffect(searching, value) {
+        if (!searching && com.venera.desktop.settings.DesktopPixelBuddyBus.searchState.value.crossPagePending) {
+            kotlinx.coroutines.delay(180L)
+            if (!searching && com.venera.desktop.settings.DesktopPixelBuddyBus.searchState.value.crossPagePending) {
+                com.venera.desktop.settings.DesktopPixelBuddyBus.reportSearching(false)
+            }
+        }
+    }
+    val expandedNow = focused || searching
+    val morphWidth = rememberSearchMorphWidth(
+        focused = expandedNow,
+        collapsedWidth = collapsedWidth,
+        expandedWidth = expandedWidth,
+    )
+    val morphFraction = rememberSearchMorphFraction(
+        focused = expandedNow,
+        collapsedFraction = collapsedWidthFraction,
+    )
+    val boxModifier = when {
+        morphWidth != null -> modifier.width(morphWidth)
+        morphFraction != null -> modifier.fillMaxWidth(morphFraction)
+        else -> modifier
+    }
+
+    Box(
+        modifier = boxModifier.onGloballyPositioned { coords ->
+            val rect = coords.boundsInWindow()
+            latestBounds = rect
+            val curBus = com.venera.desktop.settings.DesktopPixelBuddyBus.searchState.value
+            if (focused || searching || curBus.boundsInWindow == null) {
+                com.venera.desktop.settings.DesktopPixelBuddyBus.reportSearchFocus(
+                    focused = focused,
+                    bounds = rect,
+                    query = value,
                 )
             }
         },
-    )
+    ) {
+        DesktopInputField(
+            value = value,
+            onValueChange = { next ->
+                if (next != value) {
+                    typingTick++
+                    com.venera.desktop.settings.DesktopPixelBuddyBus.reportSearchTyping(next, latestBounds)
+                }
+                onValueChange(next)
+            },
+            modifier = Modifier
+                .let {
+                    when {
+                        morphWidth != null -> it.width(morphWidth)
+                        morphFraction != null -> it.fillMaxWidth()
+                        else -> it
+                    }
+                }
+                .desktopSearchConfirmSweep(confirmTick = confirmTick, sweepColor = colors.cursor),
+            placeholder = placeholder,
+            leadingIcon = Icons.Outlined.Search,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(
+                onSearch = {
+                    confirmTick++
+                    com.venera.desktop.settings.DesktopPixelBuddyBus.reportSearchConfirm(value)
+                    onSearch()
+                    if (clearFocusOnSearch) focusManager.clearFocus()
+                },
+            ),
+            focusRequester = focusRequester,
+            interactionSource = interactionSource,
+            onClick = onClick,
+            onFocusChanged = { isFocused ->
+                focused = isFocused
+                com.venera.desktop.settings.DesktopPixelBuddyBus.reportSearchFocus(
+                    focused = isFocused,
+                    bounds = latestBounds,
+                    query = value,
+                )
+                onFocusChanged?.invoke(isFocused)
+            },
+            colors = colors,
+            trailing = {
+                if (onClear != null && value.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .background(colors.fieldBorder.copy(alpha = 0.65f))
+                            .clickable { onClear() },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Close,
+                            contentDescription = "清除",
+                            tint = colors.iconTint,
+                            modifier = Modifier.size(12.dp),
+                        )
+                    }
+                    Spacer(Modifier.width(6.dp))
+                }
+                if (!shortcutHint.isNullOrBlank()) {
+                    Text(
+                        text = shortcutHint,
+                        fontSize = VeneraType.micro.size,
+                        lineHeight = VeneraType.micro.lineHeight,
+                        color = colors.hintColor,
+                    )
+                }
+            },
+        )
+        if (showPixelBuddy) {
+            DesktopSearchPixelPerch(
+                focused = focused,
+                typingTick = typingTick,
+                confirmTick = confirmTick,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(end = 10.dp),
+            )
+        }
+    }
 }

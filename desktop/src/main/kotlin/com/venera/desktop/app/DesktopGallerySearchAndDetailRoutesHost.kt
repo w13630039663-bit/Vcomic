@@ -8,14 +8,19 @@ import com.venera.desktop.ui.constFlow
 import com.venera.desktop.ui.rememberRetainedLazyListState
 import com.venera.desktop.ui.rememberRetainedLazyStaggeredGridState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.venera.compose.components.WideScreenLayoutMode
 import com.venera.compose.data.platform.JsonKeyValueStore
 import com.venera.compose.data.platform.PathProvider
+import com.venera.compose.gallery.data.GalleryContentGuard
 import com.venera.compose.gallery.data.GalleryFavorite
 import com.venera.compose.gallery.data.GalleryPorts
 import com.venera.compose.gallery.data.GalleryPost
@@ -50,6 +55,7 @@ import com.venera.desktop.gallery.ui.desktopHistoryStore
 import com.venera.desktop.gallery.ui.desktopRankingStep
 import com.venera.desktop.gallery.ui.desktopRankingLanding
 import com.venera.desktop.gallery.ui.desktopSearchHistoryEntry
+import com.venera.desktop.gallery.ui.rememberDesktopGallerySearchPagerController
 import com.venera.desktop.search.desktopComicSearchHistoryNoteText
 import com.venera.desktop.ui.components.DesktopPetCue
 import com.venera.desktop.ui.components.DesktopPetCueBus
@@ -67,7 +73,11 @@ internal fun DesktopGallerySearchRoute(
     layoutMode: WideScreenLayoutMode,
     ports: GalleryPorts,
     scope: CoroutineScope,
+    galleryPrefs: DesktopGalleryPreferences?,
     railPrefs: JsonKeyValueStore?,
+    maskModeOf: () -> String,
+    wallGuardOf: () -> GalleryContentGuard?,
+    wallBlockAiOf: () -> Boolean,
     gallerySearchToday: LocalDate,
     gallerySearchSourceOptions: List<GallerySearchSource>,
     gallerySearchRankingChoices: List<DesktopRankingChoice>,
@@ -133,6 +143,31 @@ internal fun DesktopGallerySearchRoute(
     val pixivSearchUsers by pixivSearchUsersState
     val gallerySuggestCandidates by gallerySuggestCandidatesState
     val searchQuery by searchQueryState
+
+    val pager = rememberDesktopGallerySearchPagerController(
+        ports = ports,
+        scope = scope,
+        galleryPrefs = galleryPrefs,
+        maskModeOf = maskModeOf,
+        wallGuardOf = wallGuardOf,
+        wallBlockAiOf = wallBlockAiOf,
+        gallerySearchMode = gallerySearchMode,
+        gallerySearchQuery = gallerySearchQuery,
+        gallerySearchSource = gallerySearchSource,
+        gallerySearchSourceOptions = gallerySearchSourceOptions,
+        gallerySearchRanking = gallerySearchRanking,
+        gallerySearchRankingLanding = gallerySearchRankingLanding,
+        gallerySearchRankingAnchor = gallerySearchRankingAnchor,
+        gallerySearchToday = gallerySearchToday,
+        gallerySearchR18 = gallerySearchR18,
+        gallerySearchPageState = gallerySearchPageState,
+        gallerySearchTickState = gallerySearchTickState,
+        pixivSearchTerm = pixivSearchTerm,
+        pixivSearchFilter = pixivSearchFilter,
+        pixivSearchKind = pixivSearchKind,
+        pixivSearchPageState = pixivSearchPageState,
+        pixivSearchTickState = pixivSearchTickState,
+    )
 
     DesktopGallerySearchScreen(
         mode = layoutMode,
@@ -257,6 +292,14 @@ internal fun DesktopGallerySearchRoute(
                 gallerySearchTick++
             }
         },
+        paginationMode = pager.mode,
+        onPickPaginationMode = pager.onPickMode,
+        currentPage = pager.currentPage,
+        canNextPage = pager.canNextPage,
+        pageLoading = pager.pageLoading,
+        onPrevPage = pager.onPrevPage,
+        onNextPage = pager.onNextPage,
+        onJumpPage = pager.onJumpPage,
         history = gallerySearchHistory,
         onPickHistory = { entry ->
             val landing = desktopHistoryLanding(entry)

@@ -436,17 +436,21 @@ internal fun DesktopLargeScreenMiscEffects(
     LaunchedEffect(homeLines) {
         if (homeLines.isEmpty()) return@LaunchedEffect
         val now = System.currentTimeMillis()
-        val due = homeLines.filter { (host) -> now - (homeProbeStamp[host] ?: 0L) > 60_000L }
+        // 仅在应用本轮启动（或新启站点初次出现）时自动探测一次；之后切换页面回首页不再自动重复发包，改由用户手动刷新/重测。
+        val due = homeLines.map { it.second }.filter { it.isNotBlank() && !homeProbeStamp.containsKey(it) }.distinct()
         if (due.isEmpty()) return@LaunchedEffect
-        due.forEach { (_, host) -> homeProbeStamp[host] = now }
-        homeProbingHosts.addAll(due.map { it.second }.filterNot { it in homeProbingHosts })
-        due.forEach { (_, host) ->
+        due.forEach { host -> homeProbeStamp[host] = now }
+        homeProbingHosts.addAll(due.filterNot { it in homeProbingHosts })
+        val proxy = com.venera.desktop.gallery.data.DesktopSourceRepoPreferences.resolveProxy(galleryPaths)
+        due.forEach { host ->
             homeScope.launch {
-                val ms = com.venera.desktop.platform.DesktopSourceLatencyProbe.probe(host)
+                val ms = com.venera.desktop.platform.DesktopSourceLatencyProbe.probe(host, proxy)
                 homeProbingHosts.removeAll(listOf(host))
                 if (ms != null) {
                     homeLatencyByHost[host] = ms
+                    homeFailedHosts.remove(host)
                 } else {
+                    homeLatencyByHost.remove(host)
                     homeFailedHosts[host] = System.currentTimeMillis()
                 }
             }

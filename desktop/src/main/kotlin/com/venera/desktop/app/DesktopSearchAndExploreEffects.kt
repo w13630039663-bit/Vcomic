@@ -1375,7 +1375,7 @@ internal fun DesktopSearchAndExploreEffects(
         )
     }
 
-    // 首页推荐漫画复用探索引擎直取默认安全源「最新」分组并做会话缓存，避免切 Tab 重复等待或混入排行榜。
+    // 首页推荐漫画复用探索引擎：正常档直取 GoDa 热门更新，R18 档接禁漫天堂日排行。
     LaunchedEffect(currentTab, exploreTick, currentMaskMode, homeRecommendR18) {
         if (currentTab != VeneraNavTab.HOME) return@LaunchedEffect
         if (homeRecommendComics.isNotEmpty()) return@LaunchedEffect
@@ -1392,14 +1392,14 @@ internal fun DesktopSearchAndExploreEffects(
             }
         } else {
             desktopEngineCall(e) {
-                e.load(DESKTOP_EXPLORE_SOURCE)
+                e.load(DESKTOP_HOME_RECOMMEND_SOURCE)
                 e.explore(0, 1)
             }
         }
         got.fold(
             onSuccess = { page ->
-                // R18 档走禁漫日排行，分区是单格无名 ⇒ 取不到「最新」自然退回整页，行为不变。
-                val cards = page.sections.firstOrNull { it.title == "最新" }?.comics
+                // GoDa 页面栏目标题实测为繁体「熱門更新」，同时兼容简体「热门更新」，取不到退回整页。
+                val cards = page.sections.firstOrNull { it.title == "熱門更新" || it.title == "热门更新" }?.comics
                     ?.takeIf { it.isNotEmpty() }
                     ?: page.sections.flatMap { it.comics }.ifEmpty { page.comics }
                 if (cards.isNotEmpty()) {
@@ -1407,7 +1407,7 @@ internal fun DesktopSearchAndExploreEffects(
                     homeRecommendNote = if (homeRecommendR18) {
                         "推荐漫画（禁漫天堂 · 日排行）"
                     } else {
-                        "推荐漫画（拷贝漫画 · 最新）"
+                        "推荐漫画（GoDa漫画 · 热门更新）"
                     }
                 } else {
                     homeRecommendNote = page.error?.takeIf { it.isNotBlank() }
@@ -1417,7 +1417,7 @@ internal fun DesktopSearchAndExploreEffects(
                                 category = "漫画",
                                 headline = "首页推荐被源站拒绝",
                                 humanReason = "首页推荐这一格没取回内容，源站回的是失败而不是空列表。",
-                                detail = (if (homeRecommendR18) "jm" else DESKTOP_EXPLORE_SOURCE) + ": " + raw,
+                                detail = (if (homeRecommendR18) "jm" else DESKTOP_HOME_RECOMMEND_SOURCE) + ": " + raw,
                                 dedupKey = "comic:home_recommend_denied",
                             )
                             com.venera.desktop.platform.desktopFailureNoteOfText(raw)

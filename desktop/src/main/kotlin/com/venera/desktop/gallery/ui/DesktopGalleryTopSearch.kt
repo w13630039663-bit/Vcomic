@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -51,6 +52,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
@@ -221,6 +223,7 @@ internal fun DesktopGalleryTopSearch(
         val word = term.trim()
         if (word.isEmpty()) return
         suppressDropdown = true
+        com.venera.desktop.settings.DesktopPixelBuddyBus.reportSearchConfirm(word, crossPage = true)
         onSearch(if (booru) pickedSite else GallerySite.PIXIV, word)
     }
 
@@ -247,6 +250,19 @@ internal fun DesktopGalleryTopSearch(
     val isDark = LocalVeneraDarkTheme.current
     val galleryColors = GalleryTokens.Color
     val scopePillShape = RoundedCornerShape(4.dp)
+    var topSearchBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    LaunchedEffect(focused, topSearchBounds) {
+        com.venera.desktop.settings.DesktopPixelBuddyBus.reportSearchFocus(
+            focused = focused,
+            bounds = topSearchBounds,
+            query = text,
+        )
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            com.venera.desktop.settings.DesktopPixelBuddyBus.clearSearchFocusAndBounds(topSearchBounds)
+        }
+    }
 
     Box(modifier, contentAlignment = Alignment.CenterStart) {
         DesktopInputField(
@@ -255,6 +271,7 @@ internal fun DesktopGalleryTopSearch(
                 text = it
                 activeIdx = -1
                 suppressDropdown = false
+                com.venera.desktop.settings.DesktopPixelBuddyBus.reportSearchTyping(it, topSearchBounds)
             },
             modifier = Modifier
                 .widthIn(min = 220.dp, max = 480.dp)
@@ -267,6 +284,7 @@ internal fun DesktopGalleryTopSearch(
                 .onGloballyPositioned {
                     fieldWidthPx = it.size.width
                     fieldBottomPx = it.size.height + it.positionInParent().y.roundToInt()
+                    topSearchBounds = it.boundsInWindow()
                 }
                 .onPreviewKeyEvent { e ->
                     if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false

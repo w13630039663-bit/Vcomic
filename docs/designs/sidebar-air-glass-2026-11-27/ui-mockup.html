@@ -1,0 +1,991 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Venera 侧栏 · 通透极简玻璃方案稿</title>
+<style>
+:root {
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --w-expanded: 248px;
+  --w-collapsed: 72px;
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+
+  /* 浅色档通透玻璃与实白内容区反差 */
+  --rail-bg: rgba(244, 248, 250, 0.70);
+  --rail-border: rgba(20, 28, 36, 0.08);
+  --content-bg: #ffffff;
+  --content-card: #f7f8fa;
+  --content-card-border: rgba(20, 28, 36, 0.06);
+
+  --ink-1: #1a1e24;
+  --ink-2: #4e5661;
+  --ink-3: #848d98;
+  --hover-bg: rgba(20, 28, 36, 0.045);
+  --selected-bg: rgba(20, 28, 36, 0.08);
+  --accent: #0a63f6;
+  --window-shadow: 0 28px 70px rgba(15, 25, 38, 0.24), 0 0 0 1px rgba(255, 255, 255, 0.45) inset;
+}
+
+body.theme-dark {
+  --rail-bg: rgba(28, 31, 38, 0.72);
+  --rail-border: rgba(255, 255, 255, 0.08);
+  --content-bg: #14161b;
+  --content-card: #1c1f26;
+  --content-card-border: rgba(255, 255, 255, 0.07);
+
+  --ink-1: rgba(255, 255, 255, 0.92);
+  --ink-2: rgba(255, 255, 255, 0.66);
+  --ink-3: rgba(255, 255, 255, 0.40);
+  --hover-bg: rgba(255, 255, 255, 0.06);
+  --selected-bg: rgba(255, 255, 255, 0.10);
+  --accent: #0a84ff;
+  --window-shadow: 0 28px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.10) inset;
+}
+
+* { box-sizing: border-box; user-select: none; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  background: #101318;
+  color: #f3f5f8;
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* 顶部控制台 */
+.toolbar {
+  padding: 14px 24px;
+  background: rgba(16, 19, 24, 0.94);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+}
+
+.toolbar-title h1 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.toolbar-title p {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.toolbar-groups {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.seg-group {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 2px;
+}
+
+.seg-btn {
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.68);
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.seg-btn:hover { color: #ffffff; background: rgba(255, 255, 255, 0.06); }
+.seg-btn.active { background: #0a84ff; color: #ffffff; font-weight: 500; }
+
+/* 模拟桌面壁纸舞台 */
+.stage {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  overflow: hidden;
+  transition: background 300ms ease;
+}
+
+.stage.wp-sky {
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255, 229, 178, 0.85) 0%, transparent 45%),
+    radial-gradient(circle at 82% 28%, rgba(129, 206, 250, 0.90) 0%, transparent 52%),
+    radial-gradient(circle at 30% 85%, rgba(242, 186, 150, 0.72) 0%, transparent 50%),
+    linear-gradient(135deg, #4f9fd8 0%, #86c5eb 46%, #d9d6cf 100%);
+}
+
+.stage.wp-dusk {
+  background:
+    radial-gradient(circle at 22% 30%, rgba(102, 126, 234, 0.55) 0%, transparent 46%),
+    radial-gradient(circle at 75% 75%, rgba(168, 85, 247, 0.35) 0%, transparent 48%),
+    linear-gradient(135deg, #161b2e 0%, #242942 52%, #181c28 100%);
+}
+
+/* 模拟桌面应用窗口 */
+.app-window {
+  width: 100%;
+  max-width: 1060px;
+  height: 700px;
+  border-radius: 14px;
+  box-shadow: var(--window-shadow);
+  display: flex;
+  overflow: hidden;
+  position: relative;
+  transition: box-shadow 220ms ease;
+}
+
+/* 左侧通透毛玻璃侧栏 */
+.sidebar {
+  width: var(--w-expanded);
+  height: 100%;
+  background: var(--rail-bg);
+  backdrop-filter: blur(30px) saturate(1.45);
+  -webkit-backdrop-filter: blur(30px) saturate(1.45);
+  border-right: 1px solid var(--rail-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: width 220ms var(--ease-out-quart), background 220ms ease, border-color 220ms ease;
+  overflow: hidden;
+}
+
+.app-window.collapsed .sidebar {
+  width: var(--w-collapsed);
+}
+
+/* 侧栏顶部区 */
+.rail-top {
+  height: 46px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.app-window.collapsed .rail-top {
+  padding: 0 10px;
+  justify-content: center;
+}
+
+/* 红绿灯组 */
+.traffic-lights {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-window.collapsed .traffic-lights {
+  gap: 6px;
+}
+
+.tl-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: filter 120ms ease, opacity 120ms ease;
+}
+
+.tl-dot svg {
+  width: 8px;
+  height: 8px;
+  opacity: 0;
+  stroke: rgba(0, 0, 0, 0.62);
+  stroke-width: 1.8;
+  transition: opacity 100ms ease;
+}
+
+.traffic-lights:hover .tl-dot svg {
+  opacity: 1;
+}
+
+.tl-close { background: #ff5f57; border: 0.5px solid rgba(0, 0, 0, 0.12); }
+.tl-min { background: #febc2e; border: 0.5px solid rgba(0, 0, 0, 0.12); }
+.tl-max { background: #28c840; border: 0.5px solid rgba(0, 0, 0, 0.12); }
+
+.app-window.unfocused .tl-dot {
+  background: rgba(128, 128, 128, 0.28);
+  border-color: transparent;
+}
+
+/* Windows 风格左上角替代方案：微标 + 折叠 */
+.win-top-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.win-logo {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(29, 78, 216, 0.25);
+}
+
+.win-brand-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-1);
+  letter-spacing: 0.2px;
+}
+
+.collapse-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-3);
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.collapse-btn:hover {
+  background: var(--hover-bg);
+  color: var(--ink-1);
+}
+
+.app-window.collapsed .collapse-btn-in-top,
+.app-window.collapsed .win-brand-text {
+  display: none;
+}
+
+.mode-mac .win-top-brand,
+.mode-mac .win-controls {
+  display: none !important;
+}
+
+.mode-win .traffic-lights {
+  display: none !important;
+}
+
+/* 侧栏主体滚动区 */
+.rail-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2px 10px 10px;
+}
+
+.rail-scroll::-webkit-scrollbar { width: 4px; }
+.rail-scroll::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.18);
+  border-radius: 99px;
+}
+
+.app-window.collapsed .rail-scroll {
+  padding: 4px 10px;
+}
+
+/* 导航行（主入口 & 分组条目共用统一克制视觉） */
+.nav-item {
+  width: 100%;
+  height: 34px;
+  padding: 0 9px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-weight: 450;
+  transition: background 110ms ease, color 110ms ease;
+  text-align: left;
+}
+
+.nav-item:hover {
+  background: var(--hover-bg);
+  color: var(--ink-1);
+}
+
+.nav-item.active {
+  background: var(--selected-bg);
+  color: var(--ink-1);
+  font-weight: 560;
+}
+
+.nav-item .nav-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nav-item .nav-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-item .nav-meta {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 彩色微型图标徽标（贴合参考图点缀） */
+.badge-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+.bi-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.bi-orange { background: linear-gradient(135deg, #fb923c, #ea580c); }
+.bi-purple { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+.bi-teal { background: linear-gradient(135deg, #2dd4bf, #0d9488); }
+.bi-rose { background: linear-gradient(135deg, #fb7185, #e11d48); }
+
+/* 折叠态条目 */
+.app-window.collapsed .nav-item {
+  width: 44px;
+  height: 38px;
+  margin: 2px auto;
+  padding: 0;
+  justify-content: center;
+}
+
+.app-window.collapsed .nav-label,
+.app-window.collapsed .nav-meta,
+.app-window.collapsed .group-header {
+  display: none;
+}
+
+/* 分组头：参考图同款，小字灰阶 + 箭头在文字右边，不用横线 */
+.group-wrap {
+  margin-top: 14px;
+}
+
+.app-window.collapsed .group-wrap {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rail-border);
+}
+
+.group-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  margin-bottom: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-3);
+  border-radius: 6px;
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.group-header:hover {
+  color: var(--ink-2);
+  background: var(--hover-bg);
+}
+
+.group-header svg {
+  width: 12px;
+  height: 12px;
+  transition: transform 180ms var(--ease-out-quart);
+}
+
+.group-wrap.closed .group-header svg {
+  transform: rotate(-90deg);
+}
+
+.group-wrap.closed .group-body {
+  display: none;
+}
+
+/* 桌宠占位区（可切换展示） */
+.pet-slot {
+  margin: 8px 10px 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(128, 128, 128, 0.08);
+  border: 1px dashed rgba(128, 128, 128, 0.24);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.pet-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6366f1, #ec4899);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.app-window.collapsed .pet-slot {
+  padding: 6px;
+  justify-content: center;
+}
+.app-window.collapsed .pet-info { display: none; }
+
+body.pet-hidden .pet-slot { display: none; }
+
+/* 侧栏极简底栏：纯图标等距排列，去线去底 */
+.rail-footer {
+  height: 46px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  flex-shrink: 0;
+}
+
+.app-window.collapsed .rail-footer {
+  height: auto;
+  flex-direction: column;
+  padding: 6px 0 12px;
+  gap: 4px;
+}
+
+.footer-icon-btn {
+  width: 34px;
+  height: 32px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-2);
+  position: relative;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.footer-icon-btn:hover {
+  background: var(--hover-bg);
+  color: var(--ink-1);
+}
+
+.footer-icon-btn.active {
+  background: var(--selected-bg);
+  color: var(--ink-1);
+}
+
+.footer-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0096fa, #2563eb);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mini-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* 右侧实面工作区 */
+.content-pane {
+  flex: 1;
+  height: 100%;
+  background: var(--content-bg);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  transition: background 220ms ease;
+}
+
+.content-topbar {
+  height: 46px;
+  padding: 0 6px 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.breadcrumb {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.win-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.win-btn {
+  width: 36px;
+  height: 30px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-2);
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.win-btn:hover {
+  background: var(--hover-bg);
+  color: var(--ink-1);
+}
+
+.win-btn.close:hover {
+  background: #e81123;
+  color: #ffffff;
+}
+
+.content-body {
+  flex: 1;
+  padding: 12px 26px 26px;
+  overflow-y: auto;
+}
+
+.hero-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.hero-row h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 620;
+  color: var(--ink-1);
+}
+
+.hero-row span {
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+/* 衬托用内容网格（体现左玻璃右干净工作区） */
+.mock-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.mock-card {
+  border-radius: 10px;
+  background: var(--content-card);
+  border: 1px solid var(--content-card-border);
+  overflow: hidden;
+  transition: transform 160ms ease;
+}
+
+.mock-cover {
+  height: 156px;
+  background: linear-gradient(145deg, rgba(10, 99, 246, 0.10), rgba(148, 163, 184, 0.14));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.mock-meta {
+  padding: 10px 12px;
+}
+
+.mock-title {
+  height: 12px;
+  width: 78%;
+  border-radius: 4px;
+  background: var(--hover-bg);
+  margin-bottom: 7px;
+}
+
+.mock-sub {
+  height: 10px;
+  width: 48%;
+  border-radius: 4px;
+  background: var(--hover-bg);
+}
+
+/* 说明脚条 */
+.spec-note {
+  padding: 10px 24px;
+  background: rgba(16, 19, 24, 0.94);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.62);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+}
+</style>
+</head>
+<body class="pet-hidden">
+
+<div class="toolbar">
+  <div class="toolbar-title">
+    <h1>Venera 侧栏 · 通透极简玻璃方案稿</h1>
+    <p>左透右实层次对比 · 去紫竖条去分割线 · 可点击顶部按钮对比「红绿灯」与「Windows 顺手方案」</p>
+  </div>
+  <div class="toolbar-groups">
+    <div class="seg-group" id="ctrl-win">
+      <button class="seg-btn active" data-win="mac">左上角红绿灯</button>
+      <button class="seg-btn" data-win="win">Windows 折叠钮+右上窗控</button>
+    </div>
+    <div class="seg-group" id="ctrl-rail">
+      <button class="seg-btn active" data-rail="expanded">展开 (248px)</button>
+      <button class="seg-btn" data-rail="collapsed">折叠 (72px)</button>
+    </div>
+    <div class="seg-group" id="ctrl-theme">
+      <button class="seg-btn active" data-theme="light">浅色通透</button>
+      <button class="seg-btn" data-theme="dark">深色微透</button>
+    </div>
+    <div class="seg-group" id="ctrl-pet">
+      <button class="seg-btn active" data-pet="off">极简无桌宠</button>
+      <button class="seg-btn" data-pet="on">开启桌宠占位</button>
+    </div>
+    <div class="seg-group" id="ctrl-focus">
+      <button class="seg-btn active" data-focus="on">窗口激活</button>
+      <button class="seg-btn" data-focus="off">失焦灰灯</button>
+    </div>
+  </div>
+</div>
+
+<div class="stage wp-sky" id="stage">
+  <div class="app-window mode-mac" id="appWindow">
+    <!-- 左侧通透玻璃侧栏 -->
+    <aside class="sidebar">
+      <div class="rail-top">
+        <!-- 模式 A：左上角红绿灯 -->
+        <div class="traffic-lights" title="悬停显示操作符号 · 失焦自动灰化">
+          <button class="tl-dot tl-close" aria-label="关闭">
+            <svg viewBox="0 0 10 10"><path d="M2.5 2.5L7.5 7.5M7.5 2.5L2.5 7.5" stroke-linecap="round"/></svg>
+          </button>
+          <button class="tl-dot tl-min" aria-label="最小化">
+            <svg viewBox="0 0 10 10"><path d="M2 5H8" stroke-linecap="round"/></svg>
+          </button>
+          <button class="tl-dot tl-max" aria-label="最大化">
+            <svg viewBox="0 0 10 10"><path d="M5 2V8M2 5H8" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+
+        <!-- 模式 B：Windows 左上角极简微标 -->
+        <div class="win-top-brand">
+          <div class="win-logo">V</div>
+          <span class="win-brand-text">Venera</span>
+        </div>
+
+        <!-- 顶部折叠按钮（红绿灯模式放在右侧，Windows 模式同位） -->
+        <button class="collapse-btn collapse-btn-in-top" id="btnQuickCollapse" title="折叠侧栏">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="3"/>
+            <path d="M9 4v16"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="rail-scroll">
+        <!-- 顶部高频直达区 -->
+        <button class="nav-item active" data-title="漫画搜索">
+          <span class="nav-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          </span>
+          <span class="nav-label">漫画搜索</span>
+        </button>
+        <button class="nav-item" data-title="首页">
+          <span class="nav-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5.5v-6h-5v6H4a1 1 0 0 1-1-1z"/></svg>
+          </span>
+          <span class="nav-label">首页</span>
+        </button>
+        <button class="nav-item" data-title="画廊">
+          <span class="nav-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15-4.5-4.5L7 20"/></svg>
+          </span>
+          <span class="nav-label">画廊</span>
+        </button>
+        <button class="nav-item" data-title="收藏">
+          <span class="nav-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg>
+          </span>
+          <span class="nav-label">收藏</span>
+          <span class="nav-meta">142</span>
+        </button>
+
+        <!-- 分组：画廊 -->
+        <div class="group-wrap">
+          <button class="group-header">
+            <span>画廊频道</span>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 6 4 4 4-4"/></svg>
+          </button>
+          <div class="group-body">
+            <button class="nav-item" data-title="搜图">
+              <span class="badge-icon bi-blue">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="6"/><path d="m20 20-3.5-3.5"/></svg>
+              </span>
+              <span class="nav-label">以图搜图</span>
+            </button>
+            <button class="nav-item" data-title="每日热门">
+              <span class="badge-icon bi-orange">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 3v18M5 10l7-7 7 7"/></svg>
+              </span>
+              <span class="nav-label">每日热门</span>
+            </button>
+            <button class="nav-item" data-title="收藏与历史">
+              <span class="badge-icon bi-rose">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></svg>
+              </span>
+              <span class="nav-label">收藏与历史</span>
+            </button>
+            <button class="nav-item" data-title="关注画师">
+              <span class="badge-icon bi-teal">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="8" r="4"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
+              </span>
+              <span class="nav-label">关注画师</span>
+              <span class="nav-meta">3h</span>
+            </button>
+            <button class="nav-item" data-title="珍藏册">
+              <span class="badge-icon bi-purple">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 9h8"/></svg>
+              </span>
+              <span class="nav-label">珍藏册</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 分组：漫画 -->
+        <div class="group-wrap">
+          <button class="group-header">
+            <span>阅读记录</span>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 6 4 4 4-4"/></svg>
+          </button>
+          <div class="group-body">
+            <button class="nav-item" data-title="阅读历史">
+              <span class="nav-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>
+              </span>
+              <span class="nav-label">阅读历史</span>
+              <span class="nav-meta">1h</span>
+            </button>
+            <button class="nav-item" data-title="阅读统计">
+              <span class="nav-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 20V14M12 20V6M18 20v-9"/></svg>
+              </span>
+              <span class="nav-label">阅读统计</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 分组：工具 -->
+        <div class="group-wrap">
+          <button class="group-header">
+            <span>工具</span>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 6 4 4 4-4"/></svg>
+          </button>
+          <div class="group-body">
+            <button class="nav-item" data-title="站点">
+              <span class="nav-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/><circle cx="10" cy="17" r="1.5" fill="currentColor"/></svg>
+              </span>
+              <span class="nav-label">站点管理</span>
+            </button>
+            <button class="nav-item" data-title="备份与还原">
+              <span class="nav-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+              </span>
+              <span class="nav-label">备份与还原</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 桌宠占位区（可开关对比） -->
+      <div class="pet-slot">
+        <div class="pet-avatar">吉</div>
+        <div class="pet-info">
+          <div style="font-weight: 500;">桌宠保留区</div>
+          <div style="font-size: 11px; opacity: 0.72;">开启时会占用底部留白</div>
+        </div>
+      </div>
+
+      <!-- 极简底部四图标栏：去底色、去分割线 -->
+      <div class="rail-footer">
+        <button class="footer-icon-btn" title="设置" data-title="设置">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 0 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+        </button>
+        <button class="footer-icon-btn" title="我的 pixiv 账号" data-title="我的 pixiv">
+          <span class="footer-avatar">P</span>
+        </button>
+        <button class="footer-icon-btn" title="下载与本地" data-title="下载与本地">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4-4m4 4 4-4"/><path d="M5 19h14"/></svg>
+          <span class="mini-dot" title="有进行中任务"></span>
+        </button>
+        <button class="footer-icon-btn" id="btnFooterCollapse" title="收起/展开侧栏">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- 右侧干净工作区 -->
+    <main class="content-pane">
+      <div class="content-topbar">
+        <span class="breadcrumb" id="breadcrumbText">漫画搜索</span>
+        <div class="win-controls">
+          <button class="win-btn" title="最小化">
+            <svg width="11" height="11" viewBox="0 0 12 12"><path d="M2 6h8" stroke="currentColor" stroke-width="1.3"/></svg>
+          </button>
+          <button class="win-btn" title="最大化">
+            <svg width="10" height="10" viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>
+          </button>
+          <button class="win-btn close" title="关闭">
+            <svg width="11" height="11" viewBox="0 0 12 12"><path d="M2.5 2.5l7 7m0-7-7 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="content-body">
+        <div class="hero-row">
+          <h2 id="pageHeading">漫画搜索</h2>
+          <span>左侧透壁纸磨砂 + 右侧实面工作区对比示意</span>
+        </div>
+        <div class="mock-grid">
+          <div class="mock-card"><div class="mock-cover">作品封面占位</div><div class="mock-meta"><div class="mock-title"></div><div class="mock-sub"></div></div></div>
+          <div class="mock-card"><div class="mock-cover">作品封面占位</div><div class="mock-meta"><div class="mock-title"></div><div class="mock-sub"></div></div></div>
+          <div class="mock-card"><div class="mock-cover">作品封面占位</div><div class="mock-meta"><div class="mock-title"></div><div class="mock-sub"></div></div></div>
+          <div class="mock-card"><div class="mock-cover">作品封面占位</div><div class="mock-meta"><div class="mock-title"></div><div class="mock-sub"></div></div></div>
+          <div class="mock-card"><div class="mock-cover">作品封面占位</div><div class="mock-meta"><div class="mock-title"></div><div class="mock-sub"></div></div></div>
+          <div class="mock-card"><div class="mock-cover">作品封面占位</div><div class="mock-meta"><div class="mock-title"></div><div class="mock-sub"></div></div></div>
+          <div class="mock-card"><div class="mock-cover">作品封面占位</div><div class="mock-meta"><div class="mock-title"></div><div class="mock-sub"></div></div></div>
+          <div class="mock-card"><div class="mock-cover">作品封面占位</div><div class="mock-meta"><div class="mock-title"></div><div class="mock-sub"></div></div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="spec-note">
+  <span>说明：本稿用于视觉方向确认；所有图标与文案均对齐桌面端现有真实导航与路由。</span>
+  <span>建议先用上方切换钮对比「左上角红绿灯」在折叠态（72px）与 Windows 方案的区别。</span>
+</div>
+
+<script>
+const appWindow = document.getElementById('appWindow');
+const stage = document.getElementById('stage');
+const breadcrumbText = document.getElementById('breadcrumbText');
+const pageHeading = document.getElementById('pageHeading');
+
+function bindSegGroup(groupId, onSelect) {
+  const group = document.getElementById(groupId);
+  group.addEventListener('click', (e) => {
+    const btn = e.target.closest('.seg-btn');
+    if (!btn) return;
+    group.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    onSelect(btn);
+  });
+}
+
+bindSegGroup('ctrl-win', (btn) => {
+  const isMac = btn.dataset.win === 'mac';
+  appWindow.classList.toggle('mode-mac', isMac);
+  appWindow.classList.toggle('mode-win', !isMac);
+});
+
+bindSegGroup('ctrl-rail', (btn) => {
+  appWindow.classList.toggle('collapsed', btn.dataset.rail === 'collapsed');
+});
+
+bindSegGroup('ctrl-theme', (btn) => {
+  const isDark = btn.dataset.theme === 'dark';
+  document.body.classList.toggle('theme-dark', isDark);
+  stage.classList.toggle('wp-dusk', isDark);
+  stage.classList.toggle('wp-sky', !isDark);
+});
+
+bindSegGroup('ctrl-pet', (btn) => {
+  document.body.classList.toggle('pet-hidden', btn.dataset.pet === 'off');
+});
+
+bindSegGroup('ctrl-focus', (btn) => {
+  appWindow.classList.toggle('unfocused', btn.dataset.focus === 'off');
+});
+
+// 侧栏内快捷折叠
+function toggleRailCollapse() {
+  const willCollapse = !appWindow.classList.contains('collapsed');
+  appWindow.classList.toggle('collapsed', willCollapse);
+  document.querySelectorAll('#ctrl-rail .seg-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.rail === (willCollapse ? 'collapsed' : 'expanded'));
+  });
+}
+document.getElementById('btnQuickCollapse').addEventListener('click', toggleRailCollapse);
+document.getElementById('btnFooterCollapse').addEventListener('click', toggleRailCollapse);
+
+// 分组折叠交互
+document.querySelectorAll('.group-header').forEach(header => {
+  header.addEventListener('click', () => {
+    header.closest('.group-wrap').classList.toggle('closed');
+  });
+});
+
+// 条目选中联动
+document.querySelectorAll('.nav-item, .footer-icon-btn[data-title]').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item, .footer-icon-btn').forEach(i => i.classList.remove('active'));
+    el.classList.add('active');
+    const title = el.dataset.title || 'Venera';
+    breadcrumbText.textContent = title;
+    pageHeading.textContent = title;
+  });
+});
+</script>
+</body>
+</html>

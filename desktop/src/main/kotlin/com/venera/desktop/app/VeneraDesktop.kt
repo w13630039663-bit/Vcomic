@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -90,6 +91,8 @@ import com.venera.engineprobe.onEngineSourceInitFailure
 import dev.nucleusframework.application.DecoratedWindow
 import dev.nucleusframework.application.NucleusBackend
 import dev.nucleusframework.application.nucleusApplication
+import dev.nucleusframework.window.WindowAppearance
+import dev.nucleusframework.window.WindowAppearanceMode
 import dev.nucleusframework.window.WindowsBackdrop
 import dev.nucleusframework.window.windowDragArea
 import java.io.File
@@ -246,10 +249,17 @@ fun main(args: Array<String>) {
                     System.getProperty("os.name", "").contains("win", ignoreCase = true)
                 }
                 val backdropMode by DesktopBackdropMode.mode.collectAsState()
+                val blurEffect by DesktopBackdropMode.effect.collectAsState()
                 val railBlur by DesktopRailBlur.visible.collectAsState()
                 val topBarBlur by DesktopTopBarBlur.visible.collectAsState()
+                val themeMode by DesktopThemeMode.mode.collectAsState()
+                val themeDark = DesktopThemeMode.isDark(themeMode)
+                WindowAppearance(if (themeDark) WindowAppearanceMode.Dark else WindowAppearanceMode.Light)
                 if (isWindowsHost) {
-                    WindowsBackdrop(DesktopBackdropMode.styleOf(backdropMode, railBlur, topBarBlur))
+                    WindowsBackdrop(
+                        style = DesktopBackdropMode.styleOf(backdropMode, railBlur, topBarBlur, blurEffect, themeDark),
+                        tint = if (themeDark) Color(0x01000000) else Color(0x01FFFFFF),
+                    )
                 }
                 val maximized by nucleusWindow.maximizedFlow.collectAsState()
                 val pixivCallback by pixivCallbackState.collectAsState()
@@ -314,8 +324,6 @@ fun main(args: Array<String>) {
                 }
 
                 val searchCursorHolder = remember { DesktopSearchCursorHolder() }
-                val themeMode by DesktopThemeMode.mode.collectAsState()
-                val themeDark = DesktopThemeMode.isDark(themeMode)
                 val uiScale by DesktopUiScale.scale.collectAsState()
                 val baseDensity = LocalDensity.current
                 val scaledDensity = Density(
@@ -413,7 +421,9 @@ fun main(args: Array<String>) {
                             readSources = {
                                 readDesktopSourceRows(assetDir, overrideDir, sourceState, forensic.seedDisabled, uiEngine)
                             },
-                            writeSourceEnabled = { key, _ -> writeDesktopSourceEnabled(assetDir, sourceState, key) },
+                            writeSourceEnabled = { key, enabled ->
+                                writeDesktopSourceEnabled(assetDir, sourceState, key, overrideDir, enabled)
+                            },
                             writeSourceOrder = { ordered -> sourceState.setOrderKeys(ordered) },
                             readSourceText = overrideDir?.let { dir ->
                                 { key: String -> DesktopSourceNames.scriptOf(assetDir, key, dir) }
@@ -424,6 +434,15 @@ fun main(args: Array<String>) {
                                 val ok = DesktopSourceOverrides.clear(dir, key)
                                 println("D_源改写 撤=$key 成=$ok")
                                 if (!ok) error("撤不掉 $key 的改写层（文件不在或删除被拒）")
+                                com.venera.desktop.gallery.data.DesktopSourceUpdater.clearRecord(dir, key)
+                                val bundledKeys = EngineAssets.listSourceKeys(assetDir)
+                                if (key !in bundledKeys) {
+                                    val remaining = bundledKeys + DesktopSourceOverrides.overriddenKeys(dir)
+                                    val enabledSet = DesktopSourceState.effectiveEnabled(remaining.distinct(), sourceState.enabledKeys())
+                                    if (enabledSet.size > 1 || key !in enabledSet) {
+                                        sourceState.setEnabledKeys(enabledSet - key)
+                                    }
+                                }
                             },
                             loginWithCookies = { key, values -> loginDesktopSourceWithCookies(paths, uiEngine, key, values) },
                             loginWithPassword = { key, account, password ->

@@ -433,9 +433,37 @@ async function get_single_galleryblock(gid) {
   return parseGalleryBlockInfo(res.body);
 }
 
+let ggLoadedAt = 0;
+const GG_CACHE_MS = 5 * 60 * 1000;
+
+async function ensure_gg_loaded(force = false) {
+  const now = new Date().getTime();
+  if (!force && gg && typeof gg.m === "function" && now - ggLoadedAt < GG_CACHE_MS) {
+    return;
+  }
+  try {
+    const resp = await Network.get(
+      "https://" + domain + "/" + "gg.js?_=" + now,
+      { referer: refererUrl }
+    );
+    if (resp.status >= 400) {
+      if (force) throw new Error(resp.status);
+      return;
+    }
+    eval(resp.body);
+    ggLoadedAt = now;
+  } catch (e) {
+    if (force) throw e;
+  }
+}
+
 async function get_galleryblocks(gids) {
   if (gids.length > 25) throw new Error("Be careful: too many blocks");
-  return await Promise.all(gids.map((n) => get_single_galleryblock(n)));
+  const [, blocks] = await Promise.all([
+    ensure_gg_loaded(false),
+    Promise.all(gids.map((n) => get_single_galleryblock(n))),
+  ]);
+  return blocks;
 }
 
 /**
@@ -459,18 +487,8 @@ async function update_galleries_index_version() {
 }
 
 async function get_image_srcs(files) {
-  const resp = await Network.get(
-    "https://" + domain + "/" + "gg.js?_=" + new Date().getTime(),
-    {
-      referer: refererUrl,
-    }
-  );
-  if (resp.status >= 400) {
-    throw new Error(resp.status);
-  }
-
-  eval(resp.body);
-  if (!gg.b) throw new Error();
+  await ensure_gg_loaded(true);
+  if (!gg || !gg.b) throw new Error();
 
   const subdomain_from_url = (url, base, dir) => {
     var retval = "";
@@ -556,14 +574,32 @@ async function get_image_srcs(files) {
 }
 
 /**
+ * 按 Hitomi 官方 common.js 规则由 64 位文件哈希计算缩略图子域（atn / btn），无 gg 时兜底 atn
+ * @param {string} hash 64 位文件哈希
+ * @returns {string}
+ */
+function thumbnail_subdomain_from_hash(hash) {
+  if (typeof hash === "string" && hash.length >= 3 && gg && typeof gg.m === "function") {
+    const g = parseInt(hash.slice(-1) + hash.slice(-3, -1), 16);
+    if (!isNaN(g)) {
+      return String.fromCharCode(97 + gg.m(g)) + "tn";
+    }
+  }
+  return "atn";
+}
+
+/**
  * 构建缩略图（small / big）URL
  * @param {string} hash 64 位文件哈希
  * @param {boolean} bigTn 是否返回大缩略图
  * @returns {string}
  */
 function get_thumbnail_url_from_hash(hash, bigTn) {
+  const sub = thumbnail_subdomain_from_hash(hash);
   return (
-    "https://wtn." +
+    "https://" +
+    sub +
+    "." +
     domain2 +
     "/" +
     `${bigTn ? "webpbigtn" : "webpsmalltn"}/${hash.slice(-1)}/${hash.slice(
@@ -1454,7 +1490,10 @@ class Hitomi extends ComicSource {
      * @returns {Promise<ComicDetails>}
      */
     loadInfo: async (id) => {
-      const data = await get_gallery_detail(id);
+      const [data] = await Promise.all([
+        get_gallery_detail(id),
+        ensure_gg_loaded(false),
+      ]);
 
       // 字段缺失时 .length 会抛。上半段用了 "type" in data 防守、下半段却直接 .length，
       // 标准不一致；统一按「有该字段且非空」处理。

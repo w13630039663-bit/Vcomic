@@ -305,6 +305,7 @@ internal fun GallerySearchModeSwitch(searchMode: Int, onPickMode: (Int) -> Unit)
 internal fun GallerySearchInputBox(
     value: String,
     placeholder: String,
+    searching: Boolean = false,
     onValueChange: (String) -> Unit,
     onClick: () -> Unit,
     onFocusChanged: (Boolean) -> Unit,
@@ -317,9 +318,11 @@ internal fun GallerySearchInputBox(
         onSearch = { if (value.isNotBlank()) onSearch() },
         modifier = modifier,
         placeholder = placeholder,
+        searching = searching,
         onClear = { onValueChange("") },
         onClick = onClick,
         onFocusChanged = onFocusChanged,
+        collapsedWidthFraction = 0.56f,
     )
 }
 
@@ -476,6 +479,8 @@ internal fun GallerySearchQuickStrip(
     onPixivFilter: (PixivSearchFilter) -> Unit,
     pixivKind: Int,
     onPickPixivKind: (Int) -> Unit,
+    paginationMode: DesktopSearchPaginationMode,
+    onPickPaginationMode: (DesktopSearchPaginationMode) -> Unit,
 ) {
     val colors = GalleryTokens.Color
     FlowRow(
@@ -582,6 +587,17 @@ internal fun GallerySearchQuickStrip(
                     maxLines = 1,
                 )
                 GalleryCompactSwitch(!searchR18) { onPickSearchR18(!it) }
+            }
+        }
+        if (searchMode != 1 || pixivKind == DESKTOP_PIXIV_SEARCH_WORKS) {
+            QuickStripDivider()
+            QuickStripLabel("翻页")
+            DesktopSearchPaginationMode.entries.forEach { modeOption ->
+                GalleryFilterChip(
+                    label = modeOption.shortLabel,
+                    selected = paginationMode == modeOption,
+                    onClick = { onPickPaginationMode(modeOption) },
+                )
             }
         }
     }

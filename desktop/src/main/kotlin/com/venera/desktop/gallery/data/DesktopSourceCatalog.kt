@@ -15,43 +15,87 @@ import java.io.File
  */
 object DesktopSourceNames {
 
-    /** 顶层那一行 `name = "显示名"`；**冒号**那种（`name: "每週必看"`）是分区名，不算。 */
-    private val HEADER = Regex("""^\s*name\s*=\s*"([^"]+)"""", RegexOption.MULTILINE)
+    /** 顶层赋值 `name = "显示名"` 或单行分号分隔 `name='显示名'`；冒号那种（`name: "每週必看"`）是分区名，不算。 */
+    private val HEADER = Regex("""(?:^|[;\r\n])\s*name\s*=\s*(?:"([^"]+)"|'([^']+)')""")
 
-    /**
-     * 顶层那一行 `version = "1.4.1"`（源脚本头部的版本声明，与对岸 `ComicSourceParser` 读同一行）。
-     *
-     * 对岸新版源管理每一行念「v1.4.3」那一格吃的就是它；取不到交回**空串**，
-     * 屏上那一格整颗不摆（对岸同样有版本缺失的行 —— 编一个版本号是替站方作伪证，与名字同一条纪律）。
-     */
-    private val VERSION = Regex("""^\s*version\s*=\s*"([^"]+)"""", RegexOption.MULTILINE)
+    /** 顶层赋值 `version = "1.4.1"`（支持单双引号与分号分隔，没有则交回空串）。 */
+    private val VERSION = Regex("""(?:^|[;\r\n])\s*version\s*=\s*(?:"([^"]+)"|'([^']+)')""")
 
-    /** 顶层那一行 `key = "Komiic"`（导入 .js 时从脚本里取唯一标识；取不到由调用点退文件名）。 */
-    private val SOURCE_KEY = Regex("""^\s*key\s*=\s*"([^"]+)"""", RegexOption.MULTILINE)
+    /** 顶层赋值 `key = "Komiic"`（支持单双引号与分号分隔；取不到交回 null）。 */
+    private val SOURCE_KEY = Regex("""(?:^|[;\r\n])\s*key\s*=\s*(?:"([^"]+)"|'([^']+)')""")
+
+    private fun extractField(regex: Regex, script: String): String? {
+        val m = regex.find(script) ?: return null
+        return (m.groupValues[1].ifEmpty { m.groupValues[2] }).takeIf { it.isNotBlank() }
+    }
 
     /** 脚本声明的 key；没有 = `null`。 */
-    fun keyOf(script: String): String? =
-        SOURCE_KEY.find(script)?.groupValues?.get(1)?.takeIf { it.isNotBlank() }
+    fun keyOf(script: String): String? = extractField(SOURCE_KEY, script)
 
     /** 取不到就交回 `null`，让调用点念 key —— 编一个站名等于替站方作伪证。 */
-    fun displayNameOf(script: String): String? =
-        HEADER.find(script)?.groupValues?.get(1)?.takeIf { it.isNotBlank() }
+    fun displayNameOf(script: String): String? = extractField(HEADER, script)
 
     /** 版本那一行；没有 = 空串（屏上不摆那一格，不编版本号）。 */
-    fun versionOf(script: String): String =
-        VERSION.find(script)?.groupValues?.get(1)?.takeIf { it.isNotBlank() }.orEmpty()
+    fun versionOf(script: String): String = extractField(VERSION, script).orEmpty()
 
     /**
-     * 这一颗源声明里的第一个站点主机（首页「源状态」真测速的探测目标）。
+     * 从源脚本里提取站点自身的主机域名（首页「源状态」与「站点延迟检测」真测速目标）。
      *
-     * 取**脚本里第一个 `https://主机` 形** —— 源的 API/站点域都写在脚本里，第一枚就是它的
-     * 主域（镜像族也是从主域派生）。取不到交回空串：那一行测速腿不发车，屏上念「未测」，
-     * 不编一个假主机去探（编主机与编版本号同罪）。
+     * 为避免被头部自更新字段 `url = "https://cdn.jsdelivr.net/..."` 或 GitHub 原始地址误导，
+     * 会先跳过自更新地址及常见代码托管/规范域名后缀，优先匹配脚本中的 `apiUrl` / `baseUrl` /
+     * `defaultApiUrl` / `settings.*.default` 等真站点声明，再回退到正文内首个合法站点 URL；
+     * 取不到则交回空串。
      */
-    fun apiHostOf(script: String): String =
-        HOST.find(script)?.groupValues?.get(1).orEmpty()
+    fun apiHostOf(script: String): String {
+        val cleaned = SELF_UPDATE_URL_DECL.replace(script, "\n")
+        for (pattern in PRIORITY_HOST_PATTERNS) {
+            for (m in pattern.findAll(cleaned)) {
+                val candidate = normalizeCandidateHost(m.groupValues[1])
+                if (candidate != null) return candidate
+            }
+        }
+        for (m in HOST.findAll(cleaned)) {
+            val candidate = normalizeCandidateHost(m.groupValues[1])
+            if (candidate != null) return candidate
+        }
+        return ""
+    }
 
-    private val HOST = Regex("""https://([A-Za-z0-9.-]+)""")
+    private fun normalizeCandidateHost(raw: String): String? {
+        val cleaned = raw.trim().trimEnd('/', '.', ':', ';')
+        if (cleaned.isBlank() || cleaned.length > 120) return null
+        val hostOnly = cleaned.substringBefore(':').lowercase()
+        if (hostOnly.isBlank() || '.' !in hostOnly) return null
+        if (hostOnly.startsWith('.') || hostOnly.endsWith('.')) return null
+        val tld = hostOnly.substringAfterLast('.')
+        val isIpv4 = IPV4_REGEX.matches(hostOnly)
+        if (!isIpv4 && (tld.length < 2 || tld.all { it.isDigit() })) return null
+        if (SKIP_HOST_SUFFIXES.any { suffix -> hostOnly == suffix || hostOnly.endsWith(".$suffix") }) {
+            return null
+        }
+        return cleaned
+    }
+
+    private val SELF_UPDATE_URL_DECL = Regex(
+        """(?:^|[;\r\n])\s*url\s*=\s*(?:"[^"\r\n]*"|'[^'\r\n]*')""",
+    )
+    private val PRIORITY_HOST_PATTERNS = listOf(
+        Regex("""(?:static\s+)?(?:defaultApiUrl|apiUrl|baseUrl|BASE_URL|domain)\s*[:=]\s*["'](?:https?://)?([A-Za-z0-9.-]+(?::\d+)?)"""),
+        Regex("""settings\s*=\s*\{[\s\S]{0,1200}?\bdefault\s*:\s*["'](?:https?://)?([A-Za-z0-9.-]+(?::\d+)?)"""),
+    )
+    private val HOST = Regex("""https?://([A-Za-z0-9.-]+(?::\d+)?)""")
+    private val IPV4_REGEX = Regex("""^\d{1,3}(?:\.\d{1,3}){3}$""")
+    private val SKIP_HOST_SUFFIXES = setOf(
+        "jsdelivr.net",
+        "githubusercontent.com",
+        "github.com",
+        "w3.org",
+        "mozilla.org",
+        "schemas.android.com",
+        "apple.com",
+        "example.com",
+        "localhost",
+    )
 
     /**
      * 按 key 现取那一颗的脚本原文（仓库目录与包内两种落点都试，**安静地**试；取不到交回 null）。

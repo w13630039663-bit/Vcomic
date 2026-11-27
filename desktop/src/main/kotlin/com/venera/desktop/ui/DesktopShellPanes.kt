@@ -16,12 +16,13 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.BarChart
-import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.Collections
-import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.ImageSearch
+import androidx.compose.material.icons.outlined.LocalFireDepartment
+import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Text
@@ -84,20 +85,20 @@ internal fun desktopSideBarGroups(
         VeneraSideBarGroup(
             title = "画廊",
             items = listOf(
-                item("reverse-search", "搜图", Icons.Outlined.Search, route is DesktopRoute.GalleryReverseSearch, DesktopRoute.GalleryReverseSearch),
-                item("daily", "每日热门", Icons.Outlined.Image, route is DesktopRoute.GalleryDaily, DesktopRoute.GalleryDaily),
+                item("reverse-search", "搜图", Icons.Outlined.ImageSearch, route is DesktopRoute.GalleryReverseSearch, DesktopRoute.GalleryReverseSearch),
+                item("daily", "每日热门", Icons.Outlined.LocalFireDepartment, route is DesktopRoute.GalleryDaily, DesktopRoute.GalleryDaily),
                 // 收藏与浏览历史合成一条入口、一页两视图；旧路由仍收得到（见派发那两支）。
                 item(
                     "gallery-saved",
                     "收藏与历史",
-                    Icons.Outlined.BookmarkBorder,
+                    Icons.Outlined.Bookmarks,
                     route is DesktopRoute.GalleryFavorites || route is DesktopRoute.GalleryBrowseHistory,
                     DesktopRoute.GalleryFavorites,
                 ),
                 item(
                     "followed-artists",
                     "关注画师",
-                    Icons.Outlined.Person,
+                    Icons.Outlined.Group,
                     route is DesktopRoute.FollowedArtists,
                     DesktopRoute.FollowedArtists,
                 ),
@@ -122,7 +123,7 @@ internal fun desktopSideBarGroups(
             title = "工具",
             items = listOf(
                 item("sources", "站点", Icons.Outlined.Tune, route is DesktopRoute.SourceManage, DesktopRoute.SourceManage),
-                item("backup", "备份与还原", Icons.Outlined.Settings, route is DesktopRoute.Backup, DesktopRoute.Backup),
+                item("backup", "备份与还原", Icons.Outlined.Restore, route is DesktopRoute.Backup, DesktopRoute.Backup),
             ),
         ),
     )
@@ -144,6 +145,7 @@ internal fun desktopShellBack(
         DesktopRoute.GalleryReverseSearch -> null
         DesktopRoute.FollowedArtists -> DesktopRoute.Tab
         is DesktopRoute.SourceEdit, is DesktopRoute.SourceLogin -> DesktopRoute.SourceManage
+        is DesktopRoute.SourceLatency -> if (route.backToSourceManage) DesktopRoute.SourceManage else DesktopRoute.Tab
         // 返回口径：pixiv 线与看图播放器弹回来路（`from`）；登录页无参落账号页。
         is DesktopRoute.GalleryPostDetail -> route.from ?: DesktopRoute.Tab
         is DesktopRoute.GalleryPostViewer -> route.from ?: DesktopRoute.Tab
@@ -191,6 +193,7 @@ internal fun desktopShellTitle(route: DesktopRoute, currentTab: VeneraNavTab, di
             else -> currentTab.title
         }
         DesktopRoute.SourceManage -> "站点"
+        is DesktopRoute.SourceLatency -> "站点延迟检测"
         is DesktopRoute.SourceEdit -> "编辑源 · ${route.title}"
         is DesktopRoute.SourceLogin -> "登录源 · ${route.title}"
         DesktopRoute.Files -> "下载与本地"

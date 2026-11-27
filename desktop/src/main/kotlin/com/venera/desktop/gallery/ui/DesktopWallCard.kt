@@ -1,5 +1,7 @@
 package com.venera.desktop.gallery.ui
 
+import com.venera.desktop.ui.components.registerPixelBuddyCard
+
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.venera.desktop.gallery.ui.LocalDesktopSearchHandoff
@@ -68,18 +70,69 @@ internal fun DesktopWallCard(
         // 账尺纪律：这两枚必填——子页没有那条路就显式写 null，漏传要看得见。
         // pixiv 卡从 source（users/{id}）提画师号进桌内详情页；提不出回退浏览器。
         onOpenArtist = onOpenArtist?.let { cb ->
-            val artistId = card.sourcePost?.let {
-                com.venera.compose.gallery.domain.GalleryArtistLinks.pixivUserId(it.source)
-            }
-            if (artistId != null) {
-                { cb(artistId, card.author.ifBlank { card.title }.trim()) }
+            val artist = desktopPixivArtistTargetOf(card)
+            if (artist != null) {
+                { cb(artist.first, artist.second) }
             } else {
                 null
             }
         },
         selected = selected,
         onToggleSelect = onToggleSelect,
-        modifier = modifier,
+        modifier = modifier.registerPixelBuddyCard("wall-${card.uid}"),
         showInfo = showInfo,
     )
+}
+
+/**
+ * 提取 Pixiv 卡片对应的 `(userId, artistName)`；非 Pixiv 或缺失用户号时返回 `null`。
+ */
+internal fun desktopPixivArtistTargetOf(card: DesktopWallCardModel): Pair<Long, String>? {
+    val post = card.sourcePost
+    val isPixiv = post?.site == com.venera.compose.gallery.data.GallerySite.PIXIV ||
+        card.url.contains("pixiv.net") ||
+        (post != null && post.source.contains("pixiv.net"))
+    if (!isPixiv) return null
+    val artistId = post?.let {
+        com.venera.compose.gallery.domain.GalleryArtistLinks.pixivUserId(it.source)
+    } ?: com.venera.compose.gallery.domain.GalleryArtistLinks.pixivUserId(card.url)
+        ?: return null
+    val name = card.author.ifBlank { post?.author.orEmpty() }.trim()
+        .ifBlank { card.title.ifBlank { "画师 #$artistId" } }
+    return artistId to name
+}
+
+/**
+ * 主墙卡片点击画师行时的分派：Pixiv 且能提取画师号时跳转应用内画师页，其余走画师搜索。
+ */
+internal fun desktopDispatchWallCardArtist(
+    card: DesktopWallCardModel,
+    onOpenPixivArtist: (com.venera.compose.gallery.data.PixivUser) -> Unit,
+    onSearchArtist: (List<com.venera.compose.gallery.data.GallerySite>, String) -> Unit,
+) {
+    if (card.uid.isBlank()) return
+    val pixivTarget = desktopPixivArtistTargetOf(card)
+    if (pixivTarget != null) {
+        onOpenPixivArtist(
+            com.venera.compose.gallery.data.PixivUser(
+                id = pixivTarget.first,
+                name = pixivTarget.second,
+                account = "",
+                avatarUrl = "",
+                muted = false,
+            ),
+        )
+        return
+    }
+    val post = card.sourcePost
+    val label = desktopExtractRealArtistTag(post, card.author.ifBlank { post?.author.orEmpty() })?.trim()
+        .orEmpty()
+        .ifBlank { post?.author?.trim().orEmpty() }
+    if (label.isNotBlank()) {
+        val sites = post?.site?.let(::listOf)
+            ?: com.venera.compose.gallery.data.GallerySite.entries.filter {
+                it != com.venera.compose.gallery.data.GallerySite.PIXIV
+            }
+        onSearchArtist(sites, label)
+    }
 }

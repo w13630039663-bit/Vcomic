@@ -12,6 +12,7 @@ import com.venera.desktop.ui.components.DesktopPetCueBus
 import com.venera.desktop.ui.components.DesktopPetPayload
 import com.venera.desktop.ui.components.desktopCoverFloat
 import com.venera.desktop.ui.components.desktopUiFloat
+import com.venera.desktop.ui.components.registerPixelBuddyCard
 import com.venera.desktop.ui.theme.VeneraType
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -141,6 +143,8 @@ internal fun DesktopHomeLightScreen(
     onOpenDownloads: (() -> Unit)? = null,
     /** 问候名那格的 pixiv 账号：壳递 `ports.pixivAccount` 的桌面实现，null = 没接/没登。 */
     pixivAccount: com.venera.desktop.gallery.data.DesktopPixivAccount? = null,
+    onOpenSourceLatency: (() -> Unit)? = null,
+    onRefreshSourceLatency: (() -> Unit)? = null,
 ) {
     val hazeState = rememberHazeState()
     androidx.compose.runtime.DisposableEffect(Unit) {
@@ -218,6 +222,7 @@ internal fun DesktopHomeLightScreen(
                             cornerTag = if (dailyPixiv) "pixiv" else DesktopI18n.t("图库", "Gallery"),
                             title = card.title,
                             meta = if (card.masked) DesktopI18n.t("已打码", "Masked") else DesktopI18n.t("点击查看大图", "View full image"),
+                            buddyCardKey = "home-light-daily-${card.uid}",
                             // 图片卡的角色事件统一在壳里 openWallCardAny 那一颗发，屏内不重复 emit。
                             onClick = { onOpenPost(card) },
                         )
@@ -225,7 +230,7 @@ internal fun DesktopHomeLightScreen(
                 }
             }
 
-            // ── 推荐漫画（推荐腿原线：正常=拷贝漫画 / R18=禁漫，切换即清缓存重取）──
+            // ── 推荐漫画（推荐腿原线：正常=GoDa漫画 / R18=禁漫，切换即清缓存重取）──
             LightSection(
                 title = DesktopI18n.t("推荐漫画", "Recommended Comics"),
                 sub = DesktopI18n.t("推荐漫画 ${recommendComics.size} 张", "${recommendComics.size} recommended"),
@@ -252,6 +257,7 @@ internal fun DesktopHomeLightScreen(
                             cornerTag = DesktopI18n.t("漫画", "Comic"),
                             title = card.title,
                             meta = card.author.ifBlank { DesktopI18n.t("点击查看详情", "View details") },
+                            buddyCardKey = "home-light-comic-${card.id}",
                             onClick = {
                                 DesktopPetCueBus.emit(
                                     DesktopPetCue.OPEN_WORK,
@@ -268,12 +274,15 @@ internal fun DesktopHomeLightScreen(
                 }
             }
 
-            // ── 双面板：源状态 / 最近阅读 ──
-            Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                Box(Modifier.weight(1f)) {
-                    SourceStatusPanel(homeSourceRows, onGoSourceManage)
+            // ── 双面板：源状态 / 最近阅读（等高齐平）──
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max),
+                horizontalArrangement = Arrangement.spacedBy(20.dp),
+            ) {
+                Box(Modifier.weight(1f).fillMaxHeight()) {
+                    SourceStatusPanel(homeSourceRows, onGoSourceManage, onOpenSourceLatency, onRefreshSourceLatency)
                 }
-                Box(Modifier.weight(1f)) {
+                Box(Modifier.weight(1f).fillMaxHeight()) {
                     RecentReadingPanel(
                         records = history.records.take(3),
                         loaded = history.loaded,
@@ -623,6 +632,7 @@ private fun LightSquareCard(
     cornerTag: String,
     title: String,
     meta: String,
+    buddyCardKey: String = "",
     onClick: () -> Unit,
 ) {
     val tapInteraction = remember { MutableInteractionSource() }
@@ -634,7 +644,9 @@ private fun LightSquareCard(
         tray = false,
         chromeAspect = 1f,
         hoverElevation = 6.dp,
-        modifier = Modifier.clickable(interactionSource = tapInteraction, indication = null, onClick = onClick),
+        modifier = Modifier
+            .then(if (buddyCardKey.isNotEmpty()) Modifier.registerPixelBuddyCard(buddyCardKey) else Modifier)
+            .clickable(interactionSource = tapInteraction, indication = null, onClick = onClick),
     ) { floatState ->
         Column {
             val tagEdge by androidx.compose.animation.animateColorAsState(
@@ -698,19 +710,30 @@ private fun LightSquareCard(
 // ────────────────────────── 双面板 ──────────────────────────
 
 @Composable
-private fun LightPanel(title: String, sub: String, content: @Composable () -> Unit) {
+private fun LightPanel(
+    title: String,
+    sub: String,
+    modifier: Modifier = Modifier,
+    headerEnd: (@Composable () -> Unit)? = null,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
+) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
+            .fillMaxHeight()
             .clip(Card16)
             .background(homeLightCardColor())
             .border(1.dp, HomeLightTokens.hairline, Card16)
             .padding(20.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text(title, fontSize = VeneraType.body.size, lineHeight = VeneraType.body.lineHeight, fontWeight = VeneraType.cardTitle.weight, color = HomeLightTokens.ink1)
             Spacer(Modifier.width(8.dp))
             Text(sub, fontSize = VeneraType.aux.size, lineHeight = VeneraType.aux.lineHeight, color = HomeLightTokens.ink3)
+            if (headerEnd != null) {
+                Spacer(Modifier.weight(1f))
+                headerEnd()
+            }
         }
         Spacer(Modifier.height(8.dp))
         content()
@@ -718,14 +741,69 @@ private fun LightPanel(title: String, sub: String, content: @Composable () -> Un
 }
 
 @Composable
-private fun SourceStatusPanel(rows: List<DesktopHomeSourceStatusRow>, onGoSourceManage: (() -> Unit)?) {
-    LightPanel(title = DesktopI18n.t("源状态", "Sources Status"), sub = DesktopI18n.t("真实延迟", "Live latency")) {
+private fun SourceStatusPanel(
+    rows: List<DesktopHomeSourceStatusRow>,
+    onGoSourceManage: (() -> Unit)?,
+    onOpenSourceLatency: (() -> Unit)? = null,
+    onRefreshSourceLatency: (() -> Unit)? = null,
+) {
+    val summary = com.venera.desktop.sourcemanage.summarizeSourceStatus(rows)
+    val (compactRows, overflowCount) = com.venera.desktop.sourcemanage.selectHomeCompactSourceRows(rows)
+    val detailEntry = onOpenSourceLatency ?: onGoSourceManage
+    val anyProbing = rows.any { it.probing }
+    LightPanel(
+        title = DesktopI18n.t("源状态", "Sources Status"),
+        sub = if (rows.isEmpty()) DesktopI18n.t("真实延迟", "Live latency") else DesktopI18n.t("真实延迟 · 共 ${rows.size} 站", "Live · ${rows.size}"),
+        headerEnd = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                if (onRefreshSourceLatency != null && rows.isNotEmpty()) {
+                    Text(
+                        text = if (anyProbing) DesktopI18n.t("测速中", "Testing") else DesktopI18n.t("刷新", "Refresh"),
+                        fontSize = VeneraType.aux.size,
+                        lineHeight = VeneraType.aux.lineHeight,
+                        color = if (anyProbing) HomeLightTokens.ink3 else HomeLightTokens.accent,
+                        modifier = Modifier.clickable(
+                            enabled = !anyProbing,
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onRefreshSourceLatency,
+                        ),
+                    )
+                }
+                if (detailEntry != null) {
+                    Text(
+                        if (onOpenSourceLatency != null) DesktopI18n.t("延迟检测 ›", "Latency ›") else DesktopI18n.t("站点 ›", "Sources ›"),
+                        fontSize = VeneraType.aux.size,
+                        lineHeight = VeneraType.aux.lineHeight,
+                        color = HomeLightTokens.accent,
+                        modifier = Modifier.clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = detailEntry,
+                        ),
+                    )
+                }
+            }
+        },
+    ) {
         if (rows.isEmpty()) {
             Text(DesktopI18n.t("暂无启用源", "No enabled sources"), fontSize = VeneraType.aux.size, lineHeight = VeneraType.aux.lineHeight, color = HomeLightTokens.ink3)
         } else {
-            rows.forEach { row ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(bottom = 6.dp),
+            ) {
+                LightSummaryPill("正常 ${summary.ok}", HomeLightTokens.ok)
+                if (summary.slow > 0) LightSummaryPill("偏慢 ${summary.slow}", HomeLightTokens.warn)
+                if (summary.bad > 0) LightSummaryPill("异常 ${summary.bad}", com.venera.desktop.gallery.ui.GalleryTokens.Color.StatusDanger)
+                if (summary.untested > 0) LightSummaryPill("未测 ${summary.untested}", HomeLightTokens.ink3)
+            }
+            compactRows.forEach { row ->
                 Row(
-                    modifier = Modifier.fillMaxWidth().height(40.dp),
+                    modifier = Modifier.fillMaxWidth().height(36.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
@@ -733,12 +811,12 @@ private fun SourceStatusPanel(rows: List<DesktopHomeSourceStatusRow>, onGoSource
                         fontSize = VeneraType.bodySecondary.size, lineHeight = VeneraType.bodySecondary.lineHeight,
                         fontWeight = VeneraType.control.weight,
                         color = HomeLightTokens.ink1,
-                        modifier = Modifier.width(90.dp),
+                        modifier = Modifier.width(100.dp),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        row.latencyMs?.let { "$it ms" } ?: "",
+                        row.latencyMs?.let { "$it ms" } ?: if (row.failed) DesktopI18n.t("未通", "Failed") else "",
                         fontSize = VeneraType.aux.size, lineHeight = VeneraType.aux.lineHeight,
                         color = HomeLightTokens.ink3,
                         modifier = Modifier.weight(1f),
@@ -748,20 +826,45 @@ private fun SourceStatusPanel(rows: List<DesktopHomeSourceStatusRow>, onGoSource
                 }
             }
         }
-        if (onGoSourceManage != null) {
-            Text(
-                DesktopI18n.t("站点", "Sources"),
-                fontSize = VeneraType.aux.size, lineHeight = VeneraType.aux.lineHeight,
-                color = HomeLightTokens.accent,
-                modifier = Modifier
-                    .padding(top = 6.dp)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onGoSourceManage,
-                    ),
-            )
+        Spacer(Modifier.weight(1f, fill = true))
+        if (overflowCount > 0 || detailEntry != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = if (overflowCount > 0) "另有 $overflowCount 个站点已收拢到检测页" else "",
+                    fontSize = VeneraType.micro.size,
+                    lineHeight = VeneraType.micro.lineHeight,
+                    color = HomeLightTokens.ink3,
+                    modifier = Modifier.weight(1f),
+                )
+                if (detailEntry != null) {
+                    Text(
+                        if (onOpenSourceLatency != null) DesktopI18n.t("查看全部延迟详情 ›", "View all ›") else DesktopI18n.t("站点", "Sources"),
+                        fontSize = VeneraType.aux.size, lineHeight = VeneraType.aux.lineHeight,
+                        color = HomeLightTokens.accent,
+                        modifier = Modifier.clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = detailEntry,
+                        ),
+                    )
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun LightSummaryPill(text: String, color: Color) {
+    Box(
+        modifier = Modifier
+            .clip(Pill)
+            .background(color.copy(alpha = 0.12f))
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+    ) {
+        Text(text, fontSize = VeneraType.micro.size, lineHeight = VeneraType.micro.lineHeight, color = color)
     }
 }
 

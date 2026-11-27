@@ -12,7 +12,11 @@ import com.venera.compose.components.WideScreenLayoutMode
 import com.venera.desktop.gallery.data.DesktopSourceSettings
 import com.venera.desktop.platform.desktopFailureNoteOf
 import com.venera.desktop.sourcemanage.DesktopSourceLoginScreen
+import com.venera.desktop.sourcemanage.DesktopSourceLatencyScreen
 import com.venera.desktop.sourcemanage.DesktopSourceManageScreen
+import com.venera.desktop.sourcemanage.DesktopSourceRepoBarUi
+import com.venera.desktop.sourcemanage.DesktopSourceStore
+import com.venera.engineprobe.DesktopSourceUpdate
 import com.venera.engineprobe.EngineSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -121,9 +125,13 @@ internal fun DesktopSourceManageAndLoginRoute(
             },
             onClearSourceOverride = clearSourceOverride?.let { clearFn ->
                 { key ->
+                    val isBundled = sourceUi.sourceRows.firstOrNull { it.key == key }?.isBundled != false
                     scope.launch {
                         runCatching { clearFn.invoke(key) }.fold(
                             onSuccess = {
+                                if (!isBundled && sourceUi.sourceSelectedKey == key) {
+                                    sourceUi.sourceSelectedKey = null
+                                }
                                 sourceTick++
                                 sourceUi.sourceEditTick++
                                 sourceUi.sourceDetailTick++
@@ -231,6 +239,49 @@ internal fun DesktopSourceManageAndLoginRoute(
                 }
             },
             settingsNote = sourceUi.sourceSettingsNote,
+            onOpenSourceStore = sourceUi.onInstallStoreEntry?.let { { sourceUi.sourceStoreOpen = true } },
+            onCheckSourceUpdate = sourceUi.onCheckSync,
+            onOpenLatencyMonitor = { route = DesktopRoute.SourceLatency(backToSourceManage = true) },
+            repoBar = sourceUi.onSelectRepo?.let { selectRepo ->
+                val repo = sourceUi.selectedSourceRepo
+                val catalogMatch = sourceUi.repoCatalogRepo == repo && sourceUi.repoCatalogEntries.isNotEmpty()
+                val localByKey = sourceUi.sourceRows.associateBy { it.key }
+                val localLower = sourceUi.sourceRows.associateBy { it.key.lowercase() }
+                val upgradableCount = if (!catalogMatch) 0 else sourceUi.repoCatalogEntries.count { e ->
+                    val fk = e.fileName.substringAfterLast('/').removeSuffix(".js")
+                    val row = localByKey[e.key]
+                        ?: localLower[e.key.lowercase()]
+                        ?: if (e.key.equals(fk, ignoreCase = true)) localByKey[fk] else null
+                    row != null &&
+                        com.venera.desktop.gallery.data.DesktopSourceUpdater.isSameRepoOrigin(
+                            isBundled = row.isBundled,
+                            overridden = row.overridden,
+                            repoId = row.repoId,
+                            targetRepo = repo,
+                        ) &&
+                        DesktopSourceUpdate.isNewer(e.version, row.version)
+                }
+                val summary = buildString {
+                    append(repo.displayName)
+                    if (catalogMatch) {
+                        append(" · ${sourceUi.repoCatalogEntries.size} 个")
+                        if (upgradableCount > 0) append("（$upgradableCount 个可升级）")
+                    } else if (repo == DesktopSourceUpdate.SourceRepo.VENSRC_MAIN) {
+                        append(" · 25 个推荐稳定源")
+                    } else if (repo == DesktopSourceUpdate.SourceRepo.VENSRC_EXT) {
+                        append(" · 71 个扩展可用源")
+                    }
+                }
+                DesktopSourceRepoBarUi(
+                    selectedRepo = repo,
+                    summaryText = summary,
+                    hasUpdatables = upgradableCount > 0,
+                    busy = sourceUi.sourceUpdateBusy,
+                    onSelectRepo = selectRepo,
+                    onOpenStore = { sourceUi.sourceStoreOpen = true },
+                    onCheckSync = { sourceUi.onCheckSync?.invoke() },
+                )
+            },
         )
 
         is DesktopRoute.SourceLogin -> DesktopSourceLoginScreen(
@@ -260,6 +311,49 @@ internal fun DesktopSourceManageAndLoginRoute(
             onBack = { route = DesktopRoute.SourceManage },
         )
 
+        is DesktopRoute.SourceLatency -> DesktopSourceLatencyScreen(
+            items = sourceUi.latencyItems,
+            onReprobeHosts = sourceUi.onReprobeHosts,
+            onGoSourceManage = { route = DesktopRoute.SourceManage },
+            onOpenSiteSettings = { key ->
+                sourceUi.sourceSelectedKey = key
+                route = DesktopRoute.SourceManage
+            },
+            onBack = {
+                route = if (r.backToSourceManage) DesktopRoute.SourceManage else DesktopRoute.Tab
+            },
+        )
+
         else -> Unit
+    }
+
+    if (sourceUi.sourceStoreOpen) {
+        val byKey = sourceUi.sourceRows.associateBy { it.key }
+        val byLower = sourceUi.sourceRows.associateBy { it.key.lowercase() }
+        DesktopSourceStore(
+            selectedRepo = sourceUi.selectedSourceRepo,
+            onSelectRepo = { repo -> sourceUi.onSelectRepo?.invoke(repo) },
+            proxyProvider = sourceUi.proxyProvider ?: {
+                System.getProperty("venera.proxy")?.takeIf { it.isNotBlank() }
+            },
+            localRowOf = { entry ->
+                val fk = entry.fileName.substringAfterLast('/').removeSuffix(".js")
+                byKey[entry.key]
+                    ?: byLower[entry.key.lowercase()]
+                    ?: if (entry.key.equals(fk, ignoreCase = true)) byKey[fk] else null
+            },
+            onToggleEnabled = { key, enabled ->
+                runCatching { writeSourceEnabled?.invoke(key, enabled) }
+                sourceTick++
+            },
+            onInstall = { entry ->
+                val installer = sourceUi.onInstallStoreEntry
+                if (installer == null) "安装处理器未就绪" else installer(entry)
+            },
+            onUpgradeAll = sourceUi.onCheckSync,
+            upgradeAllBusy = sourceUi.sourceUpdateBusy,
+            externalNote = sourceUi.sourceUpdateNote,
+            onClose = { sourceUi.sourceStoreOpen = false },
+        )
     }
 }

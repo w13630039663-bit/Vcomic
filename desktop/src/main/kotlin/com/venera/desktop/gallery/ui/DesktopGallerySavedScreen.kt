@@ -479,7 +479,8 @@ private fun Toolbar(
             value = query,
             onValueChange = onQueryChange,
             onSearch = {},
-            modifier = Modifier.width(240.dp),
+            collapsedWidth = 220.dp,
+            expandedWidth = 290.dp,
             placeholder = "搜标签 / 画师",
         )
         Spacer(Modifier.width(tokens.spacing.space2))

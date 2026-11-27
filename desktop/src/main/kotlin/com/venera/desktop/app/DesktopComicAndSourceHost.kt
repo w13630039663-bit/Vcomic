@@ -139,6 +139,7 @@ internal fun DesktopComicAndSourceHost(
         is DesktopRoute.SourceManage,
         is DesktopRoute.SourceEdit,
         is DesktopRoute.SourceLogin,
+        is DesktopRoute.SourceLatency,
         -> DesktopSourceManageAndLoginRoute(
             r = r,
             layoutMode = layoutMode,

@@ -349,7 +349,10 @@ internal fun DesktopWallScaffold(
         (wallPage?.cards ?: emptyList()).associateBy { it.uid }
     val dockHazeState = rememberHazeState()
     // 图库主墙近尾加载更多由 DesktopJustifiedWall 触发，仍受续页闸门控制。
-    androidx.compose.runtime.CompositionLocalProvider(LocalSelectionDockHazeState provides dockHazeState) {
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalSelectionDockHazeState provides dockHazeState,
+        com.venera.desktop.gallery.ui.LocalDesktopGalleryAiBadge provides aiBadge,
+    ) {
     Box(
         modifier = Modifier
             // 稿不设右宽：画廊主墙吃满整条内容轴（`widthIn(max=…)` 摘掉，主墙才能随窗口长到 7 列）。
@@ -442,6 +445,11 @@ internal fun DesktopWallScaffold(
                         followingAvatars = pixivDiscover.followingAvatars,
                         pixivisionArticles = pixivisionArticles,
                         onOpenPixivisionArticle = onOpenPixivisionArticle,
+                        onOpenPixivArtist = { id, name ->
+                            onSearchUser(
+                                com.venera.compose.gallery.data.PixivUser(id, name, "", "", false),
+                            )
+                        },
                     )
                     Spacer(Modifier.height(tokens.spacing.space2))
                     DesktopGalleryWallHead(
@@ -530,14 +538,8 @@ internal fun DesktopWallScaffold(
                 footer = footer,
                 onLoadMore = onLoadMore,
                 onSearchTag = onSearchTag,
-                // 卡片画师名点击按所属站送入搜索交接槽（uid 为空时不接）。
                 onOpenCardArtist = { card ->
-                    if (card.uid.isNotBlank()) {
-                        wallSearchHandoff(
-                            com.venera.compose.gallery.data.GallerySite.entries.toList(),
-                            card.title,
-                        )
-                    }
+                    com.venera.desktop.gallery.ui.desktopDispatchWallCardArtist(card, onSearchUser, wallSearchHandoff)
                 },
             )
         } else {
@@ -555,12 +557,7 @@ internal fun DesktopWallScaffold(
                 onOpenPost = onOpenPost,
                 onSearchTag = onSearchTag,
                 onOpenCardArtist = { card ->
-                    if (card.uid.isNotBlank()) {
-                        wallSearchHandoff(
-                            com.venera.compose.gallery.data.GallerySite.entries.toList(),
-                            card.title,
-                        )
-                    }
+                    com.venera.desktop.gallery.ui.desktopDispatchWallCardArtist(card, onSearchUser, wallSearchHandoff)
                 },
                 onReachEnd = { onLoadMore() },
                 state = staggeredState,

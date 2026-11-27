@@ -325,6 +325,7 @@ import androidx.compose.runtime.MutableState
 internal fun DesktopLargeScreenProviders(
     windowWidth: Dp,
     fullscreenChrome: Boolean,
+    readerChromeController: DesktopReaderChromeController?,
     ports: GalleryPorts,
     galleryPaths: PathProvider?,
     galleryPrefs: DesktopGalleryPreferences?,
@@ -352,6 +353,7 @@ internal fun DesktopLargeScreenProviders(
                 com.venera.desktop.settings.DesktopThemeMode.mode.collectAsState().value,
             ),
         com.venera.desktop.app.LocalShellBackHandled provides !fullscreenChrome,
+        com.venera.desktop.app.LocalReaderChromeController provides readerChromeController,
         com.venera.desktop.gallery.ui.LocalChromePalette provides
             com.venera.desktop.gallery.ui.DesktopChromeColors.of(
                 dark = com.venera.desktop.settings.DesktopThemeMode.isDark(
@@ -460,36 +462,12 @@ internal fun openWallCardHelper(
 }
 
 internal fun runSourceImportHelper(
-    installSourceText: (suspend (String, String) -> String?)?,
+    installSourceText: (suspend (String, String, String, String) -> String?)?,
     sourceUi: SourceManageUiState,
     scope: CoroutineScope,
     onSuccess: (String) -> Unit,
 ) {
-    val install = installSourceText
-    if (install == null) {
-        sourceUi.sourceSettingsNote = "脚本目录未就绪，导入没跑起来"
-        return
-    }
-    val picked = com.venera.desktop.platform.desktopPickOpenFile(null, "导入站点脚本")
-        ?.let { java.io.File(it) } ?: return
-    val text = runCatching { picked.readText() }.getOrElse { t ->
-        sourceUi.sourceSettingsNote = "读文件失败：${t.message ?: t.javaClass.simpleName}"
-        return
-    }
-    val key = com.venera.desktop.gallery.data.DesktopSourceNames.keyOf(text) ?: run {
-        sourceUi.sourceSettingsNote = "脚本里找不到源 key"
-        return
-    }
-    scope.launch {
-        val why = install(key, text)
-        if (why == null) {
-            sourceUi.sourceSelectedKey = key
-            sourceUi.sourceSettingsNote = "已导入「$key」，即刻生效"
-            onSuccess(key)
-        } else {
-            sourceUi.sourceSettingsNote = why
-        }
-    }
+    importLocalSourceScript(installSourceText, sourceUi, scope, onSuccess)
 }
 
 internal suspend fun performSourceUpdateCheckHelper(
@@ -497,79 +475,19 @@ internal suspend fun performSourceUpdateCheckHelper(
     sourceUi: SourceManageUiState,
     overrideDir: java.io.File?,
     engine: com.venera.engineprobe.EngineSession?,
+    paths: com.venera.compose.data.platform.PathProvider? = null,
     onTick: () -> Unit,
 ) {
-    if (sourceUi.sourceUpdateBusy) return
-    sourceUi.sourceUpdateBusy = true
-    sourceUi.sourceUpdateNote = null
-    val proxy = System.getProperty("venera.proxy")?.takeIf { it.isNotBlank() }
-    val entries = com.venera.engineprobe.DesktopSourceUpdate.fetchIndex(proxy)
-    if (entries.isEmpty()) {
-        sourceUi.sourceUpdateNote = "上游清单拉不到（网络受阻？），检查代理后重试。"
-        sourceUi.sourceUpdateBusy = false
-        return
-    }
-    val local = sourceUi.sourceRows.associate { it.key to it.version }
-    val dir = overrideDir
-    val pending = mutableListOf<String>()
-    val updatables = entries.mapNotNull { entry ->
-        val fileKey = entry.fileName.removeSuffix(".js")
-        val localVersion = local[entry.key] ?: local[fileKey]
-        if (entry.version.isBlank()) return@mapNotNull null
-        if (localVersion == null) return@mapNotNull null
-        if (!com.venera.engineprobe.DesktopSourceUpdate.isNewer(entry.version, localVersion)) {
-            return@mapNotNull null
-        }
-        if (dir != null &&
-            !com.venera.desktop.gallery.data.DesktopSourceUpdater
-                .canAutoOverwrite(dir, fileKey, localVersion)
-        ) {
-            pending += entry.name
-            return@mapNotNull null
-        }
-        com.venera.engineprobe.DesktopSourceUpdate.Updatable(entry, localVersion)
-    }
-    var ok = 0
-    val done = mutableListOf<String>()
-    val fails = mutableListOf<String>()
-    updatables.forEach { up ->
-        val text = com.venera.engineprobe.DesktopSourceUpdate.download(up.entry.fileName, proxy)
-        if (text == null) {
-            fails += "${up.entry.name}（下载失败）"
-            return@forEach
-        }
-        val fileKey = up.entry.fileName.removeSuffix(".js")
-        desktopEngineCall(engine) { engine?.checkLoadable(fileKey, text) }.fold(
-            onSuccess = {
-                val d = overrideDir
-                if (d == null) {
-                    fails += "${up.entry.name}（改写层不在手）"
-                } else {
-                    com.venera.desktop.gallery.data.DesktopSourceOverrides.writeText(d, fileKey, text)
-                    com.venera.desktop.gallery.data.DesktopSourceUpdater
-                        .markAutoUpdated(d, fileKey, up.entry.version)
-                    ok += 1
-                    done += up.entry.name
-                }
-            },
-            onFailure = { t ->
-                fails += "${up.entry.name}（${t.message ?: t.javaClass.simpleName}）"
-            },
-        )
-    }
-    sourceUi.sourceUpdateNote = buildString {
-        append("更新完成：成功 $ok 颗")
-        if (pending.isNotEmpty()) append("；跳过本地改写 ${pending.size} 颗：${pending.take(3).joinToString("、")}")
-        if (fails.isNotEmpty()) append("；失败 ${fails.size} 颗：${fails.take(3).joinToString("、")}")
-    }
-    if (announce && ok > 0) {
-        com.venera.desktop.platform.DesktopNotifier.notify(
-            "源已更新 $ok 个",
-            done.joinToString("、"),
-        )
-    }
-    if (ok > 0) onTick()
-    sourceUi.sourceUpdateBusy = false
+    val proxy = com.venera.desktop.gallery.data.DesktopSourceRepoPreferences.resolveProxy(paths)
+    syncSelectedSourceRepo(
+        announce = announce,
+        repo = sourceUi.selectedSourceRepo,
+        proxy = proxy,
+        sourceUi = sourceUi,
+        overrideDir = overrideDir,
+        validateScript = { key, text -> desktopEngineCall(engine) { engine?.checkLoadable(key, text) } },
+        onTick = onTick,
+    )
 }
 
 internal fun onDownloadsDeleteHelper(

@@ -12,6 +12,7 @@ import com.venera.desktop.ui.components.DesktopPetCueBus
 import com.venera.desktop.ui.components.DesktopPetPayload
 import com.venera.desktop.ui.components.desktopCoverFloat
 import com.venera.desktop.ui.components.desktopUiFloat
+import com.venera.desktop.ui.components.registerPixelBuddyCard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -138,6 +139,8 @@ internal fun DesktopHomePane(
     homeSourceRows: List<DesktopHomeSourceStatusRow> = emptyList(),
     onOpenLocalComics: (() -> Unit)? = null,
     onGoSourceManage: (() -> Unit)? = null,
+    onOpenSourceLatency: (() -> Unit)? = null,
+    onRefreshSourceLatency: (() -> Unit)? = null,
     /** 设计稿：最近阅读栏头「全部 ›」入口；null = 不摆。 */
     onOpenAllHistory: (() -> Unit)? = null,
     /** 本地与下载条——下载队列账（壳 collect 的同一份），空表只留入口。 */
@@ -179,6 +182,8 @@ internal fun DesktopHomePane(
             downloadTasks,
             onOpenDownloads,
             pixivAccount = pixivAccount,
+            onOpenSourceLatency = onOpenSourceLatency,
+            onRefreshSourceLatency = onRefreshSourceLatency,
         )
         return
     }
@@ -256,6 +261,8 @@ internal fun DesktopHomePane(
                 DesktopHomeSourceTable(
                     rows = homeSourceRows,
                     onGoSourceManage = onGoSourceManage,
+                    onOpenSourceLatency = onOpenSourceLatency,
+                    onRefreshSourceLatency = onRefreshSourceLatency,
                     modifier = Modifier.weight(1f),
                 )
                 DesktopHomeRecentList(
@@ -323,7 +330,7 @@ private fun DesktopHomeMosaic(
     onOpenPost: (com.venera.desktop.gallery.ui.DesktopWallCardModel) -> Unit,
     onOpenComicCard: (com.venera.engineprobe.EngineSession.ComicCard) -> Unit,
     onSearchComicTag: ((String) -> Unit)? = null,
-    // 推荐档位（正常=拷贝漫画 / R18=禁漫天堂）+ 两腿失败可视化 + 重试。
+    // 推荐档位（正常=GoDa漫画 / R18=禁漫天堂）+ 两腿失败可视化 + 重试。
     recommendR18: Boolean = false,
     onPickRecommendR18: ((Boolean) -> Unit)? = null,
     recommendFailed: Boolean = false,
@@ -356,9 +363,9 @@ private fun DesktopHomeMosaic(
                 // 左半：推荐漫画（每栏 3 列卡）
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        HalfHead(title = "推荐漫画", en = if (recommendR18) "禁漫天堂" else "拷贝漫画", count = recs.size)
+                        HalfHead(title = "推荐漫画", en = if (recommendR18) "禁漫天堂" else "GoDa漫画", count = recs.size)
                         Spacer(Modifier.weight(1f))
-                        // 正常=拷贝漫画、R18=禁漫天堂，栏头直切。
+                        // 正常=GoDa漫画、R18=禁漫天堂，栏头直切。
                         if (onPickRecommendR18 != null) {
                             HomeSeg {
                                 HomeSegChip("正常", !recommendR18) { onPickRecommendR18.invoke(false) }
@@ -400,6 +407,7 @@ private fun DesktopHomeMosaic(
                                                 onOpenComicCard(card)
                                             },
                                             captionSub = card.author.ifBlank { "漫画" },
+                                            buddyCardKey = "home-comic-${card.id}",
                                             modifier = Modifier,
                                         )
                                     }
@@ -450,6 +458,7 @@ private fun DesktopHomeMosaic(
                                         onClick = { onOpenPost(card) },
                                         captionSub = card.author.ifBlank { "画廊" },
                                         copyLink = card.url.takeIf { it.isNotBlank() },
+                                        buddyCardKey = "home-daily-${card.uid}",
                                         modifier = Modifier.weight(1f),
                                     )
                                 }
@@ -555,6 +564,7 @@ private fun MosaicCell(
     captionSub: String? = null,
     /** 站方地址（设计稿悬停动作坞「复制链接」真口）；null = 不摆坞。 */
     copyLink: String? = null,
+    buddyCardKey: String = "",
     modifier: Modifier = Modifier,
 ) {
     val tokens = VeneraTokens
@@ -563,7 +573,9 @@ private fun MosaicCell(
         cornerRadius = 12.dp,
         surface = tokens.color.surfaceContainerHigh,
         restElevation = 1.dp,
-        modifier = modifier.clickable(enabled = openable, onClick = onClick),
+        modifier = modifier
+            .then(if (buddyCardKey.isNotEmpty()) Modifier.registerPixelBuddyCard(buddyCardKey) else Modifier)
+            .clickable(enabled = openable, onClick = onClick),
     ) { floatState ->
         // 悬停动作坞（设计稿 .dock）：仅指针悬停出现，150ms 淡变 + 位移。
         val dockAlpha by androidx.compose.animation.core.animateFloatAsState(
@@ -862,9 +874,14 @@ internal fun desktopHomeSourceState(row: DesktopHomeSourceStatusRow): String = w
 private fun DesktopHomeSourceTable(
     rows: List<DesktopHomeSourceStatusRow>,
     onGoSourceManage: (() -> Unit)?,
+    onOpenSourceLatency: (() -> Unit)? = null,
+    onRefreshSourceLatency: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val tokens = VeneraTokens
+    val summary = com.venera.desktop.sourcemanage.summarizeSourceStatus(rows)
+    val (compactRows, overflowCount) = com.venera.desktop.sourcemanage.selectHomeCompactSourceRows(rows)
+    val anyProbing = rows.any { it.probing }
     Box(
         modifier = modifier
             .fillMaxHeight()
@@ -873,36 +890,64 @@ private fun DesktopHomeSourceTable(
             .background(classicHomeCardSurface())
             .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
-        Column(Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().fillMaxHeight()) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(text = DesktopI18n.t("源状态", "Sources Status"), fontSize = VeneraType.body.size, lineHeight = VeneraType.body.lineHeight, fontWeight = VeneraType.cardTitle.weight, color = tokens.color.textPrimary)
-                Text(text = DesktopI18n.t("真测延迟", "Live latency"), fontSize = VeneraType.micro.size, lineHeight = VeneraType.micro.lineHeight, color = tokens.color.textTertiary)
+                Text(
+                    text = if (rows.isEmpty()) DesktopI18n.t("真测延迟", "Live latency") else DesktopI18n.t("真测延迟 · 共 ${rows.size} 站", "Live · ${rows.size}"),
+                    fontSize = VeneraType.micro.size, lineHeight = VeneraType.micro.lineHeight, color = tokens.color.textTertiary,
+                )
                 Spacer(Modifier.weight(1f))
-                if (onGoSourceManage != null) {
+                if (onRefreshSourceLatency != null && rows.isNotEmpty()) {
                     Text(
-                        text = DesktopI18n.t("站点 ›", "Sources ›"),
+                        text = if (anyProbing) DesktopI18n.t("测速中", "Testing") else DesktopI18n.t("刷新", "Refresh"),
+                        fontSize = VeneraType.micro.size,
+                        lineHeight = VeneraType.micro.lineHeight,
+                        color = if (anyProbing) tokens.color.textTertiary else tokens.color.primary,
+                        modifier = Modifier.clickable(enabled = !anyProbing, onClick = onRefreshSourceLatency),
+                    )
+                }
+                val headClick = onOpenSourceLatency ?: onGoSourceManage
+                if (headClick != null) {
+                    Text(
+                        text = if (onOpenSourceLatency != null) DesktopI18n.t("延迟检测 ›", "Latency ›") else DesktopI18n.t("站点 ›", "Sources ›"),
                         fontSize = VeneraType.micro.size, lineHeight = VeneraType.micro.lineHeight,
                         color = tokens.color.primary,
-                        modifier = Modifier.clickable(onClick = onGoSourceManage),
+                        modifier = Modifier.clickable(onClick = headClick),
                     )
                 }
             }
-            Spacer(Modifier.height(10.dp))
+            if (rows.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    HomeCompactStatChip("正常 ${summary.ok}", GalleryTokens.Color.StatusSuccess, GalleryTokens.Color.StatusSuccess.copy(alpha = 0.14f))
+                    if (summary.slow > 0) {
+                        HomeCompactStatChip("偏慢 ${summary.slow}", GalleryTokens.Color.ToneCaution, GalleryTokens.Color.ToneCaution.copy(alpha = 0.14f))
+                    }
+                    if (summary.bad > 0) {
+                        HomeCompactStatChip("异常 ${summary.bad}", GalleryTokens.Color.StatusDanger, GalleryTokens.Color.StatusDanger.copy(alpha = 0.14f))
+                    }
+                    if (summary.untested > 0) {
+                        HomeCompactStatChip("未测 ${summary.untested}", tokens.color.textTertiary, tokens.color.outlineVariant.copy(alpha = 0.22f))
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth()) {
                 Text(DesktopI18n.t("源", "Source"), fontSize = VeneraType.micro.size, lineHeight = VeneraType.micro.lineHeight, color = tokens.color.textTertiary, modifier = Modifier.weight(1.4f))
                 Text(DesktopI18n.t("延迟", "Latency"), fontSize = VeneraType.micro.size, lineHeight = VeneraType.micro.lineHeight, color = tokens.color.textTertiary, modifier = Modifier.weight(1f))
                 Text(DesktopI18n.t("状态", "Status"), fontSize = VeneraType.micro.size, lineHeight = VeneraType.micro.lineHeight, color = tokens.color.textTertiary, modifier = Modifier.weight(0.8f))
             }
             val hairline = tokens.color.outlineVariant.copy(alpha = 0.5f)
-            rows.forEachIndexed { rowIdx, row ->
+            compactRows.forEachIndexed { rowIdx, row ->
                 val state = desktopHomeSourceState(row)
                 Row(
                     Modifier.fillMaxWidth()
-                        .padding(vertical = 7.dp)
+                        .padding(vertical = 6.dp)
                         .drawWithContent {
                             drawContent()
                             // 设计稿：行底 1px hairline（末行不加）。
-                            if (rowIdx < rows.lastIndex) {
+                            if (rowIdx < compactRows.lastIndex) {
                                 drawLine(
                                     color = hairline,
                                     start = Offset(0f, size.height),
@@ -982,7 +1027,44 @@ private fun DesktopHomeSourceTable(
                     }
                 }
             }
+            if (overflowCount > 0 || onOpenSourceLatency != null) {
+                Spacer(Modifier.weight(1f))
+                Spacer(Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = if (overflowCount > 0) "另有 $overflowCount 个站点已收拢到检测页" else "已显示全部启用站点",
+                        fontSize = VeneraType.micro.size,
+                        lineHeight = VeneraType.micro.lineHeight,
+                        color = tokens.color.textTertiary,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (onOpenSourceLatency != null) {
+                        Text(
+                            text = DesktopI18n.t("查看全部延迟详情 ›", "View all ›"),
+                            fontSize = VeneraType.micro.size,
+                            lineHeight = VeneraType.micro.lineHeight,
+                            color = tokens.color.primary,
+                            modifier = Modifier.clickable(onClick = onOpenSourceLatency),
+                        )
+                    }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun HomeCompactStatChip(text: String, fg: Color, bg: Color) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(99.dp))
+            .background(bg)
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+    ) {
+        Text(text = text, fontSize = 10.sp, lineHeight = 13.sp, color = fg, maxLines = 1)
     }
 }
 
@@ -1003,7 +1085,7 @@ private fun DesktopHomeRecentList(
             .background(classicHomeCardSurface())
             .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
-        Column(Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().fillMaxHeight()) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(text = DesktopI18n.t("最近阅读", "Recent Reading"), fontSize = VeneraType.body.size, lineHeight = VeneraType.body.lineHeight, fontWeight = VeneraType.cardTitle.weight, color = tokens.color.textPrimary)
                 Text(text = DesktopI18n.t("历史余量", "History"), fontSize = VeneraType.micro.size, lineHeight = VeneraType.micro.lineHeight, color = tokens.color.textTertiary)

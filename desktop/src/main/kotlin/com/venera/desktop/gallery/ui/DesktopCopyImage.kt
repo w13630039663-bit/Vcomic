@@ -151,14 +151,31 @@ internal suspend fun desktopCopyImageRun(
         runCatching { ImageIO.read(ByteArrayInputStream(bytes)) }
     }
     val image = decoded.getOrNull() ?: return refuse(DesktopCopyImageCause.NOT_AN_IMAGE, decoded.exceptionOrNull())
-    val written = runCatching {
-        Toolkit.getDefaultToolkit().systemClipboard.setContents(ImageToClipboard(image), null)
-    }
-    if (written.isFailure) {
-        return refuse(DesktopCopyImageCause.CLIPBOARD_UNAVAILABLE, written.exceptionOrNull())
+    val written = desktopWriteAwtImageToClipboard(image)
+    if (written != null) {
+        return refuse(DesktopCopyImageCause.CLIPBOARD_UNAVAILABLE, written)
     }
     println(desktopCopyImageReadout(bytes.size, image.width, image.height))
     return DesktopCopyImageOutcome.Copied(bytes.size, image.width, image.height)
+}
+
+/**
+ * 将 AWT 位图写入系统剪贴板（全包唯一出口）；若剪贴板瞬时被占用则短等重试一次。
+ */
+internal suspend fun desktopWriteAwtImageToClipboard(image: Image): Throwable? {
+    if (!desktopCanCopyImage()) return IllegalStateException("headless environment")
+    var lastError: Throwable? = null
+    repeat(2) { attempt ->
+        val result = runCatching {
+            withContext(Dispatchers.IO) {
+                Toolkit.getDefaultToolkit().systemClipboard.setContents(ImageToClipboard(image), null)
+            }
+        }
+        if (result.isSuccess) return null
+        lastError = result.exceptionOrNull()
+        if (attempt == 0) kotlinx.coroutines.delay(60)
+    }
+    return lastError
 }
 
 /**

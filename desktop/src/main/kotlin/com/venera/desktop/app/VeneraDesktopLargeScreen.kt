@@ -424,7 +424,6 @@ internal fun VeneraDesktopLargeScreen(
     var route by state.routeState
     var currentTab by state.currentTabState
     var filesSegment by state.filesSegmentState
-    var railExpandedSaved by state.railExpandedSavedState
     var flyHostTopLeft by state.flyHostTopLeftState
     var historyTick by state.historyTickState
     var sourceTick by state.sourceTickState
@@ -456,6 +455,7 @@ internal fun VeneraDesktopLargeScreen(
     DesktopLargeScreenProviders(
         windowWidth = windowWidth,
         fullscreenChrome = state.fullscreenChrome,
+        readerChromeController = state.readerChromePolicy.chromeController,
         ports = ports,
         galleryPaths = galleryPaths,
         galleryPrefs = galleryPrefs,
@@ -502,11 +502,8 @@ internal fun VeneraDesktopLargeScreen(
             onWindowClose = onWindowClose,
             windowDragModifier = windowDragModifier,
             onShellBackdropChange = onShellBackdropChange,
-            railExpandedSaved = railExpandedSaved,
-            onRailExpandedChange = { expanded ->
-                railExpandedSaved = expanded
-                state.railPrefs?.put("pref_sidebar_expanded", expanded)
-            },
+            railExpandedSaved = state.readerChromePolicy.effectiveRailExpanded,
+            onRailExpandedChange = state.readerChromePolicy.onRailExpandedChange,
             filesSegment = filesSegment,
             onOpenFilesSegment = { seg ->
                 state.filesUi.filesDomain = com.venera.desktop.downloads.DesktopFilesDomain.COMIC

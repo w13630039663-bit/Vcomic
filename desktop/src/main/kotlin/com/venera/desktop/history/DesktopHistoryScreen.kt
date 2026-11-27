@@ -728,7 +728,8 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
         value = query,
         onValueChange = onQueryChange,
         onSearch = {},
-        modifier = Modifier.width(190.dp),
+        collapsedWidth = 190.dp,
+        expandedWidth = 260.dp,
         placeholder = DesktopI18n.t("在历史中查找", "Search history"),
     )
 }

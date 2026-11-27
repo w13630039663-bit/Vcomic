@@ -72,15 +72,16 @@ internal fun DesktopCommandBar(
      */
     bareBackdrop: Boolean = false,
 ) {
+    val glassSurface = com.venera.desktop.gallery.ui.DesktopGlass.currentSurface(palette)
     val barBg = if (transparentBackdrop) {
-        com.venera.desktop.gallery.ui.DesktopGlass.surface(palette)
+        glassSurface
     } else {
         palette.page
     }
     val barBrush: Brush = if (bareBackdrop) {
         Brush.verticalGradient(
             listOf(
-                com.venera.desktop.gallery.ui.DesktopGlass.surface(palette),
+                glassSurface,
                 Color.Transparent,
             ),
         )

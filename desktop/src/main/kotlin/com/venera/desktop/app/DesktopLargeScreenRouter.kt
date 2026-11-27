@@ -706,6 +706,7 @@ internal fun DesktopLargeScreenRouter(
                     is DesktopRoute.SourceManage,
                     is DesktopRoute.SourceEdit,
                     is DesktopRoute.SourceLogin,
+                    is DesktopRoute.SourceLatency,
                     is DesktopRoute.Detail,
                     is DesktopRoute.Reader,
                     DesktopRoute.Files,

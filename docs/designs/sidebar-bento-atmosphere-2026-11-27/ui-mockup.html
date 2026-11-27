@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VComic 侧栏个性化方案预览 · sidebar-bento-atmosphere-2026-11-27</title>
+<style>
+  :root {
+    --accent: #0A63F6;
+    --accent-soft: rgba(10, 99, 246, 0.11);
+    --accent-border: rgba(10, 99, 246, 0.30);
+    --bg-desktop: linear-gradient(135deg, #d7e3f5 0%, #ede6f7 48%, #dceef0 100%);
+    --win-bg: rgba(255, 255, 255, 0.68);
+    --rail-bg: rgba(248, 250, 253, 0.64);
+    --content-bg: rgba(255, 255, 255, 0.78);
+    --card-bg: rgba(255, 255, 255, 0.72);
+    --card-solid: rgba(255, 255, 255, 0.88);
+    --hover-bg: rgba(23, 32, 46, 0.055);
+    --selected-neutral: rgba(23, 32, 46, 0.08);
+    --hairline: rgba(23, 32, 46, 0.09);
+    --ink1: #17202E;
+    --ink2: #536074;
+    --ink3: #8390A3;
+    --online: #22C55E;
+    --win-border: rgba(255, 255, 255, 0.75);
+    --hero-overlay: linear-gradient(180deg, rgba(16, 22, 34, 0.12) 0%, rgba(16, 22, 34, 0.72) 100%);
+  }
+
+  [data-theme="dark"] {
+    --accent: #0A84FF;
+    --accent-soft: rgba(10, 132, 255, 0.18);
+    --accent-border: rgba(10, 132, 255, 0.38);
+    --bg-desktop: radial-gradient(circle at 20% 20%, #1d2842 0%, #121520 50%, #1a1626 100%);
+    --win-bg: rgba(20, 22, 28, 0.64);
+    --rail-bg: rgba(22, 25, 34, 0.62);
+    --content-bg: rgba(17, 20, 27, 0.78);
+    --card-bg: rgba(34, 39, 52, 0.62);
+    --card-solid: rgba(38, 44, 58, 0.82);
+    --hover-bg: rgba(255, 255, 255, 0.065);
+    --selected-neutral: rgba(255, 255, 255, 0.095);
+    --hairline: rgba(255, 255, 255, 0.09);
+    --ink1: #F1F5FA;
+    --ink2: #A6B2C4;
+    --ink3: #6C788B;
+    --online: #34D399;
+    --win-border: rgba(255, 255, 255, 0.14);
+    --hero-overlay: linear-gradient(180deg, rgba(10, 13, 20, 0.18) 0%, rgba(10, 13, 20, 0.82) 100%);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei UI", sans-serif;
+    min-height: 100vh;
+    background: var(--bg-desktop);
+    color: var(--ink1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 24px 28px;
+    transition: background 0.3s ease, color 0.2s ease;
+  }
+
+  /* 顶部方案切换控制台 */
+  .toolbar {
+    width: 100%;
+    max-width: 1120px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: var(--card-solid);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--hairline);
+    margin-bottom: 18px;
+  }
+
+  .toolbar-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .toolbar-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid var(--accent-border);
+  }
+
+  .toolbar-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .seg {
+    display: inline-flex;
+    padding: 3px;
+    border-radius: 10px;
+    background: var(--hover-bg);
+    border: 1px solid var(--hairline);
+    gap: 2px;
+  }
+
+  .seg-btn {
+    border: none;
+    background: transparent;
+    color: var(--ink2);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 11px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.16s ease, color 0.16s ease;
+  }
+
+  .seg-btn:hover { color: var(--ink1); }
+  .seg-btn.active {
+    background: var(--card-solid);
+    color: var(--ink1);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+
+  /* 桌面模拟主窗口 */
+  .app-window {
+    width: 100%;
+    max-width: 1120px;
+    height: 760px;
+    border-radius: 14px;
+    background: var(--win-bg);
+    backdrop-filter: blur(32px) saturate(140%);
+    border: 1px solid var(--win-border);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.20);
+    display: flex;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* 侧栏外框 */
+  .sidebar {
+    width: 248px;
+    flex-shrink: 0;
+    height: 100%;
+    background: var(--rail-bg);
+    border-right: 1px solid var(--hairline);
+    display: flex;
+    flex-direction: column;
+    transition: width 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sidebar.collapsed {
+    width: 64px;
+  }
+
+  .sidebar-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 10px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    background: var(--hairline);
+    border-radius: 99px;
+  }
+
+  /* 顶部品牌条（方案一） */
+  .brand-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 6px 2px;
+  }
+
+  .brand-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .brand-logo {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    color: #fff;
+    font-weight: 800;
+    font-size: 12px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--hairline);
+  }
+
+  [data-theme="dark"] .brand-logo {
+    background: linear-gradient(135deg, #f8fafc, #dbeafe);
+    color: #0f172a;
+  }
+
+  .brand-name {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+  }
+
+  .brand-status {
+    font-size: 10.5px;
+    color: var(--ink3);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--hover-bg);
+    border: 1px solid var(--hairline);
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--online);
+  }
+
+  /* 方案二 / 合璧：画报氛围头卡 */
+  .atmo-hero {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--hairline);
+    background:
+      radial-gradient(circle at 82% 20%, rgba(10, 132, 255, 0.45), transparent 55%),
+      radial-gradient(circle at 20% 80%, rgba(236, 72, 153, 0.35), transparent 60%),
+      linear-gradient(135deg, #3b4b75 0%, #5e4473 50%, #2b354f 100%);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: transform 0.16s ease, border-color 0.16s ease;
+  }
+
+  .atmo-hero.tall { height: 104px; }
+  .atmo-hero.compact { height: 76px; padding: 8px 11px; }
+
+  .atmo-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--hero-overlay);
+    pointer-events: none;
+  }
+
+  .atmo-hero:hover { border-color: var(--accent-border); }
+
+  .atmo-top {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .atmo-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+  }
+
+  .atmo-tag {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    padding: 1px 7px;
+    border-radius: 999px;
+  }
+
+  .atmo-bottom {
+    position: relative;
+    z-index: 1;
+    color: #fff;
+  }
+
+  .atmo-kicker {
+    font-size: 10.5px;
+    color: rgba(255, 255, 255, 0.72);
+    margin-bottom: 1px;
+  }
+
+  .atmo-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 方案一 / 合璧：2x2 Bento 核心磁贴 */
+  .bento-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .bento-tile {
+    position: relative;
+    height: 58px;
+    border-radius: 11px;
+    padding: 9px 10px;
+    background: var(--card-bg);
+    border: 1px solid var(--hairline);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    text-align: left;
+    color: var(--ink2);
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+
+  .bento-tile:hover {
+    background: var(--hover-bg);
+    color: var(--ink1);
+  }
+
+  .bento-tile.active {
+    background: var(--accent-soft);
+    border-color: var(--accent-border);
+    color: var(--ink1);
+  }
+
+  .bento-tile-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .bento-tile-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+
+  .bento-tile.active .bento-tile-dot { opacity: 1; }
+  .bento-tile.active svg { color: var(--accent); }
+
+  .bento-tile-label {
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+
+  /* 方案二：灵动光标列表导航 */
+  .nav-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .nav-row {
+    position: relative;
+    height: 33px;
+    border-radius: 8px;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--ink2);
+    font-size: 13px;
+    font-weight: 500;
+    width: 100%;
+    text-align: left;
+    transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+  }
+
+  .nav-row:hover {
+    background: var(--hover-bg);
+    color: var(--ink1);
+  }
+
+  .nav-row.active {
+    background: var(--card-bg);
+    border-color: var(--hairline);
+    color: var(--ink1);
+    font-weight: 600;
+  }
+
+  .nav-row.active.accent-pill {
+    background: var(--accent-soft);
+    border-color: var(--accent-border);
+  }
+
+  .nav-row.active svg { color: var(--accent); }
+
+  .cursor-bar {
+    position: absolute;
+    left: 2px;
+    top: 8px;
+    bottom: 8px;
+    width: 3px;
+    border-radius: 99px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.16s ease;
+  }
+
+  .nav-row.active .cursor-bar { opacity: 1; }
+
+  .nav-row.sub {
+    height: 30px;
+    font-size: 12.5px;
+    font-weight: 450;
+  }
+
+  .nav-row.sub.active { font-weight: 600; }
+
+  .row-label {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .row-meta {
+    font-size: 10.5px;
+    color: var(--ink3);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 分组折叠头 */
+  .group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .group-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--ink3);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    cursor: pointer;
+    transition: color 0.14s ease;
+  }
+
+  .group-head:hover { color: var(--ink2); }
+
+  .group-chev {
+    transition: transform 0.18s ease;
+  }
+
+  .group.collapsed .group-chev {
+    transform: rotate(-90deg);
+  }
+
+  .group.collapsed .group-items {
+    display: none;
+  }
+
+  .group-items {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  /* 底部悬浮双层身份控制台（代替空白死区与单行散落图标） */
+  .dock-wrap {
+    padding: 8px 10px 10px;
+  }
+
+  .floating-dock {
+    border-radius: 12px;
+    padding: 6px;
+    background: var(--card-bg);
+    border: 1px solid var(--hairline);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .dock-user-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 6px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.14s ease;
+  }
+
+  .dock-user-row:hover { background: var(--hover-bg); }
+
+  .dock-user-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .avatar-wrap {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  .avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f472b6, #818cf8);
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .avatar-dot {
+    position: absolute;
+    right: -1px;
+    bottom: -1px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--online);
+    border: 1.5px solid var(--card-solid);
+  }
+
+  .user-meta {
+    min-width: 0;
+  }
+
+  .user-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .user-sub {
+    font-size: 10px;
+    color: var(--ink3);
+  }
+
+  .dock-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding-top: 2px;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .dock-btn {
+    height: 28px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--ink2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.14s ease, color 0.14s ease;
+  }
+
+  .dock-btn:hover {
+    background: var(--hover-bg);
+    color: var(--ink1);
+  }
+
+  .dock-btn.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .dl-badge {
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 0 4px;
+    border-radius: 99px;
+    background: var(--accent);
+    color: #fff;
+    line-height: 14px;
+  }
+
+  /* 折叠态布局 */
+  .collapsed-rail {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    padding: 12px 8px;
+    gap: 6px;
+  }
+
+  .sidebar.collapsed .expanded-rail { display: none; }
+  .sidebar.collapsed .collapsed-rail { display: flex; }
+
+  .rail-cell {
+    width: 40px;
+    height: 40px;
+    border-radius: 9px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--ink2);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+  }
+
+  .rail-cell:hover {
+    background: var(--hover-bg);
+    color: var(--ink1);
+  }
+
+  .rail-cell.active {
+    background: var(--accent-soft);
+    border-color: var(--accent-border);
+    color: var(--accent);
+  }
+
+  .rail-divider {
+    width: 20px;
+    height: 1px;
+    background: var(--hairline);
+    margin: 4px 0;
+  }
+
+  /* 模拟右侧主工作区 */
+  .main-stage {
+    flex: 1;
+    background: var(--content-bg);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .stage-topbar {
+    height: 48px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--hairline);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .stage-crumb {
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .stage-hint {
+    font-size: 11.5px;
+    color: var(--ink3);
+  }
+
+  .stage-grid {
+    flex: 1;
+    padding: 18px 20px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    overflow: hidden;
+  }
+
+  .mock-card {
+    border-radius: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--hairline);
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mock-cover {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    border-radius: 8px;
+    background: linear-gradient(155deg, rgba(10, 99, 246, 0.18), rgba(168, 85, 247, 0.18));
+    border: 1px solid var(--hairline);
+  }
+
+  .mock-card:nth-child(2n) .mock-cover {
+    background: linear-gradient(155deg, rgba(236, 72, 153, 0.18), rgba(245, 158, 11, 0.16));
+  }
+
+  .mock-card:nth-child(3n) .mock-cover {
+    background: linear-gradient(155deg, rgba(16, 185, 129, 0.18), rgba(14, 165, 233, 0.16));
+  }
+
+  .mock-lines {
+    padding: 2px 4px 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .mock-line-1 {
+    height: 10px;
+    width: 72%;
+    border-radius: 4px;
+    background: var(--selected-neutral);
+  }
+
+  .mock-line-2 {
+    height: 8px;
+    width: 48%;
+    border-radius: 4px;
+    background: var(--hover-bg);
+  }
+
+  .scheme-note {
+    width: 100%;
+    max-width: 1120px;
+    margin-top: 14px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: var(--card-solid);
+    border: 1px solid var(--hairline);
+    font-size: 12.5px;
+    color: var(--ink2);
+    line-height: 1.6;
+  }
+
+  .scheme-note strong { color: var(--ink1); }
+
+  svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.85; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+</style>
+</head>
+<body data-theme="light">
+
+  <!-- 方案预览控制器 -->
+  <div class="toolbar">
+    <div class="toolbar-title">
+      <span>VComic 侧栏重做方案预览</span>
+      <span class="toolbar-badge">阶段 A · 设计方案稿</span>
+    </div>
+    <div class="toolbar-controls">
+      <div class="seg" id="schemeSeg">
+        <button class="seg-btn active" data-scheme="bento">方案一 · 2×2 Bento 磁贴</button>
+        <button class="seg-btn" data-scheme="atmo">方案二 · 画报氛围头卡</button>
+        <button class="seg-btn" data-scheme="hybrid">合璧推荐 · 头卡 + Bento</button>
+      </div>
+      <div class="seg" id="themeSeg">
+        <button class="seg-btn active" data-theme="light">浅色</button>
+        <button class="seg-btn" data-theme="dark">深色</button>
+      </div>
+      <div class="seg" id="widthSeg">
+        <button class="seg-btn active" data-width="expanded">展开 248dp</button>
+        <button class="seg-btn" data-width="collapsed">折叠 64dp</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 模拟桌面端应用窗 -->
+  <div class="app-window">
+    <aside class="sidebar" id="sidebar">
+      <div class="expanded-rail" style="display:flex; flex-direction:column; height:100%;">
+        <div class="sidebar-scroll" id="expandedContent"></div>
+        <div class="dock-wrap">
+          <div class="floating-dock">
+            <div class="dock-user-row" data-nav="Pixiv 账号">
+              <div class="dock-user-left">
+                <div class="avatar-wrap">
+                  <div class="avatar">L</div>
+                  <span class="avatar-dot"></span>
+                </div>
+                <div class="user-meta">
+                  <div class="user-name">leimi</div>
+                  <div class="user-sub">Pixiv 已连接</div>
+                </div>
+              </div>
+              <svg style="width:14px;height:14px;color:var(--ink3);" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+            <div class="dock-actions">
+              <button class="dock-btn" data-nav="下载与本地" title="下载与本地">
+                <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span class="dl-badge">2</span>
+              </button>
+              <button class="dock-btn" data-nav="外观与设置" title="设置">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              </button>
+              <button class="dock-btn" id="collapseBtn" title="收起侧栏">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 折叠态窄轨 -->
+      <div class="collapsed-rail" id="collapsedContent"></div>
+    </aside>
+
+    <!-- 模拟右侧内容区 -->
+    <main class="main-stage">
+      <header class="stage-topbar">
+        <div class="stage-crumb">
+          <span id="stageTitle">画廊</span>
+        </div>
+        <div class="stage-hint">点击左侧任意菜单项可体验高亮态 / 分组折叠 / 底部控制台交互</div>
+      </header>
+      <section class="stage-grid">
+        <div class="mock-card"><div class="mock-cover"></div><div class="mock-lines"><div class="mock-line-1"></div><div class="mock-line-2"></div></div></div>
+        <div class="mock-card"><div class="mock-cover"></div><div class="mock-lines"><div class="mock-line-1"></div><div class="mock-line-2"></div></div></div>
+        <div class="mock-card"><div class="mock-cover"></div><div class="mock-lines"><div class="mock-line-1"></div><div class="mock-line-2"></div></div></div>
+        <div class="mock-card"><div class="mock-cover"></div><div class="mock-lines"><div class="mock-line-1"></div><div class="mock-line-2"></div></div></div>
+        <div class="mock-card"><div class="mock-cover"></div><div class="mock-lines"><div class="mock-line-1"></div><div class="mock-line-2"></div></div></div>
+        <div class="mock-card"><div class="mock-cover"></div><div class="mock-lines"><div class="mock-line-1"></div><div class="mock-line-2"></div></div></div>
+        <div class="mock-card"><div class="mock-cover"></div><div class="mock-lines"><div class="mock-line-1"></div><div class="mock-line-2"></div></div></div>
+        <div class="mock-card"><div class="mock-cover"></div><div class="mock-lines"><div class="mock-line-1"></div><div class="mock-line-2"></div></div></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 方案对比说明 -->
+  <div class="scheme-note" id="schemeNote"></div>
+
+<script>
+  const ICONS = {
+    home: '<svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+    search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+    gallery: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+    fav: '<svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
+    imageSearch: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="10" cy="10" r="3"/><path d="m21 21-4.3-4.3"/></svg>',
+    flame: '<svg viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
+    folder: '<svg viewBox="0 0 24 24"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>',
+    users: '<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    layers: '<svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>',
+    user: '<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+    history: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    chart: '<svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+    globe: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+    backup: '<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+    chev: '<svg class="group-chev" style="width:13px;height:13px;" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>',
+    expand: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="14 9 17 12 14 15"/></svg>',
+    dl: '<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+    gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  };
+
+  const MAIN_TABS = [
+    { id: '首页', label: '首页', icon: 'home' },
+    { id: '漫画搜索', label: '漫画搜索', icon: 'search' },
+    { id: '画廊', label: '画廊', icon: 'gallery' },
+    { id: '收藏', label: '收藏', icon: 'fav' },
+  ];
+
+  const GROUPS = [
+    {
+      title: '画廊',
+      items: [
+        { id: '搜图', icon: 'imageSearch' },
+        { id: '每日热门', icon: 'flame' },
+        { id: '收藏与历史', icon: 'folder' },
+        { id: '关注画师', icon: 'users' },
+        { id: '珍藏册', icon: 'layers' },
+        { id: '我的 pixiv', icon: 'user' },
+      ],
+    },
+    {
+      title: '漫画',
+      items: [
+        { id: '阅读历史', icon: 'history', meta: '12' },
+        { id: '阅读统计', icon: 'chart' },
+      ],
+    },
+    {
+      title: '工具',
+      items: [
+        { id: '站点', icon: 'globe', meta: '33' },
+        { id: '备份与还原', icon: 'backup' },
+      ],
+    },
+  ];
+
+  const NOTES = {
+    bento: '<strong>方案一 · 2×2 Bento 磁贴 + 悬浮双层底坞</strong>：把四大核心主入口升级为 2×2 玻璃磁贴卡片，拉开核心区与子入口的主次等级；撤掉五颜六色的小方块，全部统一单色线框 + 唯一 Accent 点缀；底部整合为带账号头像与状态/下载/设置的悬浮玻璃岛屿。',
+    atmo: '<strong>方案二 · 画报氛围头卡 + 灵动主色光标</strong>：顶部以最近浏览封面柔焦渐变作 104dp 氛围头卡（兼任“继续阅读”快捷入口），强二次元个人收藏馆质感；主导航与子导航取消灰块，改用左侧主色竖向光标条 + 极细玻璃描边，透气耐看。',
+    hybrid: '<strong>合璧推荐 · 氛围微头卡 + 2×2 Bento 磁贴 + 悬浮底坞</strong>：融合方案二的顶部「76dp 氛围头卡（品牌 + 最近阅读捷径）」与方案一的「2×2 Bento 核心磁贴」和「悬浮身份底坞」，既有直观记忆点又不牺牲核心入口的块面秩序感。',
+  };
+
+  let state = {
+    scheme: 'bento',
+    theme: 'light',
+    width: 'expanded',
+    activeNav: '画廊',
+    collapsedGroups: {},
+  };
+
+  function render() {
+    document.body.setAttribute('data-theme', state.theme);
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('collapsed', state.width === 'collapsed');
+    document.getElementById('stageTitle').textContent = state.activeNav;
+    document.getElementById('schemeNote').innerHTML = NOTES[state.scheme];
+
+    // 同步顶部控制器激活状态
+    document.querySelectorAll('#schemeSeg .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.scheme === state.scheme));
+    document.querySelectorAll('#themeSeg .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === state.theme));
+    document.querySelectorAll('#widthSeg .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.width === state.width));
+
+    // 渲染展开态侧栏
+    const exp = document.getElementById('expandedContent');
+    let html = '';
+
+    if (state.scheme === 'bento') {
+      html += `
+        <div class="brand-bar">
+          <div class="brand-left">
+            <div class="brand-logo">¥</div>
+            <span class="brand-name">VCOMIC</span>
+          </div>
+          <span class="brand-status"><span class="status-dot"></span>33 源就绪</span>
+        </div>
+        <div class="bento-grid">
+          ${MAIN_TABS.map(t => `
+            <button class="bento-tile ${state.activeNav === t.id ? 'active' : ''}" data-nav="${t.id}">
+              <div class="bento-tile-top">
+                ${ICONS[t.icon]}
+                <span class="bento-tile-dot"></span>
+              </div>
+              <span class="bento-tile-label">${t.label}</span>
+            </button>
+          `).join('')}
+        </div>
+      `;
+    } else if (state.scheme === 'atmo') {
+      html += `
+        <div class="atmo-hero tall" data-nav="阅读历史">
+          <div class="atmo-top">
+            <span class="atmo-brand"><span class="brand-logo" style="width:18px;height:18px;font-size:10px;border-radius:5px;">¥</span>VCOMIC</span>
+            <span class="atmo-tag">继续阅读</span>
+          </div>
+          <div class="atmo-bottom">
+            <div class="atmo-kicker">上次看到 · Pixiv #152350</div>
+            <div class="atmo-title">古明地こいし · Garu kim</div>
+          </div>
+        </div>
+        <div class="nav-list">
+          ${MAIN_TABS.map(t => `
+            <button class="nav-row accent-pill ${state.activeNav === t.id ? 'active' : ''}" data-nav="${t.id}">
+              <span class="cursor-bar"></span>
+              ${ICONS[t.icon]}
+              <span class="row-label">${t.label}</span>
+            </button>
+          `).join('')}
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="atmo-hero compact" data-nav="阅读历史">
+          <div class="atmo-top">
+            <span class="atmo-brand"><span class="brand-logo" style="width:18px;height:18px;font-size:10px;border-radius:5px;">¥</span>VCOMIC</span>
+            <span class="atmo-tag">33 源</span>
+          </div>
+          <div class="atmo-bottom">
+            <div class="atmo-title">续读 · 古明地こいし</div>
+          </div>
+        </div>
+        <div class="bento-grid">
+          ${MAIN_TABS.map(t => `
+            <button class="bento-tile ${state.activeNav === t.id ? 'active' : ''}" data-nav="${t.id}">
+              <div class="bento-tile-top">
+                ${ICONS[t.icon]}
+                <span class="bento-tile-dot"></span>
+              </div>
+              <span class="bento-tile-label">${t.label}</span>
+            </button>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    GROUPS.forEach(g => {
+      const isCol = !!state.collapsedGroups[g.title];
+      html += `
+        <div class="group ${isCol ? 'collapsed' : ''}" data-group="${g.title}">
+          <button class="group-head" data-toggle-group="${g.title}">
+            <span>${g.title}</span>
+            ${ICONS.chev}
+          </button>
+          <div class="group-items">
+            ${g.items.map(it => `
+              <button class="nav-row sub ${state.scheme === 'atmo' ? 'accent-pill' : ''} ${state.activeNav === it.id ? 'active' : ''}" data-nav="${it.id}">
+                ${state.scheme === 'atmo' ? '<span class="cursor-bar"></span>' : ''}
+                ${ICONS[it.icon]}
+                <span class="row-label">${it.id}</span>
+                ${it.meta ? `<span class="row-meta">${it.meta}</span>` : ''}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    });
+
+    exp.innerHTML = html;
+
+    // 渲染折叠态窄轨
+    const col = document.getElementById('collapsedContent');
+    col.innerHTML = `
+      <div class="brand-logo" style="width:26px;height:26px;border-radius:7px;margin-bottom:4px;">¥</div>
+      ${MAIN_TABS.map(t => `
+        <button class="rail-cell ${state.activeNav === t.id ? 'active' : ''}" data-nav="${t.id}" title="${t.label}">${ICONS[t.icon]}</button>
+      `).join('')}
+      <div class="rail-divider"></div>
+      <button class="rail-cell" data-nav="每日热门" title="画廊频道">${ICONS.layers}</button>
+      <button class="rail-cell" data-nav="站点" title="工具频道">${ICONS.globe}</button>
+      <div style="flex:1"></div>
+      <div class="avatar-wrap" data-nav="Pixiv 账号" style="cursor:pointer;margin-bottom:2px;" title="Pixiv 账号">
+        <div class="avatar">L</div><span class="avatar-dot"></span>
+      </div>
+      <button class="rail-cell" data-nav="下载与本地" title="下载与本地">${ICONS.dl}</button>
+      <button class="rail-cell" data-nav="外观与设置" title="设置">${ICONS.gear}</button>
+      <button class="rail-cell" id="expandBtn" title="展开侧栏">${ICONS.expand}</button>
+    `;
+
+    // 绑定点击事件
+    document.querySelectorAll('[data-nav]').forEach(el => {
+      el.addEventListener('click', () => {
+        state.activeNav = el.dataset.nav;
+        render();
+      });
+    });
+    document.querySelectorAll('[data-toggle-group]').forEach(el => {
+      el.addEventListener('click', () => {
+        const g = el.dataset.toggleGroup;
+        state.collapsedGroups[g] = !state.collapsedGroups[g];
+        render();
+      });
+    });
+    const expandBtn = document.getElementById('expandBtn');
+    if (expandBtn) {
+      expandBtn.addEventListener('click', () => { state.width = 'expanded'; render(); });
+    }
+
+    document.querySelectorAll('.dock-btn[data-nav]').forEach(btn => {
+      btn.classList.toggle('active', state.activeNav === btn.dataset.nav);
+    });
+  }
+
+  document.querySelectorAll('#schemeSeg .seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => { state.scheme = btn.dataset.scheme; render(); });
+  });
+  document.querySelectorAll('#themeSeg .seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => { state.theme = btn.dataset.theme; render(); });
+  });
+  document.querySelectorAll('#widthSeg .seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => { state.width = btn.dataset.width; render(); });
+  });
+  document.getElementById('collapseBtn').addEventListener('click', () => {
+    state.width = 'collapsed';
+    render();
+  });
+
+  render();
+</script>
+</body>
+</html>

@@ -20,6 +20,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.platform.LocalWindowInfo
 import com.venera.compose.ui.tokens.LocalVeneraDarkTheme
 import com.venera.compose.ui.tokens.VeneraTokens
 
@@ -48,6 +49,19 @@ fun VeneraShimmer(
 ) {
     val tokens = VeneraTokens
     val isDark = LocalVeneraDarkTheme.current
+    val windowFocused = LocalWindowInfo.current.isWindowFocused
+    val sweep = if (isDark) Color.White else Color.Black
+    val base = if (emphasized) {
+        tokens.color.surfaceContainerHigh.copy(alpha = EmphasizedBaseAlpha)
+    } else {
+        tokens.color.surfaceVariant.copy(alpha = tokens.current.skeletonAlpha)
+    }
+    if (!windowFocused) {
+        Box(modifier = modifier.clip(shape).drawWithCache {
+            onDrawBehind { drawRect(base) }
+        })
+        return
+    }
     val transition = rememberInfiniteTransition(label = "venera-shimmer")
     // 包内是 Tween(0→1) 配 CurvedAnimation(Interval(0, 0.6, Curves.decelerate))：
     // 行程只占周期的前 60% 并减速，后 40% 停一拍 —— 读起来是"扫一下、歇一下"。
@@ -67,12 +81,6 @@ fun VeneraShimmer(
         1f
     }
 
-    val sweep = if (isDark) Color.White else Color.Black
-    val base = if (emphasized) {
-        tokens.color.surfaceContainerHigh.copy(alpha = EmphasizedBaseAlpha)
-    } else {
-        tokens.color.surfaceVariant.copy(alpha = tokens.current.skeletonAlpha)
-    }
     val bandCore = if (emphasized) EmphasizedBandCoreAlpha else ShimmerBandCoreAlpha
     val bandEdge = if (emphasized) EmphasizedBandEdgeAlpha else ShimmerBandEdgeAlpha
 

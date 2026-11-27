@@ -24,6 +24,7 @@ internal fun rememberGallerySettingsCards(
 ): List<DesktopSettingsCard> {
     val spec = DesktopGallerySettingsSpec
     val wallLayout by prefs.wallLayout.collectAsState()
+    val searchPaginationMode by prefs.searchPaginationMode.collectAsState()
     val previewQuality by prefs.galleryPreviewQuality.collectAsState()
     val detailQuality by prefs.detailQuality.collectAsState()
     val cardSize by prefs.cardSize.collectAsState()
@@ -51,7 +52,7 @@ internal fun rememberGallerySettingsCards(
     return remember(
         languageMode,
         previewQuality, blockAi, aiBadge, autoPlaySec, preload, animated, backdrop, tagTranslationMode,
-        wallLayout, wallDensity, cardSize, detailQuality, paneWidth, paneOpen, imageCacheMb, coverAspectTier,
+        wallLayout, searchPaginationMode, wallDensity, cardSize, detailQuality, paneWidth, paneOpen, imageCacheMb, coverAspectTier,
         gridDensityTier, comicCardLayout, canvasFrame, mascotSpec,
     ) {
         listOf(
@@ -87,6 +88,17 @@ internal fun rememberGallerySettingsCards(
                         onSelect = { i ->
                             prefs.setWallLayout(
                                 if (i == 1) GalleryWallLayout.Grid else GalleryWallLayout.Staggered,
+                            )
+                        },
+                    ),
+                    DesktopSettingRow.Options(
+                        title = "搜索翻页方式",
+                        caption = "画廊搜索结果采用无限滚动或按页切换",
+                        options = com.venera.desktop.gallery.ui.DesktopSearchPaginationMode.entries.map { it.label },
+                        selectedIndex = searchPaginationMode.ordinal,
+                        onSelect = { i ->
+                            prefs.setSearchPaginationMode(
+                                com.venera.desktop.gallery.ui.DesktopSearchPaginationMode.entries[i],
                             )
                         },
                     ),
@@ -456,139 +468,3 @@ internal fun buildMediaSettingsCards(
     )
 }
 
-/** 构造「通用与外观」分区设置卡。 */
-@Composable
-internal fun buildAppearanceSettingsCards(
-    mainThemeStore: JsonKeyValueStore?,
-    isEn: Boolean,
-): List<DesktopSettingsCard> {
-    val themeMode by DesktopThemeMode.mode.collectAsState()
-    val uiScaleTier by DesktopUiScale.tier.collectAsState()
-    val petVisible by DesktopPetVisibility.visible.collectAsState()
-    val backdropMode by DesktopBackdropMode.mode.collectAsState()
-    val railBlur by DesktopRailBlur.visible.collectAsState()
-    val topBarBlur by DesktopTopBarBlur.visible.collectAsState()
-
-    return listOf(
-        DesktopSettingsCard(
-            title = if (isEn) "Language" else "语言",
-            caption = if (isEn) "Interface display language" else "界面显示语言",
-            rows = listOfNotNull(
-                mainThemeStore?.let { store ->
-                    DesktopSettingRow.Options(
-                        title = if (isEn) "Interface Language" else "界面语言",
-                        caption = if (isEn) "Switch between Chinese and English" else "支持中文与英文即时切换",
-                        options = listOf(DesktopLanguage.LABEL_ZH, DesktopLanguage.LABEL_EN),
-                        selectedIndex = if (isEn) 1 else 0,
-                        onSelect = { i ->
-                            DesktopLanguage.write(store, if (i == 1) DesktopLanguage.EN else DesktopLanguage.ZH)
-                        },
-                    )
-                },
-                mainThemeStore?.let { store ->
-                    val toastDurationMs by DesktopErrorToastDuration.durationMs.collectAsState()
-                    DesktopSettingRow.Options(
-                        title = if (isEn) "Error Toast Duration" else "错误弹窗显示时间",
-                        caption = if (isEn) "Auto-dismiss delay before collapsing to bottom-right pill" else "自动收起为右下角报错胶囊的等待时间（默认 3 秒）",
-                        options = DesktopErrorToastDuration.optionLabels(isEn),
-                        selectedIndex = DesktopErrorToastDuration.indexOf(toastDurationMs),
-                        onSelect = { i ->
-                            val picked = DesktopErrorToastDuration.PRESETS_MS.getOrElse(i) {
-                                DesktopErrorToastDuration.DEFAULT_MS
-                            }
-                            DesktopErrorToastDuration.write(store, picked)
-                        },
-                    )
-                },
-            ),
-        ),
-        DesktopSettingsCard(
-            title = if (isEn) "Theme" else "主题",
-            caption = if (isEn) "Dark / Light / Follow System" else "深色 / 浅色 / 跟随系统（即改即生效）",
-            rows = listOfNotNull(
-                mainThemeStore?.let { store ->
-                    DesktopSettingRow.Options(
-                        title = if (isEn) "Theme Mode" else "主题模式",
-                        caption = if (isEn) "Dark, Light or System mode" else "浅色为 2026-11-04 首版，深色装饰件或有残留",
-                        options = if (isEn) listOf("Dark", "Light", "System") else listOf(
-                            DesktopThemeMode.DARK,
-                            DesktopThemeMode.LIGHT,
-                            DesktopThemeMode.SYSTEM,
-                        ),
-                        selectedIndex = listOf(
-                            DesktopThemeMode.DARK,
-                            DesktopThemeMode.LIGHT,
-                            DesktopThemeMode.SYSTEM,
-                        ).indexOf(themeMode).coerceAtLeast(0),
-                        onSelect = { i ->
-                            DesktopThemeMode.write(
-                                store,
-                                listOf(DesktopThemeMode.DARK, DesktopThemeMode.LIGHT, DesktopThemeMode.SYSTEM)[i],
-                            )
-                        },
-                    )
-                },
-                mainThemeStore?.let {
-                    DesktopSettingRow.Toggle(
-                        title = if (isEn) "Backdrop Blur" else "底板模糊",
-                        caption = if (isEn) "Solid background when disabled" else "关闭后内容区为实底",
-                        checked = backdropMode != DesktopBackdropMode.SOLID,
-                        onToggle = { next ->
-                            DesktopBackdropMode.select(
-                                if (next) DesktopBackdropMode.ACRYLIC else DesktopBackdropMode.SOLID,
-                            )
-                        },
-                    )
-                },
-                mainThemeStore?.let { bdStore ->
-                    DesktopSettingRow.Toggle(
-                        title = if (isEn) "Rail Blur" else "侧栏模糊",
-                        caption = if (isEn) "Solid sidebar when disabled" else "独立开关，关闭为实底",
-                        checked = railBlur,
-                        onToggle = { next -> DesktopRailBlur.write(bdStore, next) },
-                    )
-                },
-                mainThemeStore?.let { bdStore ->
-                    DesktopSettingRow.Toggle(
-                        title = if (isEn) "Top Bar Blur" else "顶栏模糊",
-                        caption = if (isEn) "Solid top bar when disabled" else "独立开关，关闭为实底",
-                        checked = topBarBlur,
-                        onToggle = { next -> DesktopTopBarBlur.write(bdStore, next) },
-                    )
-                },
-                mainThemeStore?.let { skinStore ->
-                    DesktopSettingRow.Options(
-                        title = if (isEn) "Home Skin" else "首页皮肤",
-                        caption = if (isEn) "Acrylic: translucent sidebar & home" else "Acrylic：玻璃侧栏与通透首页",
-                        options = listOf(DesktopHomeSkin.LIGHT),
-                        selectedIndex = 0,
-                        onSelect = { DesktopHomeSkin.write(skinStore, DesktopHomeSkin.LIGHT) },
-                    )
-                },
-                mainThemeStore?.let { skinStore ->
-                    DesktopSettingRow.Toggle(
-                        title = if (isEn) "Sidebar Mascot" else "侧栏桌宠",
-                        caption = if (isEn) "Display mascot fish at sidebar bottom" else "在侧栏底部显示小鱼桌宠",
-                        checked = petVisible,
-                        onToggle = { next -> DesktopPetVisibility.write(skinStore, next) },
-                    )
-                },
-            ),
-        ),
-        DesktopSettingsCard(
-            title = if (isEn) "Scaling" else "缩放",
-            caption = if (isEn) "UI scaling & display ratio" else "界面缩放与显示比例",
-            rows = listOfNotNull(
-                mainThemeStore?.let { store ->
-                    DesktopSettingRow.Options(
-                        title = if (isEn) "UI Scale" else "界面缩放",
-                        caption = if (isEn) "Adjust interface display scale" else "调整界面的显示比例",
-                        options = DesktopUiScale.TIERS,
-                        selectedIndex = DesktopUiScale.TIERS.indexOf(uiScaleTier).coerceAtLeast(0),
-                        onSelect = { i -> DesktopUiScale.write(store, DesktopUiScale.TIERS[i]) },
-                    )
-                },
-            ),
-        ),
-    )
-}

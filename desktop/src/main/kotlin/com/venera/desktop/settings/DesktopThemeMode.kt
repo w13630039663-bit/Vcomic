@@ -19,9 +19,16 @@ object DesktopThemeMode {
     const val SYSTEM = "跟随系统"
 
     private val _mode = MutableStateFlow(DARK)
+    private var boundStore: com.venera.compose.data.platform.JsonKeyValueStore? = null
 
     /** 当前档（主壳冷启动回填后即为真值；设置行直接写它+落盘）。 */
     val mode: StateFlow<String> = _mode.asStateFlow()
+
+    /** 主壳冷启动绑定并回填（盘上没值时保持深色——桌面出厂档）。 */
+    fun bind(store: com.venera.compose.data.platform.JsonKeyValueStore, saved: String) {
+        boundStore = store
+        restore(saved)
+    }
 
     /** 主壳冷启动回填（盘上没值时保持深色——桌面出厂档）。 */
     fun restore(saved: String) {
@@ -30,8 +37,16 @@ object DesktopThemeMode {
 
     /** 设置行的写侧：改流（热切）+落盘（冷启动）。 */
     fun write(store: com.venera.compose.data.platform.JsonKeyValueStore, value: String) {
+        boundStore = store
         _mode.value = value
         store.put("pref_desktop_theme_mode", value)
+    }
+
+    /** 侧栏等无需显式持 store 的调用点：热切并通过已绑定 store 落盘。 */
+    fun writeBound(value: String) {
+        if (value != DARK && value != LIGHT && value != SYSTEM) return
+        _mode.value = value
+        boundStore?.put("pref_desktop_theme_mode", value)
     }
 
     /** 主壳消费：浅色档判式（跟随系统时读 Windows 的应用明暗设置）。 */

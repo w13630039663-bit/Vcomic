@@ -1,5 +1,8 @@
 package com.venera.desktop.search
 
+import com.venera.desktop.ui.components.registerPixelBuddyCard
+import com.venera.desktop.ui.components.registerPixelBuddyStatusAnchor
+
 import com.venera.desktop.ui.vShadow
 import com.venera.desktop.ui.theme.VeneraType
 import com.venera.desktop.ui.DesktopPushButton
@@ -101,15 +104,7 @@ internal data class DesktopSearchFilterGroup(
     val selectedKeys: Set<String> = emptySet(),
 )
 
-/**
- * 桌面搜索屏 —— 完全重做（严格对齐 desktop-search-overhaul-.html ）：
- * 1. 满宽超大沉浸式搜索条 + 显式「检索」按钮 + 回车即搜；
- * 2. 漫画源胶囊横排选择；
- * 3. 真实高级筛选控制面板（排序、分类、语言、多选标签，对齐安卓真实筛选能力）；
- * 4. 检索结果元数据行与横卡/竖卡视图切换；
- * 5. 宽屏大横卡结果流（左侧 96dp 黄金封面，右侧固定高度标题、作者、Mini 标签流、底部源名与评分），自适应三列；
- * 6. 页尾翻页四态（加载更多 / 正在加载 / 到底了 / 重试）完全保留并精确对账。
- */
+/** 桌面搜索屏（支持单源/聚合检索、高级筛选、最近搜索与快速搜索书签）。 */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun DesktopSearchScreen(
@@ -135,29 +130,13 @@ internal fun DesktopSearchScreen(
     onLoadMore: () -> Unit,
     failedFooter: String?,
     emptyNote: String?,
-    /**
-     * 该源 `search.optionList` 摊平后的筛选组（壳现读；空表 = 这一源没有高级筛选）。
-     * 主人「筛选和分类每个源都不一样的，你这个定死了」——这里**不写死任何一组**。
-     */
+    /** 该源 `search.optionList` 摊平后的筛选组。 */
     filterGroups: List<EngineSession.SearchOption> = emptyList(),
-    /** 与 [filterGroups] 次序一一对应的当前值（多选 = JSON 串、单选 = 键、下拉未选 = null）。 */
     filterValues: List<String?> = emptyList(),
-    /** 改某组的值（写完由壳记下，屏不持状态）。 */
     onFilterChange: (Int, String?) -> Unit = { _, _ -> },
-    /** 「应用筛选」：按当前值重搜。 */
     onApplyFilters: () -> Unit = {},
-    /** 「恢复源默认」：回该源 optionList 的默认值。 */
     onResetFilters: () -> Unit = {},
-    /**
-     * 自画大标题（discover-split-）：
-     * 独立进搜索页时 `true`（旧形状一字不变）；被选择器页 [DesktopDiscoverScreen] 收编时
-     * `false` —— 大标题由选择器页统一画，本屏从检索栏直接起，避免双标题。
-     */
     showOwnTitle: Boolean = true,
-    /**
-     * 自画检索行（macOS 稿）：选择器页把检索场提到**顶部工具栏行**时传 false，
-     * 内容区不再重复一条检索行（设计稿：检索场钉工具栏右，内容区从筛选行起）。
-     */
     showSearchField: Boolean = true,
     /** 当前结果视图档位；由壳从「默认视图」偏好读出，屏不自己记。 */
     viewMode: DesktopSearchViewMode = DesktopSearchViewMode.Single,
@@ -300,9 +279,25 @@ internal fun DesktopSearchScreen(
                 )
             }
 
-            // ── 「最近搜索」白卡架（风格对齐）：elevated 白卡 + 微影 r10，
-            //    左标题、中 chip 横滚、右「清空」蓝链接（设计稿 shelf 同形）。
-            //    判据（DESKTOP_COMIC_SEARCH_HISTORY_TITLE / CLEAR）一字不动。
+            DesktopSearchBookmarksShelf(
+                sourceKey = sourceKey,
+                sourceLabel = sourceLabel,
+                isAggregate = isAggregate,
+                query = query,
+                filterGroups = filterGroups,
+                filterValues = filterValues,
+                onApplyBookmark = { bm ->
+                    if (!bm.isAggregate && bm.sourceKey.isNotBlank() && bm.sourceKey != sourceKey) {
+                        onPickSource(bm.sourceKey)
+                    }
+                    onQueryChange(bm.keyword)
+                    filterGroups.forEachIndexed { idx, g ->
+                        bm.selectedOptions[g.label]?.firstOrNull()?.let { onFilterChange(idx, it) }
+                    }
+                    onSearch()
+                },
+                modifier = Modifier.padding(top = 10.dp),
+            )
             if (historyChips.isNotEmpty()) {
                 val shelfShape = RoundedCornerShape(10.dp)
                 Row(
@@ -440,6 +435,7 @@ internal fun DesktopSearchScreen(
                     // 主人口径：页尾「加载更多」钮撤掉 —— 近尾自动续（enabled = Button
                     // 即"还有下一页可扳"那档），右下角摆回顶钮；失败重试那一枚保留（那是失败出口）。
                     val gridState = androidx.compose.foundation.lazy.grid.rememberLazyGridState()
+                    com.venera.desktop.ui.components.PixelBuddyScrollInterruptEffect(gridState.isScrollInProgress)
                     com.venera.desktop.ui.DesktopGridAutoLoadEffect(
                         state = gridState,
                         columns = 4,
@@ -545,7 +541,10 @@ internal fun DesktopSearchScreen(
                 emptyNote != null -> {
                     com.venera.desktop.ui.components.DesktopMascotIdle(
                         awakeKey = query,
-                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .registerPixelBuddyStatusAnchor(isRetry = false),
                         size = mascotSpec.sizeDp.dp,
                         spec = mascotSpec,
                         focusedListening = inputFocused,
@@ -702,6 +701,7 @@ private fun SearchRowCard(
         modifier = Modifier
             .fillMaxWidth()
             .height(156.dp)
+            .registerPixelBuddyCard("search-row-${card.id}")
             .graphicsLayer {
                 alpha = entrance.value
                 translationY = (1f - entrance.value) * 14f
@@ -878,6 +878,7 @@ private fun SearchGridCard(
         surface = palette.elevated,
         modifier = Modifier
             .fillMaxWidth()
+            .registerPixelBuddyCard("search-grid-${card.id}")
             .clickable(onClick = onClick),
     ) { floatState ->
         Column {
@@ -983,7 +984,10 @@ private fun SearchFooter(
                             color = tokens.color.textTertiary,
                         )
                     }
-                    DesktopPushButton(onClick = onLoadMore) {
+                    DesktopPushButton(
+                        onClick = onLoadMore,
+                        modifier = Modifier.registerPixelBuddyStatusAnchor(isRetry = true),
+                    ) {
                         Text(DesktopI18n.t(DESKTOP_COMIC_SEARCH_RETRY_LABEL, "Retry"))
                     }
                 }
@@ -1042,6 +1046,7 @@ internal fun SearchField(
             placeholder = DesktopI18n.t("搜索漫画名、作者或标签… 回车检索", "Search title, author, or tags… Press Enter"),
             onClear = { onValueChange("") },
             interactionSource = fieldInteraction,
+            collapsedWidthFraction = 0.56f,
         )
 
         if (open && history.isNotEmpty()) {

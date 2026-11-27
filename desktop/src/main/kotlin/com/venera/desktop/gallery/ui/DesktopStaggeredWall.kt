@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.venera.compose.ui.tokens.VeneraTokens
+import com.venera.desktop.ui.components.registerPixelBuddyCard
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
@@ -95,6 +96,7 @@ internal fun DesktopStaggeredWall(
             contentType = { _, _ -> "card" },
         ) { index, card ->
             val cUid = card.uid.ifBlank { card.sourcePost?.uid.orEmpty() }
+            val buddyKey = "wall-${cUid.ifBlank { card.url }}"
             Box(Modifier.padding(horizontal = 0.dp)) {
                 DesktopGalleryCard(
                     card = card,
@@ -108,6 +110,7 @@ internal fun DesktopStaggeredWall(
                     avatarUrl = card.sourcePost?.let { avatars[it.uid] },
                     selected = cUid.isNotBlank() && cUid in selectedUids,
                     onToggleSelect = { onToggleSelect(card) },
+                    modifier = Modifier.registerPixelBuddyCard(buddyKey),
                 )
             }
         }

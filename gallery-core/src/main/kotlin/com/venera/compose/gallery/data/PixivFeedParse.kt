@@ -91,6 +91,7 @@ object PixivFeedParse {
                 post = post,
                 title = record["title"].textOrNull().orEmpty(),
                 rank = record["rank"].numberOrStringOrNull()?.toIntOrNull(),
+                authorAvatarUrl = pixivAbsoluteUrl(record["profile_img"].textOrNull()).orEmpty(),
                 // 旗标只有**一处出处**（行模型那一格），这里转交而不是按同一键再读一遍。
                 ugoira = post.ugoira,
             )

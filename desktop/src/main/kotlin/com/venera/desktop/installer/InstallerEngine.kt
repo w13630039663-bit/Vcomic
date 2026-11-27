@@ -35,14 +35,14 @@ internal data class InstallerLaunchConfig(
     val startStage: InstallerStage,
     val dark: Boolean,
     val sourceDir: File? = null,
-    val appVersion: String = "1.0.1",
+    val appVersion: String = "1.0.2",
     val uninstallMode: Boolean = false,
     val uninstallTargetDir: File? = null,
 )
 
 internal fun parseInstallerLaunchArgs(args: Array<String>): InstallerLaunchConfig {
     var sourceDir: File? = null
-    var appVersion = "1.0.1"
+    var appVersion = "1.0.2"
     var uninstallMode = false
     var uninstallTargetDir: File? = null
     val positional = mutableListOf<String>()

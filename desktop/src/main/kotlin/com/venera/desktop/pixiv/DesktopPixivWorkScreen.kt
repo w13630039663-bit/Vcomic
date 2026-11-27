@@ -527,12 +527,10 @@ internal fun DesktopPixivWorkScreen(
     val copyImageUrl = page?.let { p ->
         p.largeUrl.ifBlank { p.fastUrl }.ifBlank { p.previewUrl }
     }
-    // 画布承托四枚（设置页可调，与画廊详情页同源）。改设置即时生效。
     val canvasFrame = com.venera.desktop.settings.DesktopCanvasFrame.current.collectAsState().value
-    // 画作形状只认站方报的宽高；没报就不替站方编比例，交给父约束。
-    val canvasRatio = page?.let { p ->
-        if (p.width > 0 && p.height > 0) p.width.toFloat() / p.height else null
-    }
+    // 先取站方宽高比，待图片解码成功后用真实像素比覆盖，防止未报尺寸或多页异形图出现大片灰框。
+    var decodedRatio by remember(illustId, current, canvasRetry) { mutableStateOf<Float?>(null) }
+    val effectiveRatio = desktopResolvePixivCanvasRatio(decodedRatio, page?.width ?: 0, page?.height ?: 0)
     // 多图作品：当前页落定后顺手预取下一页的 1200 大图（按画布测量尺寸限制解码，避免原图大小进缓存）。
     val platformCtx = coil3.compose.LocalPlatformContext.current
     var canvasSizePx by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
@@ -660,12 +658,12 @@ internal fun DesktopPixivWorkScreen(
                         //（桌面语义；与 gallery 详情画布同口径）。
                         val canvasInteraction = remember { MutableInteractionSource() }
                         val canvasImgHovered by canvasInteraction.collectIsHoveredAsState()
-                        // 画作承托壳：按画作比例定形、四枚参数走设置页；环境光铺在壳内最底层。
+                        // 画作承托壳：按真实/上报比例定形、四枚参数走设置页；环境光铺在壳内最底层。
                         Box(
                             modifier = Modifier
                                 .then(
-                                    if (canvasRatio != null) {
-                                        Modifier.aspectRatio(canvasRatio, matchHeightConstraintsFirst = true)
+                                    if (effectiveRatio != null) {
+                                        Modifier.aspectRatio(effectiveRatio, matchHeightConstraintsFirst = true)
                                     } else {
                                         Modifier.fillMaxSize()
                                     },
@@ -683,6 +681,12 @@ internal fun DesktopPixivWorkScreen(
                                 model = page.largeUrl.ifBlank { page.previewUrl },
                                 contentDescription = null,
                                 contentScale = ContentScale.Fit,
+                                onSuccess = { state ->
+                                    if (decodedRatio == null) {
+                                        val img = state.result.image
+                                        if (img.width > 0 && img.height > 0) decodedRatio = img.width.toFloat() / img.height.toFloat()
+                                    }
+                                },
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .clip(RoundedCornerShape(canvasFrame.radiusDp.dp)),
@@ -725,20 +729,15 @@ internal fun DesktopPixivWorkScreen(
                             contentScale = ContentScale.Fit,
                             // 大图落定（成功或失败）才放开右栏那些图，见上面 `canvasSettled` 那段。
                             onLoading = {
-                                canvasLoading = true
-                                canvasLoaded = false
-                                canvasFailed = false
+                                canvasLoading = true; canvasLoaded = false; canvasFailed = false
                             },
-                            onSuccess = {
-                                canvasLoading = false
-                                canvasLoaded = true
-                                canvasFailed = false
-                                canvasSettled = true
+                            onSuccess = { state ->
+                                val img = state.result.image
+                                if (img.width > 0 && img.height > 0) decodedRatio = img.width.toFloat() / img.height.toFloat()
+                                canvasLoading = false; canvasLoaded = true; canvasFailed = false; canvasSettled = true
                             },
                             onError = {
-                                canvasLoading = false
-                                canvasFailed = true
-                                canvasSettled = true
+                                canvasLoading = false; canvasFailed = true; canvasSettled = true
                             },
                             modifier = Modifier
                                 .fillMaxSize()
@@ -1116,27 +1115,28 @@ internal fun DesktopPixivWorkScreen(
                         alpha = if (handleHovered) 0.95f else 0.72f,
                     ),
                 )
-                .border(
-                    0.5.dp,
-                    tokens.color.outlineVariant.copy(alpha = 0.45f),
-                    RoundedCornerShape(8.dp),
-                )
+                .border(0.5.dp, tokens.color.outlineVariant.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
                 .hoverable(handleInteraction)
-                .clickable(
-                    interactionSource = handleInteraction,
-                    indication = null,
-                ) { paneShown = !paneShown },
+                .clickable(interactionSource = handleInteraction, indication = null) { paneShown = !paneShown },
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Outlined.ChevronRight,
                 contentDescription = if (paneShown) "收起信息栏" else "展开信息栏",
                 tint = if (handleHovered) tokens.color.textPrimary else tokens.color.textSecondary,
-                modifier = Modifier
-                    .size(16.dp)
-                    .rotate(paneIconSpin),
+                modifier = Modifier.size(16.dp).rotate(paneIconSpin),
             )
         }
     }
 }
+
+/**
+ * 解析 Pixiv 作品详情页画布比例：优先采用实际解码像素比，未落定时回退站方上报宽高比。
+ */
+internal fun desktopResolvePixivCanvasRatio(
+    decodedRatio: Float?,
+    reportedWidth: Int,
+    reportedHeight: Int,
+): Float? = decodedRatio?.takeIf { it.isFinite() && it > 0f }
+    ?: if (reportedWidth > 0 && reportedHeight > 0) reportedWidth.toFloat() / reportedHeight else null
 

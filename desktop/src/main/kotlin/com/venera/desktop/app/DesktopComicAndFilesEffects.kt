@@ -657,10 +657,12 @@ internal fun DesktopComicAndFilesEffects(
      * **由详情页 tag 跳进来的搜索**上，就弹回那本详情。
      */
     LaunchedEffect(currentTab, route, sourceTick) {
-        // 历史屏与搜索屏同样依赖源清单（用于显示名与源选择器）；本地读取脚本与 JSON，不占用引擎锁。
-        if (currentTab != VeneraNavTab.FAVORITES &&
+        // 首页、延迟检测、历史屏与搜索屏同样依赖源清单（用于显示名、首屏测速与源选择器）；本地读取脚本与 JSON，不占用引擎锁。
+        if (currentTab != VeneraNavTab.HOME &&
+            currentTab != VeneraNavTab.FAVORITES &&
             currentTab != VeneraNavTab.SEARCH &&
             route !is DesktopRoute.SourceManage &&
+            route !is DesktopRoute.SourceLatency &&
             // 编辑那一屏把源管理当**背景**渲（对岸那颗是独立 Dialog 窗口），
             // 所以停在那一屏时清单也在屏幕上。少了这一档，「撤回改写」之后 `sourceTick++`
             // 会撞在这句 return 上 ⇒ 那一列「已改写」永远刷不掉（本喵先写下再抓到的自己的一坑）。

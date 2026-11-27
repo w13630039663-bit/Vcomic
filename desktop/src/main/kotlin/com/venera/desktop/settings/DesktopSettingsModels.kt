@@ -3,7 +3,7 @@ package com.venera.desktop.settings
 import androidx.compose.ui.graphics.Color
 
 /** 桌面版本号：关于区、更新检查与弹窗尾注的唯一出处。 */
-internal const val DESKTOP_APP_VERSION = "1.0.1"
+internal const val DESKTOP_APP_VERSION = "1.0.2"
 
 internal enum class DesktopSettingsSection(
     val titleZh: String,
@@ -13,6 +13,9 @@ internal enum class DesktopSettingsSection(
 ) {
     /** 通用与外观：装饰档（素/纹样/神社）。 */
     APPEARANCE("通用与外观", "Appearance", "浏览", "Browse"),
+
+    /** 像素伙伴：侧栏贴壁像素宠物、搜索框拼字与卡片互动。 */
+    PIXEL_BUDDY("像素伙伴", "Pixel Buddy", "浏览", "Browse"),
 
     /** 画廊与浏览：墙上布局 + 大图页 + 内容标记 + 桌面暂不支持。 */
     GALLERY("画廊与浏览", "Gallery", "浏览", "Browse"),

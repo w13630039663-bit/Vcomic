@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>站点 · 源仓库切换（laincat/vensrc）UI 方案稿</title>
+<style>
+  :root {
+    --bg: #0f1116;
+    --shell: #151820;
+    --glass-1: rgba(34, 38, 48, 0.56);
+    --glass-1-hover: rgba(42, 47, 59, 0.72);
+    --glass-2: rgba(30, 34, 43, 0.44);
+    --glass-2-hover: rgba(38, 43, 55, 0.62);
+    --segment-track: rgba(255, 255, 255, 0.06);
+    --segment-thumb: #262b36;
+    --border-1: rgba(255, 255, 255, 0.11);
+    --border-2: rgba(255, 255, 255, 0.08);
+    --ink-1: rgba(255, 255, 255, 0.94);
+    --ink-2: rgba(255, 255, 255, 0.64);
+    --ink-3: rgba(255, 255, 255, 0.42);
+    --accent: #0A84FF;
+    --accent-soft: rgba(10, 132, 255, 0.14);
+    --accent-border: rgba(10, 132, 255, 0.40);
+    --ok: #34d399;
+    --ok-soft: rgba(52, 211, 153, 0.14);
+    --pill-bg: rgba(255, 255, 255, 0.07);
+    --drawer-bg: rgba(27, 30, 38, 0.98);
+    --modal-bg: #171a22;
+    --scrim: rgba(0, 0, 0, 0.56);
+    --shadow-pop: 0 24px 60px rgba(0, 0, 0, 0.52);
+  }
+
+  [data-theme="light"] {
+    --bg: #eef1f6;
+    --shell: #f6f8fb;
+    --glass-1: rgba(255, 255, 255, 0.78);
+    --glass-1-hover: rgba(255, 255, 255, 0.94);
+    --glass-2: rgba(255, 255, 255, 0.62);
+    --glass-2-hover: rgba(255, 255, 255, 0.86);
+    --segment-track: rgba(15, 23, 42, 0.06);
+    --segment-thumb: #ffffff;
+    --border-1: rgba(15, 23, 42, 0.10);
+    --border-2: rgba(15, 23, 42, 0.07);
+    --ink-1: rgba(15, 23, 42, 0.90);
+    --ink-2: rgba(15, 23, 42, 0.62);
+    --ink-3: rgba(15, 23, 42, 0.44);
+    --accent: #0A63F6;
+    --accent-soft: rgba(10, 99, 246, 0.11);
+    --accent-border: rgba(10, 99, 246, 0.38);
+    --ok: #12915F;
+    --ok-soft: rgba(18, 145, 95, 0.11);
+    --pill-bg: rgba(15, 23, 42, 0.06);
+    --drawer-bg: rgba(255, 255, 255, 0.98);
+    --modal-bg: #ffffff;
+    --scrim: rgba(15, 23, 42, 0.36);
+    --shadow-pop: 0 20px 50px rgba(15, 23, 42, 0.18);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Microsoft YaHei UI", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--ink-1);
+    min-height: 100vh;
+    padding: 18px;
+    transition: background .2s ease, color .2s ease;
+  }
+
+  .demo-bar {
+    max-width: 1220px;
+    margin: 0 auto 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  .demo-bar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .demo-chip {
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 7px;
+    border: 1px solid var(--border-1);
+    background: var(--glass-2);
+    color: var(--ink-1);
+    font-size: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .demo-chip:hover { border-color: var(--accent-border); }
+  .demo-chip.active { background: var(--accent); color: #fff; border-color: transparent; }
+
+  .window {
+    max-width: 1220px;
+    min-height: 760px;
+    margin: 0 auto;
+    border-radius: 14px;
+    border: 1px solid var(--border-1);
+    background: var(--shell);
+    display: flex;
+    overflow: hidden;
+    position: relative;
+    box-shadow: var(--shadow-pop);
+  }
+
+  .rail {
+    width: 66px;
+    border-right: 1px solid var(--border-2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 18px 0;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+  .rail-dot {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-3);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .rail-dot.active { background: var(--accent-soft); color: var(--accent); }
+
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  /* 页头 */
+  .wall-header {
+    padding: 22px 28px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .title-block { flex: 1; min-width: 0; }
+  .page-title { font-size: 24px; font-weight: 700; line-height: 1.2; color: var(--ink-1); }
+  .page-sub { font-size: 12px; color: var(--ink-3); margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+  .header-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .search-field {
+    width: 172px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--border-1);
+    background: var(--glass-2);
+    padding: 0 11px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+
+  /* DesktopSegmented */
+  .segmented {
+    height: 28px;
+    padding: 2px;
+    border-radius: 7px;
+    background: var(--segment-track);
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .segmented.large { height: 32px; }
+  .seg-item {
+    height: 24px;
+    padding: 0 11px;
+    border-radius: 5.5px;
+    border: none;
+    background: transparent;
+    color: var(--ink-2);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    transition: background .15s ease, color .15s ease;
+  }
+  .segmented.large .seg-item { height: 28px; padding: 0 12px; font-size: 12.5px; }
+  .seg-item:hover:not(.active) { background: rgba(128,128,128,0.12); color: var(--ink-1); }
+  .seg-item.active {
+    background: var(--segment-thumb);
+    color: var(--ink-1);
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.16);
+  }
+
+  /* DesktopButton */
+  .btn {
+    border-radius: 8px;
+    border: 1px solid transparent;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: background .14s ease, border-color .14s ease;
+  }
+  .btn-medium { height: 32px; padding: 0 14px; border-radius: 8px; }
+  .btn-compact { height: 26px; padding: 0 11px; border-radius: 6px; font-weight: 500; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-secondary {
+    background: var(--glass-2);
+    border-color: var(--border-1);
+    color: var(--ink-1);
+  }
+  .btn-secondary:hover { background: var(--glass-1-hover); border-color: var(--accent-border); }
+
+  /* 新增：源仓库切换条 */
+  .repo-bar-wrap { padding: 0 28px 14px; }
+  .repo-bar {
+    border-radius: 12px;
+    border: 1px solid var(--border-2);
+    background: var(--glass-2);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .repo-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .repo-label {
+    font-size: 12px;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .repo-tag {
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: var(--pill-bg);
+    border: 1px solid var(--border-2);
+    color: var(--ink-2);
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  }
+  .repo-tag strong { color: var(--ink-1); font-weight: 600; }
+  .repo-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+  .repo-meta {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+    margin-right: 4px;
+  }
+
+  /* 内容网格 */
+  .content {
+    flex: 1;
+    padding: 0 28px 28px;
+    overflow: auto;
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .hero-card {
+    height: 206px;
+    border-radius: 16px;
+    border: 1px solid var(--border-1);
+    background: var(--glass-1);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    cursor: pointer;
+    transition: border-color .16s ease, background .16s ease;
+  }
+  .hero-card:hover, .site-card:hover {
+    border-color: var(--accent-border);
+    background: var(--glass-1-hover);
+  }
+  .icon-slot {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: var(--pill-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--ink-2);
+  }
+  .hero-title { font-size: 25px; font-weight: 600; margin-top: 13px; color: var(--ink-1); }
+  .meta-row { display: flex; align-items: center; gap: 7px; margin-top: 7px; flex-wrap: wrap; }
+  .badge {
+    font-size: 10px;
+    line-height: 12px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--pill-bg);
+    color: var(--ink-3);
+  }
+  .badge.ok { background: var(--ok-soft); color: var(--ok); }
+  .badge.repo { border: 1px solid var(--border-2); color: var(--ink-2); }
+  .sub-meta { font-size: 11px; color: var(--ink-3); }
+  .card-foot { margin-top: auto; font-size: 12px; color: var(--ink-3); font-weight: 500; }
+  .more-btn {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-3);
+    cursor: pointer;
+  }
+  .more-btn:hover { background: var(--pill-bg); color: var(--ink-1); }
+
+  .site-card {
+    height: 96px;
+    border-radius: 16px;
+    border: 1px solid var(--border-2);
+    background: var(--glass-2);
+    padding: 13px 15px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    cursor: pointer;
+  }
+  .site-top { display: flex; align-items: center; gap: 10px; }
+  .icon-sm {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--pill-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink-2);
+    flex-shrink: 0;
+  }
+  .site-name { font-size: 14px; font-weight: 600; color: var(--ink-1); }
+  .add-ghost {
+    height: 96px;
+    border-radius: 16px;
+    border: 1px dashed var(--border-1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+
+  .divider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 10px 0;
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+  .divider-line { flex: 1; height: 1px; background: var(--border-2); }
+  .grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .idle-item {
+    height: 44px;
+    border-radius: 10px;
+    border: 1px dashed var(--border-1);
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12.5px;
+    color: var(--ink-3);
+  }
+
+  /* 抽屉与在线源弹窗 */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--scrim);
+    display: none;
+    z-index: 10;
+  }
+  .overlay.open { display: block; }
+
+  .drawer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 400px;
+    background: var(--drawer-bg);
+    border-left: 1px solid var(--border-1);
+    border-radius: 16px 0 0 16px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: var(--shadow-pop);
+  }
+  .drawer-card {
+    border-radius: 12px;
+    border: 1px solid var(--border-2);
+    background: var(--glass-2);
+    padding: 14px 16px;
+  }
+
+  .store-modal {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 780px;
+    max-width: calc(100% - 48px);
+    height: 600px;
+    max-height: calc(100% - 48px);
+    border-radius: 16px;
+    border: 1px solid var(--border-1);
+    background: var(--modal-bg);
+    box-shadow: var(--shadow-pop);
+    display: flex;
+    flex-direction: column;
+    padding: 18px 20px;
+    gap: 12px;
+  }
+  .store-list {
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .store-row {
+    border-radius: 10px;
+    border: 1px solid var(--border-2);
+    background: var(--glass-2);
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .dropdown {
+    position: relative;
+  }
+  .menu-pop {
+    position: absolute;
+    top: 38px;
+    right: 0;
+    width: 210px;
+    border-radius: 10px;
+    border: 1px solid var(--border-1);
+    background: var(--modal-bg);
+    padding: 4px;
+    box-shadow: var(--shadow-pop);
+    display: none;
+    z-index: 20;
+  }
+  .menu-pop.open { display: block; }
+  .menu-item {
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    color: var(--ink-1);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .menu-item:hover { background: var(--pill-bg); }
+  .menu-sub { font-size: 10.5px; color: var(--ink-3); }
+</style>
+</head>
+<body data-theme="dark">
+
+<div class="demo-bar">
+  <div>UI 交互方案稿（待确认）· 切换下方控制栏体验「官方源 / laincat/vensrc」与深浅色</div>
+  <div class="demo-bar-actions">
+    <button class="demo-chip active" id="btn-dark" onclick="setTheme('dark')">深色模式</button>
+    <button class="demo-chip" id="btn-light" onclick="setTheme('light')">浅色模式</button>
+    <button class="demo-chip" onclick="openStore()">预览「浏览源库」弹窗</button>
+    <button class="demo-chip" onclick="openDrawer()">预览「⋯」抽屉来源态</button>
+  </div>
+</div>
+
+<div class="window">
+  <!-- 左侧玻璃轨 -->
+  <div class="rail">
+    <div class="rail-dot">图</div>
+    <div class="rail-dot">探</div>
+    <div class="rail-dot">搜</div>
+    <div class="rail-dot active">站</div>
+    <div class="rail-dot" style="margin-top:auto">设</div>
+  </div>
+
+  <div class="main">
+    <!-- 既定页头 -->
+    <div class="wall-header">
+      <div class="title-block">
+        <div class="page-title">站点</div>
+        <div class="page-sub" id="wall-sub">6 个已开启 · 28 个未启用</div>
+      </div>
+      <div class="header-tools">
+        <div class="search-field">🔍 搜站点</div>
+        <div class="segmented">
+          <button class="seg-item active">全部</button>
+          <button class="seg-item">已开启</button>
+          <button class="seg-item">未启用</button>
+        </div>
+        <div class="dropdown">
+          <button class="btn btn-medium btn-primary" onclick="toggleAddMenu()">＋ 添加站点</button>
+          <div class="menu-pop" id="add-menu">
+            <div class="menu-item" onclick="toggleAddMenu(); openStore()">
+              <span>浏览源库</span><span class="menu-sub" id="menu-repo-hint">laincat/vensrc</span>
+            </div>
+            <div class="menu-item" onclick="toggleAddMenu()">
+              <span>导入站点脚本</span><span class="menu-sub">.js</span>
+            </div>
+            <div class="menu-item" onclick="toggleAddMenu()">
+              <span>检查同步更新</span><span class="menu-sub">当前仓库</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 新增：源仓库切换条 -->
+    <div class="repo-bar-wrap">
+      <div class="repo-bar">
+        <div class="repo-left">
+          <span class="repo-label">源仓库</span>
+          <div class="segmented">
+            <button class="seg-item" id="repo-official" onclick="setRepo('official')">官方源</button>
+            <button class="seg-item active" id="repo-vensrc" onclick="setRepo('vensrc')">社区源 · laincat/vensrc</button>
+          </div>
+          <div class="segmented" id="track-switch">
+            <button class="seg-item active" id="track-main" onclick="setTrack('main')">主订阅 · 25 全绿</button>
+            <button class="seg-item" id="track-ext" onclick="setTrack('ext')">扩展订阅 · 71 核心可读</button>
+          </div>
+          <span class="repo-tag" id="repo-url-tag">来源 <strong>github.com/laincat/vensrc</strong></span>
+        </div>
+
+        <div class="repo-right">
+          <span class="repo-meta" id="repo-meta-text">发现 5 个可升级 · 20 个新源</span>
+          <button class="btn btn-compact btn-secondary" onclick="openStore()">浏览源库</button>
+          <button class="btn btn-compact btn-primary" id="sync-btn" onclick="alert('示意：从 ' + currentRepoLabel() + ' 同步升级同名站点')">检查同步</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主内容网格 -->
+    <div class="content">
+      <div class="grid-3">
+        <div class="hero-card">
+          <div class="more-btn" onclick="openDrawer()">⋯</div>
+          <div class="icon-slot">漫</div>
+          <div class="hero-title">漫蛙吧（图片修复）</div>
+          <div class="meta-row">
+            <span class="badge repo" id="card-badge-1">laincat/vensrc</span>
+            <span class="sub-meta">v1.1.3 · 1 项设置</span>
+          </div>
+          <div class="card-foot">浏览 →</div>
+        </div>
+        <div class="hero-card">
+          <div class="more-btn" onclick="openDrawer()">⋯</div>
+          <div class="icon-slot">绅</div>
+          <div class="hero-title">紳士漫畫</div>
+          <div class="meta-row">
+            <span class="badge ok">已登录</span>
+            <span class="badge repo" id="card-badge-2">laincat/vensrc</span>
+            <span class="sub-meta">v1.4.2 · 2 项设置</span>
+          </div>
+          <div class="card-foot">浏览 →</div>
+        </div>
+        <div class="hero-card">
+          <div class="more-btn" onclick="openDrawer()">⋯</div>
+          <div class="icon-slot">JM</div>
+          <div class="hero-title">禁漫天堂</div>
+          <div class="meta-row">
+            <span class="badge">需代理</span>
+            <span class="badge repo">内置站点</span>
+            <span class="sub-meta">v1.5.2 · 3 项设置</span>
+          </div>
+          <div class="card-foot">浏览 →</div>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="site-card">
+          <div class="more-btn" onclick="openDrawer()">⋯</div>
+          <div class="site-top">
+            <div class="icon-sm">动</div>
+            <div>
+              <div class="site-name">动漫屋 (dm5)</div>
+              <div class="meta-row" style="margin-top:3px">
+                <span class="badge repo" id="card-badge-3">laincat/vensrc</span>
+                <span class="sub-meta">v7.0.3</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-foot">浏览 →</div>
+        </div>
+        <div class="site-card">
+          <div class="more-btn" onclick="openDrawer()">⋯</div>
+          <div class="site-top">
+            <div class="icon-sm">哔</div>
+            <div>
+              <div class="site-name">哔咔漫画</div>
+              <div class="meta-row" style="margin-top:3px">
+                <span class="badge ok">已登录</span>
+                <span class="badge repo">内置站点</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-foot">浏览 →</div>
+        </div>
+        <div class="add-ghost" onclick="openStore()" style="cursor:pointer">＋ 从源库添加站点</div>
+      </div>
+
+      <div class="divider-row">
+        <span>未启用 28 个</span>
+        <div class="divider-line"></div>
+      </div>
+      <div class="grid-4">
+        <div class="idle-item"><span>包子漫画</span><span>启用</span></div>
+        <div class="idle-item"><span>漫画柜</span><span>启用</span></div>
+        <div class="idle-item"><span>nhentai</span><span>启用</span></div>
+        <div class="idle-item"><span>MYCOMIC</span><span>启用</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右侧抽屉（示例） -->
+  <div class="overlay" id="drawer-overlay" onclick="if(event.target===this) closeOverlays()">
+    <div class="drawer">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-size:18px;font-weight:700;">紳士漫畫</div>
+          <div class="meta-row" style="margin-top:6px">
+            <span class="badge repo">社区源 · laincat/vensrc</span>
+            <span class="sub-meta">v1.4.2</span>
+          </div>
+        </div>
+        <button class="btn btn-compact btn-secondary" onclick="closeOverlays()">✕</button>
+      </div>
+      <div class="drawer-card">
+        <div style="font-size:13.5px;font-weight:600;">在站点列表中显示</div>
+        <div style="font-size:11.5px;color:var(--ink-3);margin-top:4px;">关闭后，探索与搜索里不再出现这个站点。</div>
+      </div>
+      <div class="drawer-card">
+        <div style="font-size:13.5px;font-weight:600;">脚本与来源</div>
+        <div style="font-size:11.5px;color:var(--ink-3);margin-top:4px;">
+          当前版本：v1.4.2 · 来源：<strong>laincat/vensrc（独立维护版）</strong>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn btn-compact btn-secondary">编辑脚本</button>
+          <button class="btn btn-compact btn-secondary">恢复内置脚本</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 在线源弹窗（优化版预览） -->
+  <div class="overlay" id="store-overlay" onclick="if(event.target===this) closeOverlays()">
+    <div class="store-modal">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:20px;font-weight:700;">在线站点库</span>
+            <span class="badge repo" id="modal-repo-pill">来自 laincat/vensrc</span>
+          </div>
+          <div style="font-size:12px;color:var(--ink-3);margin-top:4px;" id="modal-sub">
+            社区每日自动检测可用性，确认都能正常看图；装后可随时在站点设置退回原版。
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-medium btn-primary" id="modal-upgrade-all" style="display:inline-flex">一键升级 (2)</button>
+          <button class="btn btn-medium btn-secondary">刷新</button>
+          <button class="btn btn-medium btn-secondary" onclick="closeOverlays()">关闭</button>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div class="segmented large">
+          <button class="seg-item" id="m-off" onclick="setRepo('official')">官方源 (34)</button>
+          <button class="seg-item active" id="m-main" onclick="setRepo('vensrc'); setTrack('main')">社区稳定 · laincat/vensrc (25)</button>
+          <button class="seg-item" id="m-ext" onclick="setRepo('vensrc'); setTrack('ext')">社区扩展 · laincat/vensrc (71)</button>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div class="segmented">
+          <button class="seg-item active">全部</button>
+          <button class="seg-item">可升级 (2)</button>
+          <button class="seg-item">未安装</button>
+          <button class="seg-item">已安装</button>
+        </div>
+        <div class="search-field" style="width:210px;">🔍 搜索漫画站名称…</div>
+      </div>
+
+      <div class="store-list" id="store-list">
+        <!-- JS 动态生成预览项 -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let repo = 'vensrc';
+  let track = 'main';
+
+  const sampleData = {
+    official: [
+      { name: '包子漫画', ver: '1.1.6', local: '1.1.6', desc: '官方仓库 · venera-app/venera-configs', state: 'latest' },
+      { name: '漫画柜', ver: '1.2.1', local: '1.2.1', desc: '官方仓库 · venera-app/venera-configs', state: 'latest' },
+      { name: '漫蛙吧', ver: '1.0.3', local: '1.0.3', desc: '官方仓库 · venera-app/venera-configs', state: 'latest' },
+    ],
+    main: [
+      { name: '动漫屋 (dm5)', ver: '7.0.3', local: null, desc: 'laincat/vensrc 主订阅 · 全链路通过', state: 'install' },
+      { name: '漫客栈', ver: '1.1.4', local: null, desc: 'laincat/vensrc 主订阅 · 全链路通过', state: 'install' },
+      { name: '快看漫画', ver: '1.0.0', local: null, desc: 'laincat/vensrc 主订阅 · 全链路通过', state: 'install' },
+      { name: '热辣漫画', ver: '1.0.1', local: '1.0.0', desc: 'laincat/vensrc 主订阅 · 社区升级版', state: 'upgrade' },
+      { name: '漫画人', ver: '1.0.1', local: '1.0.0', desc: 'laincat/vensrc 主订阅 · 社区升级版', state: 'upgrade' },
+    ],
+    ext: [
+      { name: '包子漫画（修订版）', ver: '1.1.3', local: null, desc: 'laincat/vensrc 扩展订阅 · 核心可读', state: 'install' },
+      { name: '漫画1234（新版网站）', ver: '1.2.2', local: null, desc: 'laincat/vensrc 扩展订阅 · 核心可读', state: 'install' },
+      { name: '漫蛙吧（图片修复版）', ver: '1.0.7', local: null, desc: 'laincat/vensrc 扩展订阅 · 核心可读', state: 'install' },
+      { name: '紳士漫畫', ver: '1.4.2', local: '1.0.6', desc: 'laincat/vensrc 独立维护版', state: 'upgrade' },
+      { name: '百合会', ver: '1.0.0', local: null, desc: 'laincat/vensrc 扩展订阅 · 核心可读', state: 'install' },
+    ]
+  };
+
+  function setTheme(t) {
+    document.body.setAttribute('data-theme', t);
+    document.getElementById('btn-dark').classList.toggle('active', t === 'dark');
+    document.getElementById('btn-light').classList.toggle('active', t === 'light');
+  }
+
+  function currentRepoLabel() {
+    if (repo === 'official') return '官方源 (venera-configs)';
+    return track === 'main' ? 'laincat/vensrc 主订阅' : 'laincat/vensrc 扩展订阅';
+  }
+
+  function render() {
+    const isVensrc = repo === 'vensrc';
+    document.getElementById('repo-official').classList.toggle('active', !isVensrc);
+    document.getElementById('repo-vensrc').classList.toggle('active', isVensrc);
+    document.getElementById('track-switch').style.display = isVensrc ? 'inline-flex' : 'none';
+    document.getElementById('track-main').classList.toggle('active', track === 'main');
+    document.getElementById('track-ext').classList.toggle('active', track === 'ext');
+
+    document.getElementById('repo-url-tag').innerHTML = isVensrc
+      ? '来源 <strong>github.com/laincat/vensrc</strong>'
+      : '来源 <strong>venera-app/venera-configs</strong>';
+
+    document.getElementById('menu-repo-hint').textContent = isVensrc ? 'laincat/vensrc' : '官方源';
+
+    document.getElementById('repo-meta-text').textContent = !isVensrc
+      ? '官方源 · 34 个基准站'
+      : (track === 'main' ? '主订阅 25 个全绿 · 发现 2 个可升级' : '扩展 71 个核心可读 · 发现 10 个可升级');
+
+    document.getElementById('m-off').classList.toggle('active', !isVensrc);
+    document.getElementById('m-main').classList.toggle('active', isVensrc && track === 'main');
+    document.getElementById('m-ext').classList.toggle('active', isVensrc && track === 'ext');
+
+    document.getElementById('modal-repo-pill').textContent = !isVensrc
+      ? '来自官方仓库'
+      : '来自 laincat/vensrc';
+
+    document.getElementById('modal-sub').textContent = !isVensrc
+      ? '软件内置的 34 个基础漫画源；如已有最新则无需重复安装。'
+      : (track === 'main'
+          ? '社区每日测试全通过（共 25 个推荐源），安装后可随时退回内置版。'
+          : '社区测试核心看图通过（共 71 个扩展源，含部分修复版与冷门站）。');
+
+    const rows = (!isVensrc ? sampleData.official : sampleData[track]).slice().sort((a, b) => {
+      const rank = { upgrade: 0, install: 1, latest: 2 };
+      return rank[a.state] - rank[b.state];
+    });
+    const upgradeCount = rows.filter(r => r.state === 'upgrade').length;
+    const upAllBtn = document.getElementById('modal-upgrade-all');
+    upAllBtn.style.display = upgradeCount > 0 ? 'inline-flex' : 'none';
+    upAllBtn.textContent = `一键升级 (${upgradeCount})`;
+
+    const listEl = document.getElementById('store-list');
+    listEl.innerHTML = rows.map(r => {
+      const btn = r.state === 'install'
+        ? '<button class="btn btn-compact btn-secondary">安装</button>'
+        : r.state === 'upgrade'
+          ? '<button class="btn btn-compact btn-primary">升级</button>'
+          : '<span style="font-size:12px;color:var(--ink-3)">已是最新</span>';
+      const statusBadge = r.state === 'upgrade'
+        ? '<span class="badge" style="background:var(--accent-soft);color:var(--accent)">有新版可升级</span>'
+        : (r.state === 'latest' ? '<span class="badge ok">已安装</span>' : '');
+      const srcName = isVensrc ? 'laincat/vensrc' : '官方源';
+      const verText = r.state === 'upgrade'
+        ? `当前 v${r.local} → 新版 v${r.ver} · 来源：${srcName}`
+        : (r.local ? `已装 v${r.local} · 来源：${srcName}` : `版本 v${r.ver} · 来源：${srcName}`);
+      return `
+        <div class="store-row">
+          <div style="min-width:0;flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:13.5px;font-weight:600;color:var(--ink-1);">${r.name}</span>
+              ${statusBadge}
+            </div>
+            <div style="font-size:11.5px;color:var(--ink-3);margin-top:3px;">${verText}</div>
+          </div>
+          ${btn}
+        </div>
+      `;
+    }).join('');
+  }
+
+  function setRepo(r) { repo = r; render(); }
+  function setTrack(t) { track = t; render(); }
+  function openStore() { closeOverlays(); document.getElementById('store-overlay').classList.add('open'); }
+  function openDrawer() { closeOverlays(); document.getElementById('drawer-overlay').classList.add('open'); }
+  function closeOverlays() {
+    document.getElementById('store-overlay').classList.remove('open');
+    document.getElementById('drawer-overlay').classList.remove('open');
+  }
+  function toggleAddMenu() {
+    document.getElementById('add-menu').classList.toggle('open');
+  }
+
+  render();
+</script>
+</body>
+</html>

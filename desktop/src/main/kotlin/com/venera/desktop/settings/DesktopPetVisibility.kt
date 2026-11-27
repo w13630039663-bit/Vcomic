@@ -11,7 +11,7 @@ object DesktopPetVisibility {
 
     private const val PREF_KEY = "pref_desktop_pet_visible"
 
-    private val _visible = MutableStateFlow(true)
+    private val _visible = MutableStateFlow(false)
 
     /** 当前是否显示侧栏桌宠。 */
     val visible: StateFlow<Boolean> = _visible.asStateFlow()
@@ -19,7 +19,7 @@ object DesktopPetVisibility {
     /**
      * 冷启动回填桌宠显示状态。
      *
-     * @param saved 持久化存储中的布尔值，未存过时默认显示
+     * @param saved 持久化存储中的布尔值，未存过时默认关闭
      */
     fun restore(saved: Boolean) {
         _visible.value = saved

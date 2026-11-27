@@ -25,6 +25,7 @@ object DesktopSourceIcons {
         "comick" to "comick.png",
         "copy_manga" to "copy_manga.png",
         "copy_manga_multi_accounts" to "copy_manga.png",
+        "copy_web_routes" to "copy_manga.png",
         "ehentai" to "ehentai.png",
         "gelbooru" to "gelbooru.png",
         "goda" to "goda.png",
@@ -52,7 +53,8 @@ object DesktopSourceIcons {
     val keys: Set<String> get() = FILE_OF.keys
 
     /** classpath 资源路径；无图标 = `null`。 */
-    fun resourceOf(key: String): String? = FILE_OF[key]?.let { "sources/icons/$it" }
+    fun resourceOf(key: String): String? =
+        (FILE_OF[key] ?: FILE_OF[key.lowercase()])?.let { "sources/icons/$it" }
 
     /** 图标原始字节；无图标或读失败 = `null`（调用点自己解码）。 */
     fun bytesOf(key: String): ByteArray? = resourceOf(key)?.let { path ->

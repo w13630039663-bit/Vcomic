@@ -345,10 +345,14 @@ class DesktopImagePipelineTest {
     }
 
     @Test
-    fun Hitomi源码已切为WEBP以适配桌面解码器() {
+    fun Hitomi源码已切为WEBP并修正缩略图动态子域与代理归属() {
         val hitomi = java.io.File(DesktopSourceTree.repoRoot, "desktop/src/main/resources/sources/hitomi.js").readText()
         assertTrue("缩略图应走 webpbigtn/webpsmalltn", hitomi.contains("webpbigtn") && hitomi.contains(".webp"))
         assertTrue("正文页应走 webp 目录", hitomi.contains("url_from_url_from_hash(0, image, \"webp\")"))
+        assertTrue("不应保留已失效的 wtn 硬编码子域", !hitomi.contains("https://wtn."))
+        assertTrue("缩略图应走动态 tn 子域与 atn 兜底", hitomi.contains("\"atn\"") && hitomi.contains("thumbnail_subdomain_from_hash"))
+        assertTrue(com.venera.engineprobe.DesktopCloudflareCenter.isProxyRequiredHost("atn.gold-usergeneratedcontent.net"))
+        assertTrue(com.venera.engineprobe.DesktopCloudflareCenter.isProxyRequiredHost("btn.gold-usergeneratedcontent.net"))
     }
 
     @Test

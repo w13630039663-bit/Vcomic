@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Pets
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Search
@@ -233,6 +234,7 @@ private data class BentoEntry(
 private fun bentoEntries(): List<BentoEntry> = listOf(
     BentoEntry(DesktopSettingsSection.APPEARANCE, "外观", "主题 · 布局 · 效果", Icons.Outlined.Palette),
     BentoEntry(DesktopSettingsSection.GALLERY, "浏览", "清晰度 · 标记 · 角标", Icons.Outlined.PhotoLibrary),
+    BentoEntry(DesktopSettingsSection.PIXEL_BUDDY, "像素伙伴", "贴壁爬行 · 拼字 · 互动", Icons.Outlined.Pets),
     BentoEntry(DesktopSettingsSection.DATA, "数据", "目录 · 缓存 · 备份", Icons.Outlined.Storage),
     BentoEntry(DesktopSettingsSection.READER, "阅读器", "模式 · 翻页 · 连播", Icons.Outlined.MenuBook),
     BentoEntry(DesktopSettingsSection.SOURCES, "账号", "凭据 · 反搜 · 站点", Icons.Outlined.Laptop),
@@ -395,6 +397,7 @@ private fun OverviewRail(
 private fun overviewSectionIcon(section: DesktopSettingsSection): androidx.compose.ui.graphics.vector.ImageVector =
     when (section) {
         DesktopSettingsSection.APPEARANCE -> Icons.Outlined.Palette
+        DesktopSettingsSection.PIXEL_BUDDY -> Icons.Outlined.Pets
         DesktopSettingsSection.GALLERY -> Icons.Outlined.GridView
         DesktopSettingsSection.EXPLORE -> Icons.Outlined.PhotoLibrary
         DesktopSettingsSection.READER -> Icons.Outlined.MenuBook

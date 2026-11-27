@@ -175,7 +175,7 @@ internal class DesktopGalleryPixivWorks(
     private fun detailCacheKey(illustId: Long) = "workDetail|v2|$illustId"
 
     override suspend fun ranking(mode: PixivRankingMode, page: Int, fresh: Boolean) =
-        cached("ranking|$mode|$page", TTL_ANON, PixivApiChannel.WWW, bypass = fresh) {
+        cached("ranking|v2|$mode|$page", TTL_ANON, PixivApiChannel.WWW, bypass = fresh) {
             client.ranking(mode, page)
         }
 
